@@ -1,0 +1,292 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: tcpci
+spec_file: tcpci.spec.yaml
+spec_sha256: 20e6f855e39a52b7e442e6ab237f641be2815ef4218c34572a885cb66f90b569
+canonical: fact-v1
+sources:
+- name: usb-tcpci-r2.0.pdf
+  url: https://www.usb.org/sites/default/files/USB_TCPCI_R2.0_V1.3_202310.pdf
+  sha256: 0cc82e39b94351e12243f8f9bb978a670a3a2c7f9290fce90ce5e40b336a50ae
+  fetch: ok
+  note: Fetched directly from the USB-IF document library URL; SHA-256 verified and page text extracted
+    with pdftotext.
+summary:
+  pass: 24
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  tcpm-tcpc-split:
+    basis: 9ba75771e5d022c4c7c43b38fb5f543dbda1100b9a376c12755862d96a880f25
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 1 (Fig. 1-1, p. 12), Section
+      1.1 (p. 12), Section 1.4.1 (p. 13), Section 2.2 (Fig. 2-1, p. 15), Section 3.1-3.3 (pp. 18-19),
+      and Section 3.6 (Figs. 3-3, 3-4, pp. 21-22): TCPM/TCPC architectural split, three normative TCPC
+      functions, BMC PHY and lower Protocol Layer scope (GoodCRC, CRCReceiveTimer, RetryCounter, MessageID/SOP
+      matching on expected GoodCRC), opacity to non-GoodCRC MessageIDs, BFSK prohibition, and table >
+      figure > text precedence match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  i2c-transport-and-access-rules:
+    basis: b94626c5a487da85eb4e5d125d73cd3bbbc24ef14c4c058840c9ae677ffb53de
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4 items 1-11 (pp. 32-33), Section
+      4.1 (pp. 32-33), Section 4.2 (p. 33), Section 4.3 (pp. 36-38), and Section 4.10 Tables 4-50 and
+      4-51 (pp. 107-108): single-master per-port slave addressing, Fm+ 400-1000 kHz at 1 Mbit/s, VDD 1.8-3.6
+      V, little-endian 16-bit layout, SMBus multi-byte access rules and error responses, and SMBus CRC-8
+      PEC behavior match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  register-map-overview:
+    basis: 7e9bc06cc44f303d32b6f69b86a45a589c0c17dcb0c28e05d828d9462bb7e23a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.2 Table 4-1 (pp. 33-35): all
+      register address ranges and names across 00h..FFh, reserved blocks (0Ch..0Fh, 22h, 2Bh, 7Eh..7Fh),
+      hidden buffer ranges (30h..4Fh read at 30h, 51h..6Fh written at 51h), DEVICE_CAPABILITIES_3 (7Ch..7Dh),
+      and vendor registers (80h..FFh) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  identification-registers:
+    basis: e8ee9b157f668d11118b345cc0afc377a6579e76c42e2497e8a7671a4c685105
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (p. 33), Section 4.4.1 Tables
+      4-2 to 4-7 (pp. 42-43), and Section 4.4.6.2 Table 4-23 B6 (p. 63): all six 16-bit read-only identification
+      registers (00h..0Bh), packed BCD revision/version fields (21h, 31h/10h, 20h/13h), and validity during
+      TCPCInitializationStatus=1b match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  device-capabilities-1-2-3:
+    basis: e16aede3da748798ac71e8101c426a1f7492ee0c7dc69d88d4e0f38c1290ca4e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (pp. 34-35), Section 4.4.9.1
+      Tables 4-28 and 4-29 (pp. 71-74), and Section 4.4.9.2 Table 4-30 (p. 74): all bitfields and multi-bit
+      encodings of DEVICE_CAPABILITIES_1 (24h..25h), DEVICE_CAPABILITIES_2 (26h..27h), and DEVICE_CAPABILITIES_3
+      (7Ch..7Dh) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  standard-io-capabilities-and-config:
+    basis: 2d2b7e1907c85ef1c7a74c5985ce3b79fc593aed67ee0988494b315a0285795d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (pp. 33-34), Section 4.4.4
+      Table 4-14 (p. 50), Section 4.4.9.3 Table 4-31 (p. 75), Section 4.4.9.4 Table 4-32 (pp. 75-76),
+      and Section 4.4.10 Table 4-33 (p. 76): STANDARD_INPUT_CAPABILITIES (28h), STANDARD_OUTPUT_CAPABILITIES
+      (29h), CONFIG_STANDARD_OUTPUT (18h, reset 60h), and CONFIG_EXTENDED1 (2Ah, reset 00h) bitfields,
+      polarities, and DebugAccessoryControl ownership rules match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  alert-and-mask-registers:
+    basis: 4c539d7695465b6c6a6cf3ab45b614af29f1ea9f7e3be461e7deee6e36c4bbdd
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (p. 33), Section 4.4.2 Table
+      4-8 (pp. 44-45), Section 4.4.3 Tables 4-9 to 4-13 (pp. 46-49), Section 4.4.6.3 (p. 64), and Appendix
+      C Table 4-53 (p. 113): ALERT (10h..11h) and ALERT_MASK (12h..13h) B15:0 definitions, RW1C semantics,
+      reset values (0000h, 7FFFh, FFh, FFh, 01h, 07h), and tSinkTxOKService (5 ms typ, 15 ms max) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  tcpc-control-register:
+    basis: 176390655218e7a857bac68dd53021a092467e896c9be17fb9ee9adca951a8e7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4 / 4.1 (pp. 32-33), Table 4-1
+      (p. 33), Section 4.4.5.1 Table 4-15 (pp. 51-52), and Table 4-51 Note 7 (p. 108): TCPC_CONTROL (19h,
+      reset 00h) bits B0..B7 and I2C clock-stretching / bit-level NAK rules match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  role-control-register:
+    basis: 7e8a489cec79aeb1880bb344740ecf6ea1d111c12cbe77fec0f10bfd0a4741f0
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.5.2 Tables 4-16 and 4-17
+      (pp. 52-53), Section 4.6 Fig. 4-18 (p. 88), and Section 4.8.3 (p. 105): ROLE_CONTROL (1Ah) bitfields
+      B7..B0, DRP preconditions, CC_STATUS disable condition (DRP=0b, CC1=CC2=11b), and power-on reset
+      default values (0Ah, 05h, 4Ah, 0Fh) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  cc-status-register:
+    basis: 21c9333de6c056aaf97e2e804b9e7fc5273f25bb02fe0f47820748254a4b4b30
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.6.1 Tables 4-21 and 4-22
+      (pp. 61-62) and Section 4.9 Table 4-49 (p. 107): CC_STATUS (1Dh) bitfields, Source vs Sink CC1/CC2
+      state encodings, 00b reporting conditions, and timing parameters tSetReg (50 us max), tTCPCfilter
+      (250-500 us), and tCcStatusDelay (200 us max) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  power-control-and-discharge:
+    basis: 6228cd5aca77245cfaf305585ef14260e01f89001808469c0ee2a261d7e82ecf
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 3.1 (p. 18), Table 4-1 (p. 33),
+      Section 4.4.5.4 Tables 4-19 and 4-20 (pp. 54-58), and Section 4.8.4 (p. 106): POWER_CONTROL (1Ch,
+      reset 60h) bits B0..B7, VCONN enable/disable ordering and Source Rdch discharge requirement, Force
+      Discharge and Auto Discharge triggers, and tDisconnectDetect (6 ms max) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  power-and-extended-status-registers:
+    basis: 233c47be8967dc6cc97fe14ea4aa05637328b7f73cdb451844192024151ee43b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.6.2 Table 4-23 (pp. 63-64),
+      Section 4.4.6.4 Table 4-25 (p. 65), Fig. 4-21 (p. 91), and Section 4.8.4.1 (p. 106): POWER_STATUS
+      (1Eh) bits B0..B7, VCONN/VBUS voltage thresholds (2.4 V, 4 V / 3.5 V), and EXTENDED_STATUS (20h)
+      B0 vSafe0V (0.8 V max) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  fault-control-and-status-registers:
+    basis: 58ffc6e96e6b06809f411b1c5c1c31ca4b8e25cf97ef6f269216ed0946d75394
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 3.8 (p. 31), Table 4-1 (pp. 33-34),
+      Section 4.4.5.3 Table 4-18 (p. 54), Section 4.4.6.3 Table 4-24 (pp. 64-65), Section 4.4.7 Table
+      4-26 (pp. 65-66), Section 4.4.11 Table 4-34 (pp. 76-77), Section 4.6 (p. 88), Section 4.8.5 (p.
+      106), and Table 4-49 (p. 107): FAULT_CONTROL (1Bh), FAULT_STATUS (1Fh, reset 80h, RW1C), ALERT_EXTENDED
+      (21h), GENERIC_TIMER (2Ch..2Dh, 0.1 ms LSB), and tHVWatchdog (650-5000 ms) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  command-register:
+    basis: 6bcd987d05a3a2df4bf988db01dde33907662fd298d88e70a604b040f0091611
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (p. 34), Section 4.4.8 Table
+      4-27 (pp. 67-69), and Section 4.9 Table 4-49 (p. 107): all 14 COMMAND (23h) opcodes (11h..FFh),
+      invalid-command I2CInterfaceError triggers, and tTCPCSendFRSwap (50 us max) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  pd-message-header-and-receive-detect:
+    basis: a82eb17e8470100a6ab23c497c9bd65df8e8a92a84e3c1995306947cde999782
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 3.6 Fig. 3-3 (p. 21), Table 4-17
+      (p. 53), Section 4.4.12 Table 4-35 (p. 78), Section 4.4.13 Table 4-36 (pp. 78-79), and Table 4-49
+      (p. 107): MESSAGE_HEADER_INFO (2Eh, defaults 0Dh/04h) and RECEIVE_DETECT (2Fh, reset 00h) bitfields,
+      GoodCRC generation within tCc2BUFFER (50 us max), and disconnect/reset clearing behavior match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  pd-receive-buffer-and-protocol:
+    basis: 8d0e3b7d9565d041cad64221042315fafaea6bdfcc7e612602c55e23eecd6555
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (p. 34), Section 4.3.6 Fig.
+      4-6 (p. 38), Table 4-8 (pp. 44-45), Table 4-27 (p. 69), Section 4.4.14 Tables 4-37 and 4-38 (pp.
+      79-80), and Sections 4.7.5-4.7.7 and 4.7.9 (pp. 100-104): RECEIVE_BUFFER (30h) layout, RX_BUF_FRAME_TYPE
+      encodings, ResetReceiveBuffer (EEh) pointer behavior, LongMessage=0b/1b two-step reception, and
+      Cable Reset byte count match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  pd-transmit-buffer-and-protocol:
+    basis: e4a1bcb9fe387f4f10389271e9571ea6dfe706e20eec7ca15bf0a75850d4ba65
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 1.4.1 (p. 13), Section 3.6 Fig.
+      3-4 (pp. 21-22), Table 4-1 (p. 34), Section 4.3.5 Fig. 4-5 (p. 38), Section 4.4.15 Table 4-39 (pp.
+      80-81), Section 4.4.16 Table 4-40 (pp. 81-82), Sections 4.7.1-4.7.2 (pp. 97-100), and Table 4-49
+      (p. 107): TRANSMIT_BUFFER (51h) and TRANSMIT (50h) layouts, burst write rules (30 vs 132 bytes),
+      tBUFFER2CC (195 us max), and completion alerts match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  vbus-voltage-thresholds-and-alarms:
+    basis: e15d120e2f0881c1011e6db757370052579df39d5b6a114b746c8d45d31eaf4a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Table 4-1 (p. 35), Table 4-29 (pp. 72-73),
+      Section 4.4.17 Table 4-41 (p. 82), Section 4.4.18 Tables 4-42 to 4-45 (pp. 83-85), Section 4.4.19
+      Table 4-46 (p. 85), and Section 4.8.4 (p. 106): VBUS_VOLTAGE (70h..71h), threshold/alarm registers
+      (72h..79h, 25 mV LSB, resets 008Ch/0020h/0000h), and VBUS_NONDEFAULT_TARGET (7Ah..7Bh, 20 mV LSB,
+      3.3 V / 00A5h min) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  power-on-and-drp-connection-sequence:
+    basis: 37a983d462c7df6befd12b89edffe4763ac4685e2c4c247a8427388871a28059
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.5.2 (p. 52) and Section 4.6
+      Figs. 4-18, 4-19, 4-20, and 4-24 (pp. 88-90, 94): power-on TCPCInitializationStatus check, DRP toggling
+      sequence, Main State-Machine transitions, and AutoDischargeDisconnect=1b validation of ROLE_CONTROL
+      vs PlugOrientation match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  i2c-idle-and-wake-sequence:
+    basis: 785af862728094276153bcd003073a1b853c81cad43018c733bd83dfa1ce6331
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.8 (p. 67), Table 4-27 (pp.
+      68-69), and Section 4.8.1 (p. 105): COMMAND.I2CIdle (FFh) decoupling, bit-level NAK in idle, throw-away
+      / WakeI2C (11h) wake sequence, tWakeI2Cfail (5 ms max) retry, and ALERT.PowerStatus=1b assertion
+      without POWER_STATUS bit changes match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  gotcha-hard-reset-tx-sets-both-success-and-fail:
+    basis: 03c7d3c5e851fe69758ec20485214403dfdc28772345504c2d26ee77d0e880f3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 2.4 (p. 16), Section 3.6 Fig.
+      3-5 (pp. 21-22), Section 4.4.3 (pp. 46-48), Section 4.4.15 (pp. 80-81), Sections 4.7.3, 4.7.4, and
+      4.7.8 (pp. 100, 104), and Fig. A-3 (p. 110): Hard/Cable Reset completion asserting both TransmitSOP*MessageSuccessful
+      and TransmitSOP*MessageFailed, mask register resets, and ALERT preservation match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  gotcha-rx-buffer-overflow-and-nested-alert-clearing:
+    basis: 438950e7de1cd9ce45e206b51f40cde0a7d2c85751a588aaf9125b7e93e2ecc0
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 3.3 (pp. 18-19), Section 4.4.2
+      Table 4-8 (pp. 44-45), Section 4.4.6.3 (p. 64), Section 4.4.7 (pp. 65-66), Section 4.4.15 (pp. 80-81),
+      and Section 4.7.5 (pp. 100-101): clearing RxBufferOverflow together with ReceiveSOP*MessageStatus,
+      clearing nested FAULT_STATUS/ALERT_EXTENDED before top-level ALERT bits, and clearing receive alerts
+      before TRANSMIT match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  gotcha-cc-status-zeroed-conditions:
+    basis: 32fb67d618493f33f3302aa3d4c5bdb7183228a5aac4df76367623e73895e858
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 4.4.6.1 Table 4-22 (pp. 61-62)
+      and Section 4.8.3 (p. 105): CC_STATUS CC1/CC2 00b conditions (Looking4Connection=1b, Ra/Open, CC
+      reporting disabled, VCONN pin per PlugOrientation) and Source vs Sink 01b/10b/11b encodings match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  gotcha-drp-look4connection-autodischarge-gate:
+    basis: e4f39812b1ba7ec2fa5d12b1dea5f97c76846a7f4bae916b4b8f8cbf51a8bcf2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, independent spec-verifier subagent
+    note: 'Document bytes matched the declared SHA-256. Verified Section 2.5 (p. 16), Section 4.4.5.2
+      Tables 4-16 and 4-17 (pp. 52-53), Section 4.4.5.4.4 (pp. 57-58), Section 4.4.8 Table 4-27 (pp. 67-68),
+      and Section 4.6 Figs. 4-18, 4-19, 4-21, 4-25, and 4-26 (pp. 88-89, 91, 95-96): AutoDischargeDisconnect=0b
+      gate on Look4Connection, disabling Sink disconnect detection before PR_Swap/FRS, and autonomous
+      Start_Debug_Accessory Look4Connection match.'
+    contrary_evidence: none-found
+    citation_precision: exact
