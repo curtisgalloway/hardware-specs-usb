@@ -83,11 +83,12 @@ documents:
   access: public
   subsystem: protocol
   disposition: "planned: no USB4 host router spec has been requested yet"
-- name: eusb2
+- name: eusb2-2.0.pdf
   title: Embedded USB2 (eUSB2) Version 2.0 Supplement to the USB 2.0 Specification
+  sha256: a78f2e1165a303de948b226140e92d465c15e2fd4e7abf81089b2346576e3d99
   access: public
   subsystem: protocol
-  disposition: "planned: no eUSB2 consumer yet"
+  disposition: spec:eusb2
 - name: usb-bc-1.2.pdf
   title: Universal Serial Bus Battery Charging Specification, Revision 1.2 (with Errata through March 15, 2012)
   sha256: f76a1d13545a9e6ff78cdf7b100f16d96b6218e1038b4f54f6d57d54aa481bd9
@@ -136,6 +137,10 @@ blocks:
   title: USB 2.0 split transactions and transaction translator
   subsystem: protocol
   disposition: spec:usb2#split-token-format
+- name: eusb2
+  title: Embedded USB2 (eUSB2V2) physical and link layer supplement
+  subsystem: protocol
+  disposition: spec:eusb2
 - name: ehci
   title: EHCI host controller interface
   subsystem: host-controller
