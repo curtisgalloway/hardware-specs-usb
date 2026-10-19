@@ -39,11 +39,12 @@ documents:
   access: public
   subsystem: type-c
   disposition: "planned: a TCPCI register-interface spec"
-- name: usb-ucsi-3.1
+- name: usb-ucsi-3.1.pdf
   title: USB Type-C Connector System Software Interface (UCSI) Specification, Revision 3.1
+  sha256: 670e3563861824da9f86007fead68a411e620a23aca80b344ece08e27a7dc0a6
   access: public
   subsystem: type-c
-  disposition: "planned: after the Type-C and PD specs it depends on"
+  disposition: spec:ucsi
 - name: usb-2.0.pdf
   title: Universal Serial Bus Specification Revision 2.0 (base specification, April 2000)
   sha256: d39698a33486c399124af92bd02e4f978fd9a836b5cf4e52e6e4633eb1d89f61
@@ -168,7 +169,7 @@ blocks:
 - name: ucsi
   title: UCSI connector system software interface
   subsystem: type-c
-  disposition: "planned: after the Type-C and PD specs"
+  disposition: spec:ucsi
 - name: usb-bc
   title: USB Battery Charging (BC 1.2) port detection
   subsystem: power-delivery
