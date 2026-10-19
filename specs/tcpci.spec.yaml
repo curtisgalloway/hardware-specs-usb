@@ -1,0 +1,1123 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: tcpci
+name: USB Type-C Port Controller Interface (TCPCI)
+triggers:
+- tcpci
+- TCPC
+- TCPM
+- Type-C Port Controller Interface
+- USB Type-C Port Controller
+resources:
+  documents:
+  - name: usb-tcpci-r2.0.pdf
+    class: standard
+    title: Universal Serial Bus Type-C Port Controller Interface Specification
+    revision: Revision 2.0, Version 1.3, January 2022
+    url: https://www.usb.org/document-library/usb-type-cr-port-controller-interface-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/USB_TCPCI_R2_V1p3_30122_CLEAN.pdf
+    sha256: 0cc82e39b94351e12243f8f9bb978a670a3a2c7f9290fce90ce5e40b336a50ae
+    pages: 113
+    page_numbering: pdf
+    access: public
+    verified: '2026-10-19'
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the PDF directly without an account (its catalog entry is
+      dated October 2023; the PDF title page and revision history date Revision 2.0, Version 1.3 as
+      January 2022). No page carries a confidentiality marking. The PDF has no outline (bookmarks),
+      so no specs/index/ file is generated for it. The USB 3.0 Promoter Group's copyright and
+      limited copyright license terms remain applicable; the bytes are not redistributed. Printed
+      page numbers equal PDF page numbers.
+orientation: >-
+  Terms: the TCPM (USB Type-C Port Manager) is the host or embedded controller driver holding the
+  Policy Engine, the Type-C state machines, and the upper portion of the USB Power Delivery (PD)
+  Protocol Layer; the TCPC (USB Type-C Port Controller) is the port controller IC reached over I2C
+  that encapsulates VBUS and VCONN power control, CC pin terminations and comparators, the USB PD
+  BMC Physical Layer, and the time-critical lower portion of the USB PD Protocol Layer (automatic
+  GoodCRC generation, CRCReceiveTimer, and retries). Alert# is the TCPC's open-drain active-low
+  interrupt line to the TCPM. SOP* refers to SOP, SOP', SOP'', SOP_DBG' and SOP_DBG'' frames. This
+  spec records the standard TCPCI register interface and operational sequences; how a particular
+  board or SoC wires a TCPC (I2C bus, slave address, Alert# GPIO, external power switches) belongs
+  in that board's or SoC's spec.
+facts:
+- id: tcpm-tcpc-split
+  section: standards
+  title: Split between the Type-C Port Manager (TCPM) and Type-C Port Controller (TCPC)
+  claim: >-
+    The TCPCI specification defines the register-level interface over I2C between a USB Type-C Port
+    Manager (TCPM, the I2C master holding the Policy Engine and the upper portion of the USB PD
+    Protocol Layer) and one or more USB Type-C Port Controllers (TCPCs, each an I2C slave with an
+    open-drain active-low Alert# pin). The TCPC encapsulates three normative functions: VBUS and
+    VCONN port power control, USB Type-C CC pin control and sensing, and USB PD message delivery
+    (the entire BMC Physical Layer and the portion of the USB PD Protocol Layer covering automatic
+    GoodCRC transmission, CRCReceiveTimer, RetryCounter, and matching MessageID and SOP type on
+    expected GoodCRC responses). The TCPC is opaque to USB PD messages: it does not interpret
+    messages constructed by the TCPM, does not check MessageID when receiving a non-GoodCRC message
+    (passing retried messages to the TCPM over I2C), and shall not include support for USB PD BFSK.
+    Where text, figures and tables in the specification conflict, tables take precedence over
+    figures, and figures over text.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '12'
+      section: '1'
+      figure: '1-1'
+    - page: '12'
+      section: '1.1'
+    - page: '13'
+      section: 1.4.1
+    - page: '15'
+      section: '2.2'
+      figure: '2-1'
+    - pages: ['18', '19']
+      section: '3'
+    - pages: ['21', '22']
+      section: '3.6'
+      figure: '3-3'
+    - page: '22'
+      figure: '3-4'
+
+- id: i2c-transport-and-access-rules
+  section: programming-model
+  title: I2C bus requirements, single-register transactions and SMBus PEC
+  claim: >-
+    The TCPM is the only master on the I2C bus and each USB Type-C port has its own unique I2C
+    slave address (a multi-port TCPC exposes a unique slave address per port). The TCPC must
+    support Fast-mode Plus (Fm+, 1 Mbit/s, 400 kHz to 1000 kHz SCL clock frequency) over an I/O
+    supply voltage (VDD) of 1.8 V to 3.6 V, and must allow reads to every register even when
+    defined as write-only (the TCPM should treat data read from a write-only register as invalid).
+    Each 16-bit (2-byte) register occupies two contiguous bytes in little-endian order, with the 8
+    least significant bits at the lower address and the 8 most significant bits at the higher
+    address. Adopting part of the SMBus protocol as normative, the TCPM must read or write only a
+    single register per I2C transaction, write a complete register in a single I2C transaction, and
+    begin every register access at its first byte; if the TCPM reads or writes an address that is
+    not the first byte of a register, or accesses multiple registers in one transaction, the TCPC
+    may assert FAULT_STATUS.I2CInterfaceError and ignore the write or leave SDA open on a read so
+    the TCPM reads all 1s. When DEVICE_CAPABILITIES_2.SMBusPEC (bit 11) is 1b and the TCPM sets
+    TCPC_CONTROL.EnableSMBusPEC (bit 7) to 1b, every transaction is appended with an SMBus CRC-8
+    Packet Error Code (PEC) byte, and on writes the TCPC checks the PEC in real time and generates
+    a bit-level NAK to the PEC byte if it is incorrect.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['32', '33']
+      section: '4'
+    - pages: ['32', '33']
+      section: '4.1'
+    - page: '33'
+      section: '4.2'
+    - pages: ['36', '38']
+      section: '4.3'
+    - pages: ['107', '108']
+      section: '4.10'
+      table: '4-50'
+    - page: '108'
+      table: '4-51'
+  todo:
+    check: document
+    text: >-
+      The three allowed TCPC responses when the TCPM writes to an unimplemented or reserved
+      register or bit (ignore, bit-level NAK, or assert FAULT_STATUS.I2CInterfaceError, p. 32), the
+      remaining I2C static and dynamic electrical parameters in Tables 4-50 and 4-51 (pp. 107-108,
+      including the 1.7 V to 3.3 V range stated in section 4.10 prose vs 1.8 V to 3.6 V in section
+      4 and Table 4-50), and the bit-level transaction diagrams in Figures 4-1 to 4-12 (pp. 36-41)
+      are not extracted.
+
+- id: register-map-overview
+  section: programming-model
+  title: TCPCI register map layout (00h to FFh)
+  claim: >-
+    Table 4-1 partitions the 256-byte TCPC register address space as follows: identification
+    registers at 00h..0Bh (0Ch..0Fh reserved), ALERT at 10h..11h, mask registers at 12h..17h,
+    CONFIG_STANDARD_OUTPUT at 18h, control registers at 19h..1Ch (TCPC_CONTROL 19h, ROLE_CONTROL
+    1Ah, FAULT_CONTROL 1Bh, POWER_CONTROL 1Ch), status and extended alert registers at 1Dh..21h
+    (CC_STATUS 1Dh, POWER_STATUS 1Eh, FAULT_STATUS 1Fh, EXTENDED_STATUS 20h, ALERT_EXTENDED 21h;
+    22h reserved), COMMAND at 23h, capability registers at 24h..29h (DEVICE_CAPABILITIES_1 24h..25h,
+    DEVICE_CAPABILITIES_2 26h..27h, STANDARD_INPUT_CAPABILITIES 28h, STANDARD_OUTPUT_CAPABILITIES
+    29h), CONFIG_EXTENDED1 at 2Ah (2Bh reserved), GENERIC_TIMER at 2Ch..2Dh, MESSAGE_HEADER_INFO at
+    2Eh, RECEIVE_DETECT at 2Fh, RECEIVE_BUFFER always read at 30h (READABLE_BYTE_COUNT and hidden
+    RX_BUF_FRAME_TYPE and RX_BUF_BYTE_x across 30h..4Fh), TRANSMIT at 50h, TRANSMIT_BUFFER always
+    written at 51h (I2C_WRITE_BYTE_COUNT and hidden TX_BUF_BYTE_x across 51h..6Fh), VBUS voltage,
+    threshold, alarm and target registers at 70h..7Bh, DEVICE_CAPABILITIES_3 at 7Ch..7Dh (7Eh..7Fh
+    reserved), and optional vendor-defined registers at 80h..FFh.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['33', '35']
+      section: '4.2'
+      table: '4-1'
+  todo:
+    check: document
+    text: >-
+      The per-register Normative/Optional classifications, R/W access types and reset values of
+      Table 4-1 (pp. 33-35) are covered in the individual register facts rather than duplicated
+      row-by-row here.
+
+- id: identification-registers
+  section: programming-model
+  title: Identification and specification revision registers (00h to 0Bh)
+  claim: >-
+    Six normative 16-bit read-only registers at 00h..0Bh identify the TCPC and are the only
+    registers (along with reserved 0Ch..0Fh) guaranteed to return valid values while
+    POWER_STATUS.TCPCInitializationStatus (bit 6) is 1b: VENDOR_ID at 00h..01h (16-bit unsigned
+    VID assigned by the USB-IF), PRODUCT_ID at 02h..03h (16-bit unsigned PID assigned by the
+    vendor), DEVICE_ID at 04h..05h (16-bit unsigned bcdDevice version assigned by the vendor),
+    USBTYPEC_REV at 06h..07h (bits 15:8 reserved 0, bits 7:0 packed BCD bcdUSBTYPEC release such as
+    21h for USB Type-C Release 2.1), USBPD_REV_VER at 08h..09h (bits 15:8 packed BCD bcdUSBPD
+    Revision and bits 7:0 packed BCD bcdUSBPD Version, such as 31h and 10h for USB PD Revision 3.1
+    Version 1.0), and PD_INTERFACE_REV at 0Ah..0Bh (bits 15:8 packed BCD bcd USB-PD Inter-Block
+    Specification Revision and bits 7:0 packed BCD Version, such as 20h and 13h for TCPCI Revision
+    2.0 Version 1.3).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '33'
+      section: '4.2'
+      table: '4-1'
+    - pages: ['42', '43']
+      section: 4.4.1
+      table: '4-2'
+    - page: '42'
+      table: '4-3'
+    - page: '42'
+      table: '4-4'
+    - page: '42'
+      table: '4-5'
+    - page: '43'
+      table: '4-6'
+    - page: '43'
+      table: '4-7'
+    - page: '63'
+      section: 4.4.6.2
+      table: '4-23'
+
+- id: device-capabilities-1-2-3
+  section: programming-model
+  title: Device capability registers (DEVICE_CAPABILITIES_1/2 at 24h..27h, DEVICE_CAPABILITIES_3 at 7Ch..7Dh)
+  claim: >-
+    The read-only nonvolatile capability registers advertise TCPC features to the TCPM:
+    DEVICE_CAPABILITIES_1 (24h..25h, normative) encodes Source VBUS (bit 0), Source Nondefault VBUS
+    (bit 1; requires bit 10 to be 1b), Sink VBUS (bit 2), Source VCONN (bit 3), SOP'_DBG/SOP''_DBG
+    Support (bit 4), Power Roles Supported (bits 7:5: 000b Source-only or Sink-only configured by
+    TCPM, not DRP; 001b Source-only; 010b Sink-only; 011b Sink with accessory support; 100b DRP
+    only; 101b Source, Sink, DRP, Adapter/Cable all supported; 110b Source, Sink, DRP; 111b not
+    valid), Source Resistor Supported (bits 9:8: 00b Rp default only, 01b Rp 1.5A and default, 10b
+    Rp 3.0A, 1.5A and default, 11b reserved), VBUS Measurement and Alarm Capable (bit 10), Force
+    Discharge (bit 11), Bleed Discharge (bit 12), VBUS OVP Reporting (bit 13), VBUS OCP Reporting
+    (bit 14), and VBUS Nondefault Target (bit 15). DEVICE_CAPABILITIES_2 (26h..27h, normative)
+    encodes VCONN Overcurrent Fault Capable (bit 0), VCONN Power Supported (bits 3:1: 000b 1.0W,
+    001b 1.5W, 010b 2.0W, 011b 3W, 100b 4W, 101b 5W, 110b 6W, 111b External), VBUS Voltage Alarm
+    LSB (bits 5:4: 00b 25 mV step using all bits, 01b 50 mV step ignoring bit 0, 10b 100 mV step
+    ignoring bits 1:0, 11b reserved), Stop Discharge Threshold (bit 6), Sink Disconnect Detection
+    (bit 7), Watchdog Timer (bit 8), Sink FR Swap (bit 9), Source FR Swap (bit 10), SMBus PEC (bit
+    11), Long Message (bit 12: 0b up to 30-byte SOP* message content, 1b up to 264-byte SOP*
+    message content), Generic Timer (bit 13), Message Disable Disconnect (bit 14), and
+    DEVICE_CAPABILITIES_3 Support (bit 15). When DEVICE_CAPABILITIES_2 bit 15 is 1b,
+    DEVICE_CAPABILITIES_3 (7Ch..7Dh, optional normative, bits 15:3 reserved 0) bits 2:0 (VBUS
+    Voltage Support) report the maximum nominal VBUS voltage supported (000b 5 V, 001b 9 V, 010b
+    15 V, 011b 20 V, 100b 28 V, 101b 36 V, 110b 48 V, 111b reserved), and the TCPC's VBUS threshold
+    and alarm registers must support voltages of at least that nominal maximum plus 10%.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['34', '35']
+      table: '4-1'
+    - pages: ['71', '72']
+      section: 4.4.9.1
+      table: '4-28'
+    - pages: ['72', '74']
+      table: '4-29'
+    - page: '74'
+      section: 4.4.9.2
+      table: '4-30'
+  todo:
+    check: document
+    text: >-
+      The per-power-role required/optional bit matrices for DEVICE_CAPABILITIES_1 and
+      DEVICE_CAPABILITIES_2 in Tables 3-1 and 3-2 (pp. 24-26) and the role requirement summaries in
+      Tables 3-3 to 3-6 (pp. 27-30) are not extracted.
+
+- id: standard-io-capabilities-and-config
+  section: programming-model
+  title: Standard input/output capability and configuration registers (28h, 29h, 18h, 2Ah)
+  claim: >-
+    STANDARD_INPUT_CAPABILITIES (28h, read-only, normative) declares optional standard input pins:
+    bit 0 Force Off VBUS (Source or Sink), bit 1 VBUS External Over Current Fault, bit 2 VBUS
+    External Over Voltage Fault, and bits 4:3 Source Fast Role Swap (00b not present, 01b input-only
+    pin, 10b bidirectional pin shared with the VBUS Sink Disconnect Detect Indicator output, 11b
+    reserved; bits 7:5 reserved 0). STANDARD_OUTPUT_CAPABILITIES (29h, read-only, normative)
+    declares optional push/pull or open-drain standard outputs: bit 0 Connector Orientation, bit 1
+    Connection Present, bit 2 MUX Configuration Control, bit 3 Active Cable Indicator, bit 4 Audio
+    Adapter Accessory Indicator, bit 5 VBUS Present Monitor, bit 6 Debug Accessory Indicator (if 0b,
+    the TCPC does not support the Debug Accessory State-Machine), and bit 7 VBUS Sink Disconnect
+    Detect Indicator (must be 1b if Source Fast Role Swap in 28h is 10b). When any standard outputs
+    are declared, CONFIG_STANDARD_OUTPUT (18h, R/W, reset 60h) configures or reads them: bit 0
+    Connector Orientation (0b Normal: CC1=A5, CC2=B5, TX1=A2/A3, RX1=B10/B11, default; 1b Flipped:
+    CC2=A5, CC1=B5, TX1=B2/B3, RX1=A10/A11), bit 1 Connection Present (0b no connection, 1b
+    connection), bits 3:2 MUX Control (00b no connection, 01b USB 3.1 connected, 10b DP Alternate
+    Mode 4 lanes, 11b USB 3.1 + DisplayPort lanes 0 & 1), bit 4 Active Cable Connected, bit 5 Audio
+    Accessory Connected# (0b connected, 1b not connected, default), bit 6 Debug Accessory
+    Connected# (0b connected, 1b not connected, default), and bit 7 High Impedance outputs (1b
+    forces all outputs to high impedance). For bits 6 and 0 of CONFIG_STANDARD_OUTPUT, the TCPC
+    writes the bits and ignores TCPM writes when TCPC_CONTROL.DebugAccessoryControl is 0b, and
+    takes input from the TCPM when DebugAccessoryControl is 1b. CONFIG_EXTENDED1 (2Ah, R/W, reset
+    00h, bits 7:2 reserved 0) controls Fast Role Swap pin behavior: bit 0 Standard Input Source FR
+    Swap (0b allow input pin to trigger sending FRS signal, default; 1b block) and bit 1 FR Swap
+    Bidirectional Pin (0b input Source FRS, default; 1b output VBUS Sink Disconnect Detect
+    Indicator; writing bit 1 when the bidirectional pin is not declared in 28h and 29h is ignored
+    and asserts FAULT_STATUS.I2CInterfaceError).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['33', '34']
+      table: '4-1'
+    - page: '50'
+      section: 4.4.4
+      table: '4-14'
+    - pages: ['75', '76']
+      section: 4.4.9.3
+      table: '4-31'
+    - pages: ['75', '76']
+      section: 4.4.9.4
+      table: '4-32'
+    - page: '76'
+      section: 4.4.10
+      table: '4-33'
+  todo:
+    check: document
+    text: >-
+      The pin-level signal descriptions and active polarities in Section 4.5 and Tables 4-47 and
+      4-48 (pp. 86-87) are not extracted separately.
+
+- id: alert-and-mask-registers
+  section: programming-model
+  title: ALERT (10h..11h), ALERT_MASK (12h..13h) and nested status masks (14h..17h)
+  claim: >-
+    ALERT (10h..11h, R/W, reset 0000h) latches status changes from the TCPC: when an event occurs,
+    the TCPC sets the corresponding ALERT bit to 1b and asserts the open-drain active-low Alert#
+    pin unless that bit is masked (0b) in ALERT_MASK (12h..13h, R/W, reset 7FFFh; masking prevents
+    Alert# assertion but has no effect on ALERT register bits). The TCPM clears ALERT bits by
+    writing 1b to the bit positions to clear (writing 0b has no effect, and writing 1b to a bit
+    already 0b leaves it 0b), and Alert# stays asserted until all unmasked ALERT bits are cleared.
+    The 16 ALERT bits (and matching ALERT_MASK bits) are: B0 CC Status (not asserted on
+    CC_STATUS.Looking4Connection changes when TCPC_CONTROL.EnableLooking4ConnectionAlert is 0b), B1
+    Power Status, B2 Received SOP* Message Status (not set when READABLE_BYTE_COUNT is set to 0),
+    B3 Received Hard Reset (not expected to be masked), B4 Transmit SOP* Message Failed, B5
+    Transmit SOP* Message Discarded, B6 Transmit SOP* Message Successful, B7 VBUS Voltage Alarm Hi,
+    B8 VBUS Voltage Alarm Lo, B9 Fault, B10 Rx Buffer Overflow, B11 VBUS Sink Disconnect Detected
+    (asserted only in Attached_Snk when POWER_CONTROL.AutoDischargeDisconnect is 1b), B12 Beginning
+    SOP* Message Status (set when READABLE_BYTE_COUNT > 133 for an extended message with > 128 data
+    bytes), B13 Extended Status, B14 Alert Extended, and B15 Vendor Defined Alert (reset masked in
+    ALERT_MASK at 7FFFh). POWER_STATUS_MASK (14h, reset FFh), FAULT_STATUS_MASK (15h, reset FFh),
+    EXTENDED_STATUS_MASK (16h, reset 01h, B0 vSafe0V Status Mask) and ALERT_EXTENDED_MASK (17h,
+    reset 07h, B0 Sink Fast Role Swap Mask, B1 Source Fast Role Swap Mask, B2 Timer Expired) are
+    nested masks: a change in one of those registers asserts Alert# only when unmasked in both its
+    nested mask register and the corresponding top-level bit of ALERT_MASK (note that section 4.4.3
+    prose on p. 46 mistakenly writes ALERT.PowerStatusInterruptMask for FAULT_STATUS_MASK, whereas
+    Table 4-9 B9 and section 4.4.6.3 p. 64 name ALERT_MASK.Fault). When a TCPM is connected to a
+    TCPC acting as a Source and has set SinkTxOK (Rp = 3.0A) so the Sink may initiate Atomic
+    Message Sequences, the TCPM must service TCPC Alerts (clearing ALERT and reading/clearing
+    RECEIVE_BUFFER if needed) within tSinkTxOKService (5 ms typical, 15 ms max, Table 4-53).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '33'
+      section: '4.2'
+      table: '4-1'
+    - pages: ['44', '45']
+      section: 4.4.2
+      table: '4-8'
+    - pages: ['46', '49']
+      section: 4.4.3
+      table: '4-9'
+    - page: '47'
+      table: '4-10'
+    - page: '48'
+      table: '4-11'
+    - page: '48'
+      table: '4-12'
+    - pages: ['48', '49']
+      table: '4-13'
+    - page: '64'
+      section: 4.4.6.3
+    - page: '113'
+      section: C
+      table: '4-53'
+  todo:
+    check: document
+    text: >-
+      The per-bit definitions of POWER_STATUS_MASK (Table 4-10, p. 47) and FAULT_STATUS_MASK (Table
+      4-11, p. 48) match the bit positions of POWER_STATUS and FAULT_STATUS (with Table 4-11 B7
+      noting that writing 0b to AllRegistersResetToDefault will not mask it because the reset
+      condition also resets that mask bit) and are not repeated here.
+
+- id: tcpc-control-register
+  section: programming-model
+  title: TCPC_CONTROL register (19h)
+  claim: >-
+    TCPC_CONTROL (19h, R/W, reset 00h) is set and cleared only by the TCPM after power-on reset: B0
+    Plug Orientation (0b: apply VCONN when enabled to CC2 and monitor CC1 for BMC PD
+    communications; 1b: apply VCONN when enabled to CC1 and monitor CC2 for BMC PD communications;
+    required), B1 BIST Test Mode (0b normal operation; 1b BIST Test Mode for PHY layer compliance
+    testing, where incoming messages enabled by RECEIVE_DETECT receive a GoodCRC reply and may be
+    stored in the receive buffer but may or may not assert Receive SOP* Message Status or Rx Buffer
+    Overflow alerts — the TCPM should clear B1 on disconnect), B3:2 I2C Clock Stretching Control
+    (optional; 00b disable clock stretching, default; 01b reserved; 10b enable limited clock
+    stretching during each I2C transfer; 11b enable clock stretching only while Alert# is not
+    asserted, disabling it as soon as Alert# asserts), B4 Debug Accessory Control (0b controlled by
+    TCPC, default; 1b controlled by TCPM; register bit is required), B5 Enable Watchdog Timer (0b
+    disabled, default; 1b enabled; required if DEVICE_CAPABILITIES_2.WatchdogTimer = 1b), B6 Enable
+    Looking4Connection Alert (0b disable ALERT.CcStatus assertion when
+    CC_STATUS.Looking4Connection changes, default; 1b enable), and B7 Enable SMBus PEC (0b
+    disabled, default; 1b enabled). Regardless of the clock stretching setting in B3:2, the TCPC is
+    never allowed to NAK I2C transfers unless the TCPM has put it to sleep with COMMAND.I2CIdle,
+    writes to an unimplemented or reserved register/bit, or sends an invalid SMBus PEC byte.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['32', '33']
+      section: '4'
+    - page: '33'
+      table: '4-1'
+    - pages: ['51', '52']
+      section: 4.4.5.1
+      table: '4-15'
+    - page: '108'
+      table: '4-51'
+
+- id: role-control-register
+  section: programming-model
+  title: ROLE_CONTROL register (1Ah) and power-on default terminations
+  claim: >-
+    ROLE_CONTROL (1Ah, R/W, B7 reserved 0) controls CC1 and CC2 terminations and autonomous DRP
+    toggling: B1:0 CC1 and B3:2 CC2 each select 00b Ra, 01b Rp (using the Rp value in B5:4), 10b
+    Rd, or 11b Open (disconnect or don't care); B5:4 Rp Value selects 00b Rp default, 01b Rp 1.5A,
+    10b Rp 3.0A, or 11b reserved; and B6 DRP selects 0b direct control by B3:0 (used for
+    Source-only, Sink-only, or manual Try.SRC/Try.SNK after DRP connection detection) or 1b
+    autonomous DRP toggling. When DRP = 1b, the only allowed values for CC1/CC2 are Rp/Rp (01b/01b)
+    or Rd/Rd (10b/10b), which select the initial toggling polarity; the TCPC does not start
+    toggling until the TCPM writes COMMAND.Look4Connection while
+    POWER_CONTROL.AutoDischargeDisconnect = 0b, and upon resolving to Potential_Connect_as_Src it
+    applies the Rp value in B5:4 and stays in Potential_Connect_as_Src or Potential_Connect_as_Sink
+    until directed otherwise. When DRP = 0b and CC1 = CC2 = 11b (Open), the TCPC disables CC_STATUS
+    reporting, sets CC_STATUS to all zeroes (which the TCPM must ignore) without setting or
+    clearing ALERT.CcStatus, and may power down the PHY and CC comparators; a Sink TCPC is
+    recommended to remove CC terminations while VBUS is present so a bus-powered Sink can enter USB
+    Type-C ErrorRecovery. At power-on reset (Table 4-17 and Figure 4-18), ROLE_CONTROL defaults to
+    0Ah (Rd/Rd, DRP=0b) for Source-or-Sink (000b), Sink-only (010b), Sink with Accessory (011b),
+    and any dead-battery boot; 05h (Rp/Rp default, DRP=0b) for Source-only (001b) when not dead
+    battery; and for DRP roles (100b, 101b, 110b) when not dead battery, 4Ah (Rd/Rd, DRP=1b) if
+    STANDARD_OUTPUT_CAPABILITIES.DebugAccessoryIndicator is 1b or 0Fh (Open/Open, DRP=0b) if
+    DebugAccessoryIndicator is 0b.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['52', '53']
+      section: 4.4.5.2
+      table: '4-16'
+    - page: '53'
+      table: '4-17'
+    - page: '88'
+      section: '4.6'
+      figure: '4-18'
+    - page: '105'
+      section: 4.8.3
+
+- id: cc-status-register
+  section: programming-model
+  title: CC_STATUS register (1Dh) and CC debounce timing
+  claim: >-
+    CC_STATUS (1Dh, read-only, unlatched, B7:6 reserved 0) is updated by the TCPC within tSetReg
+    (at most 50 us, Table 4-49) of a change in ROLE_CONTROL.DRP or a change on the CC1 or CC2 wires
+    after the TCPC's minimal debounce of tTCPCfilter (250 to 500 us, Table 4-21; the TCPM must
+    complete the full USB Type-C debounce). B5 Looking4Connection is 1b while the TCPC is actively
+    looking for a connection (DRP toggling or Source/Sink-only connection detection) and transitions
+    from 1b to 0b when a potential connection has been found. B4 ConnectResult reports whether the
+    TCPC is presenting Rp (0b) or Rd (1b). B3:2 CC2 State and B1:0 CC1 State encode each pin's
+    status: when (ROLE_CONTROL.CCx = Rp) or (ConnectResult = 0b), 00b is SRC.Open (open, Rp), 01b
+    is SRC.Ra (below maximum vRa), 10b is SRC.Rd (within the vRd range), and 11b is reserved; when
+    (ROLE_CONTROL.CCx = Rd) or (ConnectResult = 1b), 00b is SNK.Open (below maximum vRa), 01b is
+    SNK.Default (above minimum vRd-Connect), 10b is SNK.Power1.5 (detects Rp 1.5A), and 11b is
+    SNK.Power3.0 (detects Rp 3.0A). If ROLE_CONTROL.CCx is Ra or Open, or if Looking4Connection is
+    1b, or if VCONN is enabled on that pin (POWER_CONTROL.EnableVconn = 1b with
+    TCPC_CONTROL.PlugOrientation = 0b for CC2 or 1b for CC1), that pin's state field always returns
+    00b. A TCPM using polling rather than Alerts should treat CC_STATUS as invalid until at least
+    tCcStatusDelay (at most 200 us, Table 4-49) + tTCPCfilter + tCcTCPCSampleRate (max, vendor
+    specific) after ROLE_CONTROL is updated.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['61', '62']
+      section: 4.4.6.1
+      table: '4-21'
+    - page: '62'
+      table: '4-22'
+    - page: '107'
+      section: '4.9'
+      table: '4-49'
+
+- id: power-control-and-discharge
+  section: programming-model
+  title: POWER_CONTROL register (1Ch), VCONN control and VBUS discharge
+  claim: >-
+    POWER_CONTROL (1Ch, R/W, reset 60h) controls VCONN, VBUS discharge, VBUS monitoring and alarms,
+    and Fast Role Swap: B0 Enable VCONN (0b disable VCONN source, default; 1b enable VCONN to the
+    CC pin selected by TCPC_CONTROL.PlugOrientation, which the TCPM must write before setting B0 =
+    1b), B1 VCONN Power Supported (0b deliver at least 1 W; 1b deliver at least the power in
+    DEVICE_CAPABILITIES_2.VconnPowerSupported), B2 Force Discharge (0b disable, default; 1b enable
+    forced VBUS discharge; required if DEVICE_CAPABILITIES_1.ForceDischarge = 1b), B3 Enable Bleed
+    Discharge (0b disable, default; 1b enable low-current bleed load, recommended 10 kOhm or 2 mA;
+    required if DEVICE_CAPABILITIES_1.BleedDischarge = 1b), B4 Auto Discharge Disconnect (0b
+    disable, default; 1b automatically discharge VBUS on disconnect, and in a Source TCPC also
+    disable VBUS sourcing before or at the same time as starting VBUS discharge; required), B5
+    Disable Voltage Alarms (0b voltage alarms enabled; 1b disabled, default), B6 VBUS_VOLTAGE
+    Monitor (0b monitoring enabled; 1b disabled, default, causing VBUS_VOLTAGE to report all
+    zeroes), and B7 Fast Role Swap Enable (0b disable, 1b enable). The TCPC does not autonomously
+    disable VCONN when VBUS is removed or CC status changes; when a Source-only TCPC is requested
+    to disable VCONN (EnableVCONN = 0b), it must apply Rdch termination on the CC pin that was
+    providing VCONN until the pin falls below vVCONNDischarge (a DRP TCPC may not provide Rdch).
+    Both Auto Discharge Disconnect (stopping below vSafe0V max) and Force Discharge in a Source
+    (stopping below VBUS_STOP_DISCHARGE_THRESHOLD if StopDischargeThreshold = 1b, or vSafe0V if 0b)
+    automatically disable the discharge circuit as an edge-triggered event without clearing B4 or
+    B2, and do not re-apply the discharge circuit if VBUS rises again. In Attached_Src, disconnect
+    is detected when the monitored CC pin (per PlugOrientation) indicates SRC.Open; in Attached_Snk,
+    disconnect is detected within tDisconnectDetect (at most 6 ms, Table 4-20) of
+    POWER_STATUS.VbusPresent transitioning 1b to 0b (if SinkDisconnectDetection = 0b) or VBUS
+    falling below VBUS_SINK_DISCONNECT_THRESHOLD (if SinkDisconnectDetection = 1b). After a
+    power-on reset, the TCPC must discharge VBUS to vSafe0V before applying Rp.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '18'
+      section: '3.1'
+    - page: '33'
+      table: '4-1'
+    - pages: ['54', '58']
+      section: 4.4.5.4
+      table: '4-19'
+    - page: '56'
+      table: '4-20'
+    - page: '106'
+      section: 4.8.4
+  todo:
+    check: document
+    text: >-
+      The worked Sink bulk-capacitance discharge calculation and waveform in Section 4.4.5.4.2 and
+      Figure 4-13 (pp. 56-57) and the Fast Role Swap operational sequences in Section 4.4.5.4.6 and
+      Figures 4-14 and 4-15 (pp. 58-60) are not extracted in full.
+
+- id: power-and-extended-status-registers
+  section: programming-model
+  title: POWER_STATUS (1Eh) and EXTENDED_STATUS (20h)
+  claim: >-
+    POWER_STATUS (1Eh, read-only, unlatched) reports port power and initialization state to the
+    TCPM: B0 Sinking VBUS (0b Sink disconnected or not supported, default; 1b sinking VBUS to the
+    system load), B1 VCONN Present (0b not present, or when POWER_CONTROL.EnableVconn is disabled;
+    1b asserted when VCONN is present on CC1 or CC2 above a fixed 2.4 V threshold), B2 VBUS Present
+    (1b when VBUS rises above 4 V, 0b when VBUS falls below 3.5 V, and may report 0b between 3.5 V
+    and 4 V; invalid when B3 is 0b), B3 VBUS Detection Enabled (1b enabled, default; 0b VBUS
+    Present and vSafe0V detection circuits powered off), B4 Sourcing VBUS (0b disabled, 1b enabled),
+    B5 Sourcing Nondefault Voltage (0b vSafe5V, 1b sourcing nondefault voltage in response to
+    COMMAND.SourceVbusNondefaultVoltage; required if nondefault VBUS can be sourced, and invalid
+    when B4 is 0b), B6 TCPC Initialization Status (1b while the TCPC is performing internal
+    initialization and only registers 00h..0Fh are guaranteed valid; 0b when initialization or
+    reset is complete and all registers are valid — the TCPM must check B6 at startup or reset and
+    wait for 0b before normal operation), and B7 Debug Accessory Connected (0b no Debug Accessory,
+    default; 1b Debug Accessory connected; not valid when TCPC_CONTROL.DebugAccessoryControl = 1b
+    per Figure 4-21). EXTENDED_STATUS (20h, read-only, B7:1 reserved 0) reports B0 vSafe0V (1b when
+    the TCPC detects VBUS below 0.8 V, 0b otherwise; invalid when
+    POWER_STATUS.VbusDetectionEnabled = 0b).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['63', '64']
+      section: 4.4.6.2
+      table: '4-23'
+    - page: '65'
+      section: 4.4.6.4
+      table: '4-25'
+    - page: '91'
+      figure: '4-21'
+    - page: '106'
+      section: 4.8.4.1
+
+- id: fault-control-and-status-registers
+  section: programming-model
+  title: FAULT_CONTROL (1Bh), FAULT_STATUS (1Fh), ALERT_EXTENDED (21h), GENERIC_TIMER (2Ch..2Dh) and watchdog timer
+  claim: >-
+    FAULT_CONTROL (1Bh, R/W, reset 00h, B7:5 reserved 0) enables fault detection when a bit is 0b
+    and disables it when 1b (setting a FAULT_CONTROL bit to 1b also forces the corresponding
+    FAULT_STATUS bit to 0b so the TCPM ignores it, and writing all 1s powers down all fault
+    circuitry): B0 VCONN Over Current Fault, B1 Internal or External OVP, B2 Internal or External
+    OCP, B3 VBUS Discharge Fault Detection Timer (enables/disables the timers for both
+    AutoDischargeFailed and ForceDischargeFailed; required), and B4 Force Off VBUS (0b allow
+    STANDARD_INPUT.ForceOffVbus control, default; 1b block). FAULT_STATUS (1Fh, R/W, reset 80h,
+    latched RW1C) bits are cleared by writing 1b to the bit positions and then writing 1b to
+    ALERT.Fault after all FAULT_STATUS bits are cleared: B0 I2C Interface Error, B1 VCONN Over
+    Current Fault, B2 Internal or External OVP, B3 Internal or External OCP, B4 Force Discharge
+    Failed (VBUS not below vSafe0V within tSafe0V when StopDischargeThreshold = 0b and
+    ForceDischarge = 1b), B5 Auto Discharge Failed (VBUS not below vSafe0V within tSafe0V when
+    AutoDischargeDisconnect = 1b), B6 Force Off VBUS (VBUS disconnected due to
+    STANDARD_INPUT.ForceOffVbus), and B7 AllRegistersResetToDefault (asserted at initial power-up
+    or unexpected power reset). The TCPC must assert B0 I2CInterfaceError when the TCPM writes
+    TRANSMIT for an SOP* message while TRANSMIT_BUFFER has fewer than 2 bytes, when the watchdog
+    timer expires, when the TCPM writes an invalid COMMAND, when the TCPM writes TRANSMIT_BUFFER
+    while the TCPC is transmitting a Fast Role Swap signal triggered by the Standard Input pin,
+    when the TCPM writes CONFIG_EXTENDED1.FRSwapBidirectionalPin without
+    STANDARD_INPUT_CAPABILITIES.SourceFastRoleSwap = 10b, or when the Main State-Machine enters
+    Connected_Invalid (and may assert it on reserved-bit, unaligned or multi-register I2C
+    accesses). ALERT_EXTENDED (21h, R/W, reset 00h, B7:3 reserved 0, RW1C cleared before clearing
+    ALERT.AlertExtended) reports B0 Sink Fast Role Swap (FRS signal received), B1 Source Fast Role
+    Swap (FRS signal sent due to Standard Input pin low), and B2 Timer Expired (asserted when the
+    optional 16-bit write-only GENERIC_TIMER at 2Ch..2Dh, 0.1 ms LSB, expires; writing a non-zero
+    value starts or restarts GENERIC_TIMER and writing 0000h stops it). When
+    TCPC_CONTROL.EnableWatchdogTimer is 1b, the watchdog timer starts when Alert# is asserted (or
+    any unmasked ALERT bit is set) and resets on any TCPM I2C read or write (restarting if Alert#
+    remains asserted); if it expires after tHVWatchdog (650 to 5000 ms, Table 4-49), the TCPC
+    immediately sets ROLE_CONTROL bits 3:0 to 1111b (Open/Open), disconnects Source or Sink paths,
+    discharges VBUS to vSafe0V (removing the discharge circuit edge-triggered once below vSafe0V),
+    and sets FAULT_STATUS.I2CInterfaceError.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '31'
+      section: '3.8'
+    - pages: ['33', '34']
+      table: '4-1'
+    - page: '54'
+      section: 4.4.5.3
+      table: '4-18'
+    - pages: ['64', '65']
+      section: 4.4.6.3
+      table: '4-24'
+    - pages: ['65', '66']
+      section: 4.4.7
+      table: '4-26'
+    - pages: ['76', '77']
+      section: 4.4.11
+      table: '4-34'
+    - page: '88'
+      section: '4.6'
+    - page: '106'
+      section: 4.8.5
+    - page: '107'
+      section: '4.9'
+      table: '4-49'
+
+- id: command-register
+  section: programming-model
+  title: COMMAND register (23h) opcodes and invalid-command rules
+  claim: >-
+    COMMAND (23h, write-only, reset 00h) is written by the TCPM and cleared by the TCPC after
+    execution; reserved opcodes are ignored, while an invalid COMMAND is ignored and asserts
+    FAULT_STATUS.I2CInterfaceError. Table 4-27 defines 14 command codes: 11h (0001_0001b) WakeI2C
+    (wakes the I2C interface only); 22h (0010_0010b) DisableVbusDetect (disables VBUS Present and
+    vSafe0V detection; invalid if VBUS sourcing or sinking is enabled); 33h (0011_0011b)
+    EnableVbusDetect (enables VBUS Present and vSafe0V detection); 44h (0100_0100b) DisableSinkVbus
+    (disables VBUS sinking, discharges to vSafe0V, and clears FAULT_STATUS InternalorExternalOCP
+    and InternalorExternalOVP without disabling VBUS Present detection); 55h (0101_0101b) SinkVbus
+    (enables VBUS sinking and VBUS Present detection; invalid if VBUS sourcing is enabled); 66h
+    (0110_0110b) DisableSourceVbus (disables VBUS sourcing, discharges to vSafe0V, and stops
+    reporting OCP or OVP faults without disabling VBUS Present detection); 77h (0111_0111b)
+    SourceVbusDefaultVoltage (enables sourcing vSafe5V over VBUS, or transitions from a nondefault
+    voltage to vSafe5V, and enables VBUS Present detection; invalid if VBUS sinking is enabled);
+    88h (1000_1000b) SourceVbusNondefaultVoltage (transitions VBUS to a nondefault voltage set in
+    VBUS_NONDEFAULT_TARGET or vendor-defined registers; invalid if currently sinking VBUS, if
+    incapable of sourcing nondefault voltages, or if not already sourcing VBUS); 99h (1001_1001b)
+    Look4Connection (starts DRP toggling when ROLE_CONTROL.DRP = 1b, starting with Rp if
+    CC1/CC2 = 01b or Rd if 10b, doing nothing if CC1/CC2 are not both 01b or both 10b or if
+    POWER_CONTROL.AutoDischargeDisconnect != 0b; or restarts connection detection when
+    ROLE_CONTROL.DRP = 0b); AAh (1010_1010b) RxOneMore (automatically clears RECEIVE_DETECT after
+    sending the next GoodCRC); CCh (1100_1100b) SendFRSwapSignal (Source TCPC sends a Fast Role
+    Swap signal within tTCPCSendFRSwap, at most 50 us per Table 4-49; invalid if
+    POWER_CONTROL.FastRoleSwapEnable = 0b); DDh (1101_1101b) ResetTransmitBuffer (resets the
+    TRANSMIT_BUFFER pointer to offset 1 and invalidates its contents); EEh (1110_1110b)
+    ResetReceiveBuffer (resets the RECEIVE_BUFFER.RX_BUF_BYTE_x pointer without clearing buffer
+    contents, to offset 1 if the pointer is at 132 or less, or to offset 133 if the pointer is at
+    133 or higher); and FFh (1111_1111b) I2CIdle (places the I2C interface into idle).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '34'
+      table: '4-1'
+    - pages: ['67', '69']
+      section: 4.4.8
+      table: '4-27'
+    - page: '107'
+      section: '4.9'
+      table: '4-49'
+  todo:
+    check: document
+    text: >-
+      The step-by-step nondefault VBUS voltage transition flowcharts in Figures 4-16 and 4-17 (pp.
+      69-70) are not extracted in full.
+
+- id: pd-message-header-and-receive-detect
+  section: programming-model
+  title: MESSAGE_HEADER_INFO (2Eh), RECEIVE_DETECT (2Fh) and automatic GoodCRC generation
+  claim: >-
+    On attach and after tCCDebounce, the TCPM must update MESSAGE_HEADER_INFO (2Eh, R/W, B7:5
+    reserved 0; power-on default 0Dh for Source-only not dead battery and 04h for all other roles
+    per Table 4-17) before enabling RECEIVE_DETECT (2Fh, R/W, reset 00h), because the TCPC reads
+    MESSAGE_HEADER_INFO to construct the Message Header of automatic GoodCRC replies: B0 Power Role
+    (0b Sink, 1b Source), B2:1 USB PD Specification Revision (00b Revision 1.0, 01b Revision 2.0,
+    10b Revision 3.0, 11b reserved), B3 Data Role (0b UFP, 1b DFP), and B4 Cable Plug (0b message
+    originated from Source, Sink or DRP; 1b from a Cable Plug). RECEIVE_DETECT enables detection of
+    SOP (B0), SOP' (B1), SOP'' (B2), SOP_DBG' (B3), SOP_DBG'' (B4), Hard Reset signaling (B5), and
+    Cable Reset signaling (B6), plus B7 Message Disable Disconnect (0b Sink TCPC disables PD
+    message delivery when ALERT.VbusSinkDisconnectDetected is asserted, default; 1b Sink TCPC
+    disables PD message delivery when SNK.Open is detected for at least tPDDebounce min, 10 ms; a
+    Source TCPC always uses SRC.Open regardless of B7). For any enabled SOP* message type other
+    than an incoming GoodCRC, the TCPC automatically sends a GoodCRC reply (unless the receive
+    buffer has overflowed) and makes the received message ready in RECEIVE_BUFFER within tCc2BUFFER
+    (at most 50 us from the last bit of EOP, Table 4-49); an unexpected incoming GoodCRC is not
+    answered with a GoodCRC and is instead reported to the TCPM via ALERT.ReceiveSOP*MessageStatus
+    as a regular message (Figure 3-3). The TCPC disables PD message delivery — disabling automatic
+    GoodCRC transmission, discarding any unacted COMMAND.RxOneMore, and setting all bits of
+    RECEIVE_DETECT and READABLE_BYTE_COUNT to zero — when RECEIVE_DETECT.HardReset is set and a
+    Hard Reset is received, when the TCPM writes TRANSMIT to request a Hard Reset, when
+    RECEIVE_DETECT.CableReset is set and a Cable Reset is received, or on disconnect detection
+    (transmitting a Cable Reset has no effect on RECEIVE_DETECT).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '21'
+      section: '3.6'
+      figure: '3-3'
+    - page: '53'
+      table: '4-17'
+    - page: '78'
+      section: 4.4.12
+      table: '4-35'
+    - pages: ['78', '79']
+      section: 4.4.13
+      table: '4-36'
+    - page: '107'
+      section: '4.9'
+      table: '4-49'
+
+- id: pd-receive-buffer-and-protocol
+  section: programming-model
+  title: Reading USB PD messages from RECEIVE_BUFFER (30h)
+  claim: >-
+    RECEIVE_BUFFER is read-only and comprises READABLE_BYTE_COUNT, RX_BUF_FRAME_TYPE and
+    RX_BUF_BYTE_x, all accessed only by reading at register address 30h (Table 4-1, Figure 4-6). A
+    read at 30h returns READABLE_BYTE_COUNT first (the number of bytes in RX_BUF_BYTE_x plus 1 for
+    RX_BUF_FRAME_TYPE, or 1 when a Cable Reset is received; its value is undefined when
+    RECEIVE_BUFFER is cleared), then the hidden RX_BUF_FRAME_TYPE byte (B7:3 reserved 0; B2:0: 000b
+    SOP, 001b SOP', 010b SOP'', 011b SOP_DBG', 100b SOP_DBG'', 110b Cable Reset), followed by the
+    hidden RX_BUF_BYTE_x payload bytes. The TCPC auto-increments the RX_BUF_BYTE_x pointer as the
+    TCPM reads RX_BUF_BYTE_x, but does not increment it when the TCPM reads only
+    READABLE_BYTE_COUNT or RX_BUF_FRAME_TYPE; writing COMMAND.ResetReceiveBuffer (EEh) resets the
+    pointer (to offset 1 when at 132 or less, or offset 133 when at 133 or higher) without clearing
+    the buffer. When DEVICE_CAPABILITIES_2.LongMessage is 0b, RECEIVE_BUFFER holds two 30-byte SOP*
+    messages and READABLE_BYTE_COUNT is at most 31; when LongMessage is 1b, it holds one 264-byte
+    SOP* message plus one 30-byte SOP* message and READABLE_BYTE_COUNT is at most 133. For an SOP*
+    message with <= 128 data bytes (READABLE_BYTE_COUNT <= 133), the TCPC asserts
+    ALERT.ReceiveSOP*MessageStatus (B2); after the TCPM reads the buffer, writing 1b to B2 clears
+    the receive buffer registers, sets READABLE_BYTE_COUNT to 0, and loads the next buffered
+    message (if any) into RX_BUF_BYTE_x. For an extended SOP* message with > 128 data bytes
+    (LongMessage = 1b), the TCPC loads the 4 header bytes and first 128 data bytes
+    (READABLE_BYTE_COUNT = 133) and asserts ALERT.BeginningSOP*MessageStatus (B12); after the TCPM
+    reads those 134 bytes and writes 1b to B12, the TCPC clears that first half, loads the
+    remaining data bytes (up to 132 bytes, with the pointer at offset 133), and asserts
+    ALERT.ReceiveSOP*MessageStatus (B2), which the TCPM reads and clears by writing 1b to B2. When
+    SMBus PEC is enabled, the TCPM must read as many bytes in the buffer as defined in
+    READABLE_BYTE_COUNT in one I2C read transaction (plus the PEC byte).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '34'
+      table: '4-1'
+    - page: '38'
+      section: 4.3.6
+      figure: '4-6'
+    - pages: ['44', '45']
+      table: '4-8'
+    - page: '69'
+      table: '4-27'
+    - pages: ['79', '80']
+      section: 4.4.14
+      table: '4-37'
+    - page: '80'
+      table: '4-38'
+    - pages: ['100', '104']
+      section: 4.7.5
+    - pages: ['101', '102']
+      section: 4.7.6
+    - pages: ['102', '104']
+      section: 4.7.7
+    - page: '104'
+      section: 4.7.9
+
+- id: pd-transmit-buffer-and-protocol
+  section: programming-model
+  title: Transmitting USB PD messages via TRANSMIT_BUFFER (51h) and TRANSMIT (50h)
+  claim: >-
+    To transmit an SOP* message, the TCPM writes the message header and data bytes into
+    TRANSMIT_BUFFER at address 51h (Figure 4-5) and then writes TRANSMIT (50h, R/W, reset 00h; the
+    TCPC is not allowed to NAK TRANSMIT). Each write to 51h begins with I2C_WRITE_BYTE_COUNT
+    followed by that exact number of hidden TX_BUF_BYTE_x bytes in a single I2C write transaction:
+    if the number of bytes written differs from I2C_WRITE_BYTE_COUNT, the TCPC asserts
+    FAULT_STATUS.I2CInterfaceError and ignores the write (leaving TX_BUF_BYTE_x and its pointer
+    unchanged). When DEVICE_CAPABILITIES_2.LongMessage is 0b, TRANSMIT_BUFFER holds up to 30 bytes
+    and the TCPC ignores any write transaction with I2C_WRITE_BYTE_COUNT > 30; when LongMessage is
+    1b, TRANSMIT_BUFFER holds up to 264 bytes written in bursts of up to 132 bytes, and the TCPC
+    ignores any write transaction with I2C_WRITE_BYTE_COUNT > 132 (note that section 4.7.2 p. 97
+    states that if more than 132 bytes are written into TX_BUF_BYTE_x, the first 132 bytes are
+    written and overflow bytes are discarded, while Table 4-40 p. 82 states the transaction is
+    ignored if I2C_WRITE_BYTE_COUNT > 132, with tables taking precedence per section 1.4.1). The
+    TCPC auto-increments the TX_BUF_BYTE_x offset across bursts and transmits the aggregate bytes
+    written since the pointer was last reset (by writing TRANSMIT or COMMAND.ResetTransmitBuffer,
+    DDh), placing the first bit of the preamble on CC within tBUFFER2CC (at most 195 us after the
+    I2C STOP bit, Table 4-49). Writing TRANSMIT for an SOP* message (codes 000b..100b) when fewer
+    than 2 bytes are in TX_BUF_BYTE_x (pointer < offset 3) asserts FAULT_STATUS.I2CInterfaceError.
+    In TRANSMIT (Table 4-39, B7:6 and B3 reserved 0), B2:0 selects 000b SOP, 001b SOP', 010b SOP'',
+    011b SOP_DBG', 100b SOP_DBG'', 101b Hard Reset, 110b Cable Reset, or 111b BIST Carrier Mode 2
+    (exiting no later than tBISTContMode max), and B5:4 Retry Counter selects 00b no retry, 01b one
+    retry, 10b two retries, or 11b three retries (ignored for Hard Reset, Cable Reset and BIST
+    Carrier Mode 2). After executing an SOP* transmission, the TCPC clears I2C_WRITE_BYTE_COUNT and
+    its internal transmit buffer, resets the pointer, and asserts one and only one of
+    ALERT.TransmitSOP*MessageSuccessful (B6, matching GoodCRC received),
+    ALERT.TransmitSOP*MessageFailed (B4, no GoodCRC after retries), or
+    ALERT.TransmitSOP*MessageDiscarded (B5, discarded due to an incoming message); the TCPM must
+    not write TRANSMIT again for anything other than a Hard Reset until that transmission completes
+    and the resulting ALERT bit is cleared.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '13'
+      section: 1.4.1
+    - pages: ['21', '22']
+      section: '3.6'
+      figure: '3-4'
+    - page: '34'
+      table: '4-1'
+    - page: '38'
+      section: 4.3.5
+      figure: '4-5'
+    - pages: ['80', '81']
+      section: 4.4.15
+      table: '4-39'
+    - pages: ['81', '82']
+      section: 4.4.16
+      table: '4-40'
+    - pages: ['97', '100']
+      section: 4.7.1
+    - pages: ['97', '100']
+      section: 4.7.2
+    - page: '107'
+      section: '4.9'
+      table: '4-49'
+  todo:
+    check: document
+    text: >-
+      Section 4.4.15 (p. 80) and Section 4.7.1 step 3 (p. 97) write the parenthetical "(i.e.
+      TRANSMIT.SOP*Message > 100b)" for "a transmission that is not Hard Reset, Cable Reset or BIST
+      Carrier Mode 2", whereas Table 4-39 (p. 81) and Figure 3-4 (p. 22, "TRANSMIT[2:0] < 101b")
+      assign 000b..100b to SOP* messages and 101b..111b to Hard Reset, Cable Reset and BIST Carrier
+      Mode 2.
+
+- id: vbus-voltage-thresholds-and-alarms
+  section: programming-model
+  title: VBUS voltage measurement, threshold, alarm and nondefault target registers (70h to 7Bh)
+  claim: >-
+    TCPCs that source or sink nondefault VBUS voltages (or set
+    DEVICE_CAPABILITIES_1.VbusMeasurementAndAlarmCapable = 1b) provide 16-bit VBUS measurement and
+    threshold registers: VBUS_VOLTAGE (70h..71h, read-only, reset 0000h, upper and lower bytes
+    synchronized by the TCPC; reports 0000h when POWER_CONTROL.VbusVoltageMonitor = 1b) has B15:12
+    reserved 0, B11:10 Scale Factor (00b not scaled, 01b VBUS divided by 2, 10b VBUS divided by 4,
+    11b reserved), and B9:0 a 10-bit measurement of (VBUS / Scale Factor) with a 25 mV LSB that the
+    TCPM multiplies by the scale factor (accuracy +/-2% or +/-50 mV, whichever is greater).
+    VBUS_SINK_DISCONNECT_THRESHOLD (72h..73h, R/W, reset 008Ch = 3.5 V; edge-triggered, required
+    for Sinks supporting nondefault VBUS and declared by
+    DEVICE_CAPABILITIES_2.SinkDisconnectDetection = 1b; a value of 0 disables this threshold and
+    Sink Auto Discharge, and the register has no action for a Source) and
+    VBUS_STOP_DISCHARGE_THRESHOLD (74h..75h, R/W, reset 0020h = 0.8 V; edge-triggered threshold at
+    which a Source stops Force Discharge when POWER_CONTROL.ForceDischarge = 1b, required for
+    Sources supporting nondefault VBUS or ForceDischarge and declared by
+    DEVICE_CAPABILITIES_2.StopDischargeThreshold = 1b; has no action for a Sink, and a Source
+    always discharges to vSafe0V on disconnect, Hard Reset or Power Role Swap) each have B15:12
+    reserved 0 and B11:0 a 12-bit voltage trip point with a 25 mV LSB (+/-5% accuracy).
+    VBUS_VOLTAGE_ALARM_HI_CFG (76h..77h, R/W, reset 0000h) and VBUS_VOLTAGE_ALARM_LO_CFG (78h..79h,
+    R/W, reset 0000h) each hold a 12-bit level-triggered trip point in B11:0 with a 25 mV LSB
+    (+/-5% accuracy, B15:12 reserved 0): when POWER_CONTROL.DisableVoltageAlarms is 0b, the TCPC
+    sets ALERT.VbusVoltageAlarmHi (B7) when VBUS exceeds the high alarm or ALERT.VbusVoltageAlarmLo
+    (B8) when VBUS drops below the low alarm, and re-asserts the alert if the condition prevails
+    after the TCPM clears the ALERT bit. Depending on DEVICE_CAPABILITIES_2.VbusVoltageAlarmLSB,
+    the TCPC may ignore B0 (50 mV step) or B1:0 (100 mV step) of the four threshold and alarm
+    registers (72h..79h) provided it still meets each threshold's minimum accuracy.
+    VBUS_NONDEFAULT_TARGET (7Ah..7Bh, R/W, reset 0000h, required if
+    DEVICE_CAPABILITIES_1.VbusNondefaultTarget = 1b) holds a 16-bit target voltage in B15:0 with a
+    20 mV LSB (+/-5% accuracy) for COMMAND.SourceVbusNondefaultVoltage (88h); the TCPC ignores
+    writes below 3.3 V (00A5h) or when VbusNondefaultTarget = 0b.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '35'
+      table: '4-1'
+    - pages: ['72', '73']
+      table: '4-29'
+    - page: '82'
+      section: 4.4.17
+      table: '4-41'
+    - pages: ['83', '85']
+      section: 4.4.18
+      table: '4-42'
+    - page: '84'
+      table: '4-43'
+    - page: '84'
+      table: '4-44'
+    - pages: ['84', '85']
+      table: '4-45'
+    - page: '85'
+      section: 4.4.19
+      table: '4-46'
+    - page: '106'
+      section: 4.8.4
+
+- id: power-on-and-drp-connection-sequence
+  section: programming-model
+  title: Power-on initialization, DRP toggling and connection establishment sequence
+  claim: >-
+    At power-on or reset (Figure 4-24), the TCPM reads POWER_STATUS.TCPCInitializationStatus (B6)
+    until it reads 0b (confirming initialization is complete and all registers are valid) and reads
+    FAULT_STATUS.AllRegistersResetToDefault (B7). To configure autonomous DRP toggling, the TCPM
+    ensures POWER_CONTROL.AutoDischargeDisconnect is 0b (it is recommended to write
+    ROLE_CONTROL.DRP = 0b before writing AutoDischargeDisconnect = 0b), writes ROLE_CONTROL with
+    DRP = 1b and CC1 = CC2 = 01b (Rp) or 10b (Rd), and writes COMMAND.Look4Connection (99h). In the
+    Main State-Machine (Figure 4-19), the TCPC sets CC_STATUS.Looking4Connection = 1b and toggles
+    between Apply_Rp (for tToggleSrc = dcSRC.DRP * tDRP) and Apply_Rd (for tToggleSnk = (1 -
+    dcSRC.DRP) * tDRP), not driving any CC line that has VCONN connected. When CC1 or CC2 is SRC.Rd
+    (or both are SRC.Ra) for > tTCPCfilter, the TCPC enters Potential_Connect_As_Src, sets
+    Looking4Connection = 0b and ConnectResult = 0b, applies the Rp strength in
+    ROLE_CONTROL.RpValue, and asserts ALERT.CcStatus; when CC1 or CC2 is not SNK.Open for >
+    tTCPCfilter, it enters Potential_Connect_As_Sink, sets Looking4Connection = 0b and
+    ConnectResult = 1b, keeps Rd applied, and asserts ALERT.CcStatus. Upon seeing ALERT.CcStatus =
+    1b and CC_STATUS.Looking4Connection = 0b, the TCPM enables VBUS detection
+    (COMMAND.EnableVbusDetect, 33h), debounces CC_STATUS for tCCDebounce, writes the resolved
+    ROLE_CONTROL (CC1, CC2, DRP = 0b), sets TCPC_CONTROL.PlugOrientation, sets
+    POWER_CONTROL.AutoDischargeDisconnect = 1b, enables VCONN if needed
+    (POWER_CONTROL.EnableVconn = 1b), enables VBUS_VOLTAGE monitoring if supported
+    (POWER_CONTROL.VbusVoltageMonitor = 0b), writes COMMAND to source or sink VBUS, and clears
+    ALERT.CcStatus. Setting AutoDischargeDisconnect = 1b transitions the TCPC Main State-Machine
+    (Figure 4-19 and Figure 4-20) to Attached_Src or Attached_Snk if the active CC pin in
+    ROLE_CONTROL matches PlugOrientation (CC2 = Rp/Rd when PlugOrientation = 1b, or CC1 = Rp/Rd
+    when PlugOrientation = 0b) and DebugAccessoryConnected# is not asserted under TCPM control;
+    otherwise the TCPC enters Connected_Invalid and asserts FAULT_STATUS.I2CInterfaceError.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '52'
+      section: 4.4.5.2
+    - pages: ['88', '90']
+      section: '4.6'
+      figure: '4-18'
+    - page: '89'
+      figure: '4-19'
+    - page: '90'
+      figure: '4-20'
+    - page: '94'
+      figure: '4-24'
+  todo:
+    check: document
+    text: >-
+      The Source and Sink disconnect flowcharts in Figures 4-25 and 4-26 (pp. 95-96) and the
+      autonomous Debug Accessory state machines in Figures 4-21 to 4-23 (pp. 91-93) are not
+      extracted in full.
+
+- id: i2c-idle-and-wake-sequence
+  section: programming-model
+  title: Low-power I2C idle and wake handshake (COMMAND.I2CIdle and COMMAND.WakeI2C)
+  claim: >-
+    The TCPM may put the TCPC's I2C interface into an idle state to save power by issuing
+    COMMAND.I2CIdle (FFh), which is decoupled from Alert# and status detection blocks (CC_STATUS,
+    POWER_STATUS, RECEIVE_DETECT). While in I2C idle, the TCPC may generate a bit-level NAK to its
+    own slave address or any I2C command. To wake the TCPC from I2C idle, the TCPM sends a
+    throw-away I2C command addressing the TCPC (or COMMAND.WakeI2C, 11h) and starts a tWakeI2Cfail
+    timer (at most 5 ms): the TCPC restarts its I2C interface as a side effect of seeing its slave
+    address (even if it NAKed the transaction), wakes on either the first wake command or a second
+    wake command sent if tWakeI2Cfail expires before Alert# asserts, sets ALERT.PowerStatus = 1b
+    without setting any bit in POWER_STATUS, and asserts Alert# within tWakeI2Cfail. Subsequent I2C
+    requests to the slave address must not be NAKed, and the TCPM reads and clears
+    ALERT.PowerStatus to complete the wake sequence.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '67'
+      section: 4.4.8
+    - pages: ['68', '69']
+      table: '4-27'
+    - page: '105'
+      section: 4.8.1
+
+- id: gotcha-hard-reset-tx-sets-both-success-and-fail
+  section: gotchas
+  title: Transmitting Hard Reset or Cable Reset asserts both TransmitSuccessful and TransmitFailed, and Hard Reset does not clear ALERT
+  claim: >-
+    Unlike an SOP* transmission — which asserts one and only one of
+    ALERT.TransmitSOP*MessageSuccessful (B6), ALERT.TransmitSOP*MessageFailed (B4) or
+    ALERT.TransmitSOP*MessageDiscarded (B5) — completing a Hard Reset (TRANSMIT[2:0] = 101b) or
+    Cable Reset (110b) transmission causes the TCPC to assert both
+    ALERT.TransmitSOP*MessageSuccessful (B6) and ALERT.TransmitSOP*MessageFailed (B4) regardless of
+    whether the PHY sent the reset or tHardResetComplete expired (and if an earlier TRANSMIT
+    request had not yet completed when the Hard Reset was written, the TCPC also asserts
+    ALERT.TransmitSOP*MessageDiscarded, B5). In addition, a Hard Reset (transmitted or received)
+    clears RECEIVE_DETECT and READABLE_BYTE_COUNT to 00h and resets the mask registers per Table
+    4-1 (sections 4.4.3.1 to 4.4.3.5 specify all five mask registers — ALERT_MASK,
+    POWER_STATUS_MASK, FAULT_STATUS_MASK, EXTENDED_STATUS_MASK and ALERT_EXTENDED_MASK — while the
+    parentheticals in sections 2.4, 4.7.3 and 4.7.8 list four of them, omitting FAULT_STATUS_MASK),
+    but does not reset the ALERT register itself; the TCPM must explicitly clear the asserted ALERT
+    bits (including ALERT.ReceiveSOP*MessageStatus if set) before re-enabling RECEIVE_DETECT.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '16'
+      section: '2.4'
+    - pages: ['21', '22']
+      section: '3.6'
+      figure: '3-5'
+    - pages: ['46', '48']
+      section: 4.4.3
+    - pages: ['80', '81']
+      section: 4.4.15
+    - page: '100'
+      section: 4.7.3
+    - page: '100'
+      section: 4.7.4
+    - page: '104'
+      section: 4.7.8
+    - page: '110'
+      figure: 'A-3'
+
+- id: gotcha-rx-buffer-overflow-and-nested-alert-clearing
+  section: gotchas
+  title: Clearing RxBufferOverflow or nested alerts in the wrong order leaves Alert# asserted or discards transmits
+  claim: >-
+    Writing 1b to ALERT.RxBufferOverflow (B10) alone only acknowledges the overflow and does not
+    clear it: RxBufferOverflow stays asserted as long as the SOP* receive buffer registers are
+    full, and those registers can only be cleared by writing 1b to ALERT.ReceiveSOP*MessageStatus
+    (B2). While RxBufferOverflow is 1b, the TCPC suppresses automatic GoodCRC replies to incoming
+    messages, so the TCPM should clear RxBufferOverflow and ReceiveSOP*MessageStatus in the same
+    ALERT write after reading RECEIVE_BUFFER. Likewise, for the latched nested status registers
+    FAULT_STATUS (1Fh) and ALERT_EXTENDED (21h), the TCPM must clear all active bits in
+    FAULT_STATUS or ALERT_EXTENDED before writing 1b to ALERT.Fault (B9) or ALERT.AlertExtended
+    (B14). Finally, the TCPM must clear all received message alerts before writing TRANSMIT for
+    anything other than a Hard Reset: if ALERT.ReceivedHardReset (B3) or
+    ALERT.ReceiveSOP*MessageStatus (B2) is still 1b when TRANSMIT is written, the TCPC discards the
+    transmit request and asserts ALERT.TransmitSOP*MessageDiscarded (B5).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['18', '19']
+      section: '3.3'
+    - pages: ['44', '45']
+      section: 4.4.2
+      table: '4-8'
+    - page: '64'
+      section: 4.4.6.3
+    - pages: ['65', '66']
+      section: 4.4.7
+    - pages: ['80', '81']
+      section: 4.4.15
+    - pages: ['100', '101']
+      section: 4.7.5
+
+- id: gotcha-cc-status-zeroed-conditions
+  section: gotchas
+  title: CC_STATUS CC1/CC2 state fields read 00b while Looking4Connection=1 or on the VCONN pin
+  claim: >-
+    In CC_STATUS (1Dh, Table 4-22), the CC1 State (B1:0) and CC2 State (B3:2) fields always return
+    00b while Looking4Connection (B5) is 1b, when ROLE_CONTROL sets that pin to Ra (00b) or Open
+    (11b), or when CC Status reporting is disabled (ROLE_CONTROL.DRP = 0b and CC1 = CC2 = 11b).
+    Furthermore, once VCONN sourcing is enabled (POWER_CONTROL.EnableVconn = 1b), the CC pin
+    supplying VCONN — CC2 when TCPC_CONTROL.PlugOrientation is 0b, or CC1 when PlugOrientation is
+    1b — always returns 00b in CC_STATUS, so a driver that reads CC_STATUS after enabling VCONN
+    sees 00b on the VCONN pin even if a powered cable's Ra is attached there. On the active CC pin,
+    the non-zero bit encodings 01b and 10b change meaning between Source (01b = SRC.Ra, 10b =
+    SRC.Rd, 11b = reserved) and Sink (01b = SNK.Default, 10b = SNK.Power1.5, 11b = SNK.Power3.0)
+    according to whether ROLE_CONTROL.CCx is Rp (or ConnectResult = 0b) or Rd (or ConnectResult =
+    1b).
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - pages: ['61', '62']
+      section: 4.4.6.1
+      table: '4-22'
+    - page: '105'
+      section: 4.8.3
+
+- id: gotcha-drp-look4connection-autodischarge-gate
+  section: gotchas
+  title: COMMAND.Look4Connection is ignored while AutoDischargeDisconnect=1b, and Sink swaps must disable disconnect detection
+  claim: >-
+    COMMAND.Look4Connection (99h) starts autonomous DRP toggling only if ROLE_CONTROL.DRP is 1b,
+    ROLE_CONTROL.CC1 and CC2 are both 01b (Rp) or both 10b (Rd), and
+    POWER_CONTROL.AutoDischargeDisconnect (B4) is 0b; if AutoDischargeDisconnect is 1b,
+    Look4Connection does nothing. Because the TCPM sets AutoDischargeDisconnect = 1b once a
+    connection is established, on disconnect it must clear AutoDischargeDisconnect to 0b
+    (recommended after writing ROLE_CONTROL.DRP = 0b) before setting ROLE_CONTROL.DRP = 1b and
+    issuing COMMAND.Look4Connection (Figures 4-25 and 4-26). Conversely, while connected as a Sink,
+    before transmitting or upon receiving a PR_Swap message — or when enabling Fast Role Swap
+    (POWER_CONTROL.FastRoleSwapEnable = 1b) — the TCPM must disable Sink disconnect detection by
+    setting POWER_CONTROL.AutoDischargeDisconnect = 0b and clearing
+    RECEIVE_DETECT.MessageDisableDisconnect = 0b (if previously set to 1b) so that VBUS transitions
+    during the swap do not trigger automatic VBUS discharge or disable USB PD message delivery. In
+    addition, on a DRP TCPC that supports STANDARD_OUTPUT_CAPABILITIES.DebugAccessoryIndicator =
+    1b, a non-dead-battery power-on initializes ROLE_CONTROL to 4Ah (DRP = 1b, Rd/Rd) and the Debug
+    Accessory State-Machine enters Start_Debug_Accessory, where the TCPC issues
+    COMMAND.Look4Connection to itself unless the TCPM sets TCPC_CONTROL.DebugAccessoryControl = 1b.
+  support:
+  - class: standard
+    doc: usb-tcpci-r2.0.pdf
+    at:
+    - page: '16'
+      section: '2.5'
+    - pages: ['52', '53']
+      section: 4.4.5.2
+      table: '4-16'
+    - page: '53'
+      table: '4-17'
+    - pages: ['57', '58']
+      section: 4.4.5.4.4
+    - pages: ['67', '68']
+      section: 4.4.8
+      table: '4-27'
+    - pages: ['88', '89']
+      section: '4.6'
+      figure: '4-18'
+    - page: '89'
+      figure: '4-19'
+    - page: '91'
+      figure: '4-21'
+    - pages: ['95', '96']
+      figure: '4-25'
+    - page: '96'
+      figure: '4-26'
