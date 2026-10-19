@@ -1,0 +1,436 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb-bc
+spec_file: usb-bc.spec.yaml
+spec_sha256: fc5455aecfb164601c9b8be18a538f5d41f3668b8979b41cd145eb7b49710500
+canonical: fact-v1
+sources:
+- name: usb-bc-1.2.pdf
+  url: https://www.usb.org/sites/default/files/BCv1.2_070312_0.zip
+  sha256: f76a1d13545a9e6ff78cdf7b100f16d96b6218e1038b4f54f6d57d54aa481bd9
+  fetch: ok
+  note: The PDF "BC1.2 plus errata 2012-3-15.pdf" inside the USB-IF zip download; the reader
+    checked the SHA-256 and read the extracted page-numbered text.
+summary:
+  pass: 21
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  port-types:
+    basis: 32d19003db69679928709c951f19578ce33c94846d36c73226361dc80ae93bdb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.2 (PDF p. 12), Section 1.4.1-1.4.14 (PDF pp. 13-14), Section 3.1
+      and Figure 3-1 (PDF pp. 17-18), Table 5-3 (PDF p. 57) and Section 6.1 with Figure 6-1 (PDF
+      pp. 60-61). Confirmed the SDP vs. Charging Port (DCP, CDP, ACA-Dock, ACA) taxonomy,
+      Downstream Port definition (SDP or CDP), SDP 15 kOhm typical pull-downs RDP_DWN and RDM_DWN
+      (14.25 to 24.8 kOhm in Table 5-3), Good Battery SDP current limits (< 2.5 mA average
+      suspended/unconnected, 100 mA unconfigured, 500 mA configured), Charging Port draw up to
+      IDEV_CHG without configuration or suspend compliance, CDP/DCP/ACA-Dock/ACA definitions, and
+      Micro ACA vs. Standard ACA receptacle types. The parenthetical 1.5 A value for IDEV_CHG and
+      symbol ICFG_MAX are defined in Table 5-2 (PDF p. 56, covered in
+      current-limits-and-superspeed). The todo accurately accounts for the remaining rows of
+      Table 5-3.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  attach-versus-connect-and-battery-thresholds:
+    basis: 1f94a45d851c3680dbcd39005cdb65f6df0ee9565f08a41f6efd729691f8cccf
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.3, 1.4.6 and 1.4.15 (PDF pp. 13-15), Section 1.6 (PDF p. 15),
+      Table 5-1 (PDF p. 55) and Table 5-3 (PDF p. 57). Confirmed the distinction between physical
+      attach and USB connect via a 1.5 kOhm pull-up (RDP_UP = 900 to 1575 Ohm in Table 5-3 to
+      VDP_UP = 3.0 to 3.6 V in Table 5-1), the definitions of Dead Battery Threshold, Weak Battery
+      Threshold, Dead Battery, Weak Battery and Good Battery, and the Section 1.6 OTG A-device TPL
+      current and TA_WAIT_BCON VBUS drop rules. Checked Table 5-3 notes on PDF p. 57; no contrary
+      qualifications apply to PD connection pull-ups. The todo accurately notes the unextracted
+      rows of Tables 5-1 and 5-3 and external TA_WAIT_BCON definition.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  current-limits-and-superspeed:
+    basis: 53a02f89fc9990150540bc20ee377161a78cd284caf1971f3dc7018c2512880b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.11 (PDF p. 14), Section 1.7 (PDF p. 15), Section 2.1 (PDF
+      p. 15), Section 3.5 (PDF p. 47), Section 4.1.2 (PDF p. 48), Section 4.6.1 (PDF p. 53),
+      Table 5-1 (PDF p. 55) and Table 5-2 with Notes 1, 2 and 4 (PDF p. 56). Confirmed ISUSP
+      (2.5 mA max averaged over 1 s, plus an additional ISUSP per downstream port for a compound PD
+      in Section 2.1 and Revision History item 29 on PDF pp. 5-6), IUNIT (100 mA max averaged over
+      250 ms, increasing to 150 mA on a USB 3.0 SuperSpeed port), ICFG_MAX (500 mA max, increasing
+      to 900 mA on a SuperSpeed port), ICDP (1.5 to 5.0 A), IDCP (0.5 to 5.0 A), the USB 2.0
+      section 7.2.1.2.1 5.0 A safety cap (Table 5-2 Note 1 and Section 4.1.2), IDEV_CHG (1.5 A
+      max), and Section 3.5 LS/FS/HS/chirp operation with VGND_OFFSET (375 mV max in Table 5-1).
+      The todo accurately accounts for the remaining rows of Tables 5-1 and 5-2.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  charging-port-voltage-and-operating-ranges:
+    basis: d19d32629a93981f3a56b8f4fda4d5c1c12a1e13e6ece412314257a189dd69e9
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 4.1 (PDF p. 48), Section 4.2 (PDF pp. 49-50, Figure 4-1), Section
+      4.3 (PDF p. 50), Section 4.4 (PDF pp. 51-52, Figure 4-2), Section 4.6.1 (PDF p. 53, Figure
+      4-3), Table 5-1 (PDF p. 55), Table 5-2 (PDF p. 56), Table 5-5 (PDF p. 59), Section 6.2.2
+      (PDF p. 62) and Section 6.3.1 (PDF pp. 69-70). Confirmed VCHG (4.75 to 5.25 V averaged over
+      TVBUS_AVG = 250 ms max), VCHG_OVRSHT (6.0 V max), VCHG_FAIL (-0.3 to 9.0 V), multi-port
+      independence, allowed shutdown modes outside the Required Operating Range, CDP and ACA-Dock
+      operating and undershoot limits (VCHG below ICDP min = 1.5 A, VCHG_UNDSHT = 4.1 V min, CDP
+      overload recovery within TSHTDWN_REC = 2 min max), DCP operating and shutdown boundaries
+      (VCHG below IDCP min = 0.5 A, no shutdown below IDEV_CHG = 1.5 A and above VDCP_SHTDWN =
+      2.0 V max), DCP load-step undershoot rules for IDCP_LOW (<= 30 mA), IDCP_MID (30 to 100 mA)
+      and IDCP_HI (>= 100 mA) with TDCP_LD_STP (20 ms min) and TDCP_UNDSHT (10 ms max), and PD
+      current/voltage limits including VACA_OPR (4.1 to 6.0 V). Also checked Section 4.5.2 (PDF
+      p. 52), which states that a charged ACA follows the same undershoot requirements as a DCP; no
+      contradiction with the claim. The todo accurately lists the omitted ACA voltage drop and
+      table rows.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  dead-battery-provision-unconfigured:
+    basis: a8f9d2040178dbb3566c5336f8f354dce5db30d4490c05a344b89f5f4e685a89
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.13 (PDF p. 14), Section 2.2 (PDF pp. 15-16), Table 5-1 (PDF
+      p. 55), Table 5-2 (PDF p. 56) and Table 5-5 (PDF p. 59). Confirmed that DBP is restricted to
+      devices that can operate stand-alone from internal battery power, that the unconfigured state
+      spans both attached-and-not-connected and connected-and-not-configured prior to
+      SET_CONFIGURATION, and that drawing up to IUNIT (100 mA averaged over 250 ms, or 150 mA on
+      SuperSpeed per Table 5-2 Note 4) requires enabling VDP_SRC (0.5 to 0.7 V) within
+      TDBP_ATT_VDPSRC (1 s max) of attach and connecting within TDBP_VDPSRC_CON (1 s max) of
+      disabling VDP_SRC, reducing draw to ISUSP (2.5 mA max averaged over 1 s) if not ready to
+      connect and enumerate within TSVLD_CON_WKB (45 min max), avoiding unrelated tasks, and
+      passing the USB-IF inrush test. The todo accurately accounts for the remaining rows of
+      Tables 5-1, 5-2 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  dead-battery-provision-configured:
+    basis: ec9a96c5651e977508ade34780b49fff2af285f4e8cfe8bdfe7d0046958ec7b1
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 2.3 (PDF pp. 16-17), Table 5-2 (PDF p. 56) and Table 5-5 (PDF
+      p. 59). Confirmed all seven requirements of the DBP Configured Clause allowing a configured
+      PD with a Dead or Weak Battery to draw up to its configured current (ICFG_MAX: 500 mA, or
+      900 mA on SuperSpeed per Table 5-2 Note 2) from an SDP without passing USBCV: valid token
+      response (NAK or other valid response), reducing to IUNIT or disconnecting on USB reset,
+      reducing to ISUSP or disconnecting on USB suspend, providing full USBCV-compliant
+      functionality or disconnecting after TDBP_FUL_FNCTN (15 min max) from attach, using current
+      to reach the Weak Battery Threshold and full USB functionality without unrelated tasks,
+      providing full USB functionality immediately upon reaching the Weak Battery Threshold before
+      TDBP_FUL_FNCTN, and informing the user within TDBP_INFORM (1 min max) of attach. The todo
+      accurately accounts for the remaining rows of Tables 5-2 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  vbus-detect-and-comparator-thresholds:
+    basis: 80e269ea33675fbc4452b1582ad807c7ac3e2d6bb717cd46689c786429103ad2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.2 (PDF p. 19), Section 3.2.3.1 (PDF p. 20), Section 3.3.1 (PDF
+      pp. 39-40), Section 3.3.2 (PDF pp. 41-42), Section 3.4.2 (PDF pp. 46-47), Table 5-1 (PDF
+      p. 55) and Table 5-5 (PDF p. 59). Confirmed that each PD must have an internal session-valid
+      comparator threshold within VOTG_SESS_VLD (0.8 to 4.0 V) and internal data/logic thresholds
+      within VDAT_REF (0.25 to 0.4 V) and VLGC (0.8 to 2.0 V, between VLGC_LOW of 0 to 0.8 V and
+      VLGC_HI of 2.0 to 3.6 V), comparing signals against its own internal thresholds (Section
+      3.3.1, PDF p. 40). Confirmed the TSVLD_CON_PWD (1 s max) connect requirement for powered-up
+      peripherals (and VDP_SRC or RDP_UP assertion on a DCP within TSVLD_CON_PWD of attach) and the
+      TSVLD_CON_WKB (45 min max) delay permitted at the bottom of the Good Battery Algorithm on all
+      exits except the DCP/CDP connect exit (Section 3.3.2, PDF p. 41). The todo accurately
+      accounts for the remaining rows of Tables 5-1 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  data-contact-detect:
+    basis: 1fc6e3dae334390537d58951d7be02a4f40e2ae10d8f2254cc56438df08d72d3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.3 (PDF pp. 20-24, Figures 3-3 to 3-5), Section 3.3.2 (PDF
+      pp. 41-42, Figure 3-15), Section 3.4.1 (PDF pp. 43-45, Figures 3-16 to 3-18), Section 4.6.2
+      (PDF pp. 53-54), Table 5-1 (PDF p. 55), Table 5-2 (PDF p. 56), Table 5-3 (PDF p. 57) and
+      Table 5-5 (PDF p. 59). Confirmed the plug pin offset motivation (> 200 ms observed),
+      mandatory TDCD_TIMEOUT (300 to 900 ms) timer, optional IDP_SRC (7 to 13 uA) current source on
+      D+ paired with RDM_DWN (14.25 to 24.8 kOhm) or IDM_SINK (25 to 175 uA) on D- (Section 3.4.1,
+      PDF p. 43), D+ voltage levels when unattached (VLGC_HI = 2.0 to 3.6 V against RDAT_LKG >=
+      300 kOhm to VDAT_LKG = 0 to 3.6 V) vs. attached to an SDP/CDP (pulled to VLGC_LOW = 0 to
+      0.8 V by RDP_DWN = 14.25 to 24.8 kOhm), and DCD completion on D+ low for TDCD_DBNC (10 ms
+      min), ID != RID_FLOAT for TDCD_DBNC, or TDCD_TIMEOUT expiration. The todo accurately accounts
+      for the remaining rows of Tables 5-1, 5-2, 5-3 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  primary-detection:
+    basis: e3a01cc660611fc91f9ac177a7e262586b0a53f9bb210dc8a880ed296654b050
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.4.1-3.2.4.3 (PDF pp. 25-29, Figures 3-6 to 3-8), Section 3.3.2
+      (PDF pp. 41-42, Figure 3-15), Section 3.4.2 (PDF pp. 46-47, Figure 3-19), Section 4.6.2 (PDF
+      pp. 53-54), Table 5-1 with Notes 1-2 (PDF p. 55), Table 5-2 with Note 3 (PDF p. 56), Table
+      5-3 (PDF p. 57) and Table 5-5 (PDF p. 59). Confirmed mandatory Primary Detection with VDP_SRC
+      (0.5 to 0.7 V, sourcing >= 250 uA and not pulling D+ below 2.2 V when pulled to VDP_UP
+      through RDP_UP) on D+ and IDM_SINK (25 to 175 uA, pulling D- to VDAT_SINK <= 0.15 V for
+      currents below IDM_SINK min and sinking <= IDM_SINK max below VLGC max) on D- for TVDPSRC_ON
+      (40 ms min), comparing D- against VDAT_REF (0.25 to 0.4 V) when ID = RID_FLOAT to distinguish
+      SDP (D- < VDAT_REF via RDM_DWN, current ISUSP) from DCP/CDP (D- > VDAT_REF via RDCP_DAT <=
+      200 Ohm or VDM_SRC = 0.5 to 0.7 V, current up to IDEV_CHG = 1.5 A), and the optional VLGC
+      (0.8 to 2.0 V) upper bound for PS/2 vs. proprietary chargers. Sibling ID != RID_FLOAT
+      branches in Sections 3.2.4.4-3.2.4.5 are covered in aca-and-aca-dock-id-detection. The todo
+      accurately accounts for the remaining rows of Tables 5-1, 5-2, 5-3 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  secondary-detection:
+    basis: a1f547465b80cc8d2e0975edf850bf7a13ebe8a88a561e39d2fd20e3881a0876
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.5 (PDF pp. 33-36, Figures 3-11 and 3-12), Section 3.3.2 (PDF
+      pp. 41-42, Figure 3-15), Section 3.4.2 (PDF pp. 46-47, Figure 3-19), Section 4.6.2 (PDF
+      pp. 53-54), Table 5-1 with Note 1 (PDF p. 55), Table 5-2 with Note 3 (PDF p. 56), Table 5-3
+      (PDF p. 57) and Table 5-5 (PDF p. 59). Confirmed when Secondary Detection may be bypassed
+      (PD ready to be enumerated within TSVLD_CON_PWD = 1 s max) vs. required (PD not ready to be
+      enumerated within TSVLD_CON_PWD), the signaling sequence (disable VDP_SRC and IDM_SINK,
+      enable VDM_SRC = 0.5 to 0.7 V with Table 5-1 Note 1 characteristics on D- and IDP_SINK = 25
+      to 175 uA with Table 5-2 Note 3 characteristics on D+ for TVDMSRC_ON = 40 ms min, compare D+
+      to VDAT_REF = 0.25 to 0.4 V without needing a VLGC check), and the post-detection actions for
+      DCP (D+ > VDAT_REF: disable VDM_SRC, enable VDP_SRC or RDP_UP to VDP_UP within TSVLD_CON_PWD
+      = 1 s max of attach, maintain D+ > VDAT_REF while VBUS is asserted) vs. CDP (D+ < VDAT_REF:
+      disable VDM_SRC and VDP_SRC, leave D+ and D- low until ready to connect). The todo accurately
+      accounts for the remaining rows of Tables 5-1, 5-2, 5-3 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  cdp-detection-signaling-and-timing:
+    basis: 20612175c7d8ecdc92f5c483be0fecb51c0608e65d2fe6a84a3a82b6d9faf014
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.4 (PDF p. 13), Section 3.2.4.2 (PDF pp. 27-28, Figure 3-7),
+      Section 3.4.2 (PDF pp. 46-47, Figure 3-19), Section 4.2.4 and 4.2.5 (PDF p. 50), Table 5-1
+      (PDF p. 55), Table 5-2 (PDF p. 56) and Table 5-5 (PDF p. 59). Confirmed Standard-A receptacle
+      requirement, prohibition on outputting VDM_SRC while connected, and both allowed CDP
+      signaling modes while disconnected: (1) enabling VDM_SRC (0.5 to 0.7 V) within TCP_VDM_EN
+      (200 ms max) of disconnect and disabling it within TCP_VDM_DIS (10 ms max) of connect without
+      needing IDP_SINK or VDAT_REF comparison, or (2) comparing D+ against VDAT_REF (0.25 to 0.4 V)
+      and VLGC (0.8 to 2.0 V) with IDP_SINK enabled, enabling VDM_SRC within TVDMSRC_EN (20 ms max)
+      when VDAT_REF < D+ < VLGC, disabling VDM_SRC within TVDMSRC_DIS (20 ms max) when D+ <
+      VDAT_REF or D+ > VLGC, and disabling IDP_SINK within TCON_IDPSNK_DIS (10 ms max) of connect.
+      The todo accurately accounts for the remaining rows of Tables 5-1, 5-2 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  dcp-electrical-requirements:
+    basis: 6f5293c1d7e3a64133a1fc261b7c20a2a8e2bec56235bd5f38df50cee34d006e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.7 (PDF p. 14), Section 3.1 (PDF pp. 17-18, Figure 3-1), Section
+      3.2.4.1 (PDF p. 25, Figure 3-6), Section 4.4.3 and 4.4.4 (PDF p. 52), Table 5-1 (PDF p. 55),
+      Table 5-3 (PDF p. 57) and Table 5-4 (PDF p. 58). Confirmed DCP connector options (Standard-A
+      receptacle or captive cable terminating in a Micro-B plug, where a captive cable may omit
+      D+/D- wires and short D+ to D- at the plug), D+ to D- resistance RDCP_DAT (200 Ohm max),
+      D+/D- leakage limit modeled by two RDAT_LKG (>= 300 kOhm) resistors to VDAT_LKG (0 to 3.6 V),
+      and D+/D- capacitance to VBUS or GND of CDCP_PWR (1 nF max). The todo accurately accounts for
+      the remaining two rows of Table 5-4 (CMACA_VBUS and CSACA_VBUS) and non-DCP rows of Tables
+      5-1 and 5-3.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  aca-and-aca-dock-id-detection:
+    basis: e85b4817b5dbc8303ee2754f2cc52efd119b90b9b10dba0a614cff3e166d5524
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 1.4.1-1.4.2 (PDF p. 13), Section 3.2.4.4 (PDF pp. 30-31, Figure
+      3-9), Section 3.2.4.5 (PDF pp. 32-33, Figure 3-10), Section 3.2.6 (PDF pp. 36-38, Figure
+      3-13), Section 3.3.2 (PDF pp. 41-42, Figure 3-15), Section 4.3 (PDF p. 50), Section 4.5 (PDF
+      pp. 52-53), Section 4.6 (PDF pp. 53-54), Table 5-1 (PDF p. 55), Table 5-2 (PDF p. 56), Table
+      5-3 with Notes 1-4 (PDF p. 57), Table 5-5 (PDF p. 59), Section 6.2.4 Table 6-2 (PDF p. 64)
+      and Section 6.3.3 Table 6-4 (PDF p. 71). Confirmed optional ACA Detection for PDs with a
+      Micro-AB receptacle, continuous ID monitoring while VBUS > VOTG_SESS_VLD accounting for
+      ROTG_ACA_GND (100 mOhm max under IDEV_CHG or ICFG_MAX) and IID_LKG_CONT (-1 to +1 uA), the
+      five ID resistance ranges and Table 5-3 Notes 1-4 conditions (RID_GND <= 1 kOhm, RID_C = 36
+      to 37 kOhm nominal 36.5 kOhm, RID_B = 67 to 69 kOhm nominal 68 kOhm, RID_A = 122 to 126 kOhm
+      nominal 124 kOhm, RID_FLOAT >= 220 kOhm; in Table 6-4 a Standard ACA with no charger also
+      presents RID_GND even when nothing is on its Standard-A Accessory Port), early DCD exit to
+      ACA-B/ACA-C on ID != RID_FLOAT for TDCD_DBNC (10 ms min), and Primary Detection D- comparison
+      against VDAT_REF and VLGC when ID = RID_A to separate ACA-A with FS/HS/no B-device (D- <
+      VDAT_REF), ACA-Dock (VDAT_REF < D- < VLGC, with D+ pulled to VDP_UP via RDP_UP and VDM_SRC
+      timed by TCP_VDM_EN = 200 ms max and TCP_VDM_DIS = 10 ms max) and ACA-A with LS B-device
+      (D- > VLGC). The todo accurately accounts for unextracted ACA switch resistances and internal
+      switch-state columns.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  pd-aca-state-machine:
+    basis: 7b0c60209b73a8f1e19c918e38c7bd6004d4571a3f8575f4141f8ce6669208d3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 6.2.2 (PDF p. 62), Section 6.2.4 Table 6-2 (PDF p. 64), Section
+      6.2.7 and Figure 6-4 (PDF pp. 67-68) and Section 6.3.3 Table 6-4 (PDF p. 71). Confirmed all
+      seven PD states in Figure 6-4 and Section 6.2.7: State 1 (!Chg & !Acc, !VBUS, RID_FLOAT),
+      State 2 (Chg & Dock, VBUS, RID_A, VDM_SRC), State 3 (!Chg & A, VBUS, RID_FLOAT), State 4
+      (Chg & A, VBUS, RID_C), State 5 (Chg & !Acc, VBUS, RID_B), State 6 (Chg & B, VBUS, RID_A) and
+      State 7 (!Chg & B, !VBUS, RID_GND), including the rule that State 7 is the only state where
+      the PD outputs VBUS power while States 2-6 draw power from VBUS (with State 6 limiting draw
+      so VBUS_OTG remains above VACA_OPR min per Section 6.2.2; VACA_OPR min = 4.1 V is in Table
+      5-1 on PDF p. 55). The todo accurately accounts for the unextracted internal columns of
+      Tables 6-2 and 6-4.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  detection-renegotiation-and-repeat:
+    basis: 2967df11b827f9a4ec12b3360b2afd9cb6757472b5223a4fc8bf327d27ee8be9
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 4.1.3 (PDF p. 48), Section 4.6.3 (PDF p. 54), Table 5-1 (PDF p. 55)
+      and Table 5-5 (PDF p. 59). Confirmed that a downstream port may switch between SDP, CDP and
+      DCP roles and force PD charger detection renegotiation by stopping VBUS drive, letting VBUS
+      drop below VBUS_LKG (0.7 V max) and waiting TVBUS_REAPP (100 ms min with VBUS < VBUS_LKG)
+      before reapplying VBUS; that a PD must discharge VBUS below VBUS_LKG within TVLD_VLKG (500 ms
+      max from when VBUS is not driven); and that a PD may disconnect and repeat charger detection
+      multiple times while attached if it waits at least TCP_VDM_EN max (200 ms) between
+      disconnecting and restarting detection. The todo accurately accounts for the remaining rows
+      of Tables 5-1 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  weak-battery-detection-algorithm:
+    basis: 9a06b9a80780abaf4cc96b8f4962d631ac93986bb5aba59cee1aaa2e8428d97b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified the algorithm steps, conditions and transitions against Section 2.2 (PDF pp. 15-16),
+      Section 3.3.1 and Figure 3-14 (PDF pp. 39-40) and Section 3.3.2 (PDF p. 41). Confirmed that
+      the Weak Battery Algorithm is optional (any DBP-compliant algorithm or the Good Battery
+      Algorithm subject to DBP is allowed), that on VBUS > VOTG_SESS_VLD the PD enables VDP_SRC on
+      D+ and starts a TSVLD_CON_WKB timer, checks D- > VDAT_REF (with optional D- < VLGC check) or
+      ID != RID_FLOAT to draw IDEV_CHG (labeled IDCP in Figure 3-14 and IDEV_CHG in the Section
+      3.3.1 text), and otherwise draws IUNIT as an SDP until either transitioning to the Good
+      Battery Algorithm when ready to connect or reducing current to ISUSP if TSVLD_CON_WKB expires
+      first. Citation precision is graded imprecise because the claim also states parenthetical
+      numeric values for TSVLD_CON_WKB (45 min max), TDBP_ATT_VDPSRC (1 s max), IDEV_CHG (1.5 A),
+      IUNIT (100 mA, or 150 mA on SuperSpeed) and ISUSP (2.5 mA max), which are defined in Table
+      5-2 (PDF p. 56) and Table 5-5 (PDF p. 59) rather than on the cited pages; add page 56 Table
+      5-2 and page 59 Table 5-5 (and a corresponding table todo) to make the citation exact.
+    contrary_evidence: none-found
+    citation_precision: imprecise
+
+  dcd-timeout-mandatory-without-dcd:
+    basis: 41da87371d6e8c19fd6905ab8008c8ce3d783a11bef4e1324b07163a912a032c
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.3.1 (PDF p. 20), Section 3.3.2 (PDF pp. 41-42, Figure 3-15),
+      Section 3.4.1 and Figure 3-18 (PDF pp. 43-45), Section 4.6.2 (PDF pp. 53-54) and Table 5-5
+      (PDF p. 59). Confirmed that IDP_SRC is optional while TDCD_TIMEOUT (300 to 900 ms) is
+      mandatory for all PDs, requiring a PD without DCD to wait at least TDCD_TIMEOUT min (300 ms)
+      after attach before Primary Detection and a PD with DCD to proceed to Primary Detection
+      within TDCD_TIMEOUT max (900 ms) if contact is not detected on D+ (D+ < VLGC / at VLGC_LOW
+      for TDCD_DBNC) or ID (ID != RID_FLOAT for TDCD_DBNC), and confirmed all five cases listed in
+      Section 3.2.3.1 where DCD may not pull D+ low. The todo accurately accounts for the remaining
+      rows of Table 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  pd-must-hold-dp-high-on-dcp-but-low-on-cdp:
+    basis: 9c45c4545e200e911324f86436982cf001b61cbab9a8b434ea92084c26e6fca4
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.5.1 (PDF pp. 34-35), Section 3.2.5.2 (PDF pp. 35-36), Section
+      3.3.2 and Figure 3-15 (PDF pp. 41-42) and Table 5-5 (PDF p. 59). Confirmed that after
+      Secondary Detection identifies a CDP (D+ < VDAT_REF), the PD must turn off VDP_SRC and
+      VDM_SRC and keep D+ and D- low until connecting, whereas when a DCP is identified, the PD
+      must disable VDM_SRC, enable VDP_SRC or pull D+ to VDP_UP through RDP_UP within TSVLD_CON_PWD
+      (1 s max) of attach, and maintain D+ > VDAT_REF while VBUS is asserted, including across any
+      vendor-specific detection branches executed after the final BC 1.2 detection step (Section
+      3.3.2, PDF p. 42). The todo accurately accounts for the remaining rows of Table 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  repeat-detection-requires-cdp-recovery-wait:
+    basis: 54767775963898b05315df4b284c53a401863d3ea63e09c02cfa1eea9f962d78
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.4.2 (PDF p. 27), Section 4.1.3 (PDF p. 48), Section 4.6.3 (PDF
+      p. 54), Table 5-1 (PDF p. 55) and Table 5-5 (PDF p. 59). Confirmed that a PD repeating
+      charger detection after disconnecting while remaining attached must wait at least TCP_VDM_EN
+      max (200 ms) before restarting detection (matching the TCP_VDM_EN = 200 ms max time for a
+      disconnect-gated CDP to re-enable VDM_SRC on D- in Section 3.2.4.2), and that on
+      downstream-port VBUS cycling below VBUS_LKG (0.7 V max) for TVBUS_REAPP (100 ms min), the PD
+      must discharge VBUS below VBUS_LKG within TVLD_VLKG (500 ms max) to detect VBUS dropping
+      below VOTG_SESS_VLD. The todo accurately accounts for the remaining rows of Tables 5-1 and
+      5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  aca-dock-unpowered-id-and-dp-bias-hazards:
+    basis: f5669870646fbfb372029738d128946faf1e29d2d2d5e102e30ae094f513a864
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 3.2.4.4 (PDF pp. 30-31), Table 5-1 with Notes 1-2 (PDF p. 55), Table
+      5-3 (PDF p. 57), Table 5-5 (PDF p. 59) and Section 6.2.7 with Figure 6-4 (PDF pp. 67-68).
+      Confirmed that an ACA-Dock must present RID_A (122 to 126 kOhm) on ID when powered and
+      RID_FLOAT (>= 220 kOhm) when unpowered so an attached PD does not enter State 7 (!Chg & B)
+      and drive VBUS into the unpowered ACA-Dock, and that because a powered ACA-Dock pulls D+ to
+      VDP_UP (3.0 to 3.6 V) through RDP_UP (900 to 1575 Ohm) and disables VDM_SRC within
+      TCP_VDM_DIS (10 ms max) of any D+/D- activity, a PD's VDP_SRC (and VDM_SRC) must not pull the
+      line below 2.2 V (above VLGC_HI min = 2.0 V) when pulled to VDP_UP through RDP_UP. The todo
+      accurately accounts for the remaining rows of Tables 5-1, 5-3 and 5-5.
+    contrary_evidence: none-found
+    citation_precision: exact
+
+  aca-charger-port-ground-offset-and-usb-reset:
+    basis: 0b718b4b2df61acde830919d3ad1ea048474b8b4db6c11bb603d5b890b73c2b0
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB BC 1.2 reader A
+    note: >-
+      Verified against Section 6.2.6 (PDF pp. 65-66) for Micro ACA and Section 6.3.5 (PDF p. 72)
+      for Standard ACA. Confirmed that when VBUS_CHG is asserted, the ACA outputs VDP_SRC on DP_CHG
+      and closes its Charger Switch when DN_CHG > VDAT_REF (Section 6.2.6 says "is allowed to
+      close" and Table 6-2 rows 5-8 require "closed"; Section 6.3.5 says "shall close"), which can
+      cause an ACA attached to a PS/2 port to draw more than ICFG_MAX, and that while VBUS_CHG
+      remains above VOTG_SESS_VLD the ACA must ignore DN_CHG dropping below VDAT_REF due to CDP
+      ground offset from charging current or a CDP-issued USB reset, keeping its Charger Switch
+      closed and only re-checking DN_CHG > VDAT_REF after VBUS_CHG falls below VOTG_SESS_VLD.
+    contrary_evidence: none-found
+    citation_precision: exact
