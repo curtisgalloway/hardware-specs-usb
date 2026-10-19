@@ -1,0 +1,457 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb-type-c
+spec_file: usb-type-c.spec.yaml
+spec_sha256: 349bc5d0fed8bc809d97003f93f5a7acc8b92f96129077418eb06e930e05be22
+canonical: fact-v1
+sources:
+- name: usb-type-c-2.5.pdf
+  url: https://www.usb.org/sites/default/files/USB%20Type-C%202.5%20Release%20202603.zip
+  sha256: 6636cd61387a2f78b0fa96c8ea86ccc0f39ec59f98821cdb57b206d31445a328
+  fetch: ok
+  note: The PDF inside the USB-IF zip download; each reader checked the SHA-256 and extracted page
+    text itself with pdftotext.
+summary:
+  pass: 24
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  cc-purposes:
+    basis: 8eedbc12c4fdd049e205129cbd188ade58ed7aa23f6682780ff9a3d8137dece7
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: Document bytes matched the declared SHA-256. Section 4.5.1 (p. 158) states that CC1 and
+      CC2 "are used to establish and manage the Source-to-Sink connection" and lists the six purposes;
+      the claim reproduces all six (attach, orientation/twist for data bus routing, data roles, VBUS
+      via Type-C Current or USB PD, VCONN, Alternate and Accessory modes). Read the rest of 4.5.1
+      and 4.5.1.1 (pp. 158-159), including the hub note (each hub connection treated separately),
+      which does not qualify the list. No contrary evidence found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  port-role-interoperability:
+    basis: 977e0756f394be08ca2999cc9fc3e1e0026ea8aee0045c892ebe50555f6bebd5
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: Table 4-9 (p. 160) gives Source-only/Sink-only/DRP interoperability exactly as claimed,
+      with Note 1 "Resolution of roles may be automatic or manually driven" for DRP-DRP. The following
+      paragraph states "neither port shall be harmed" and "VBUS and VCONN shall not be applied by
+      a Source (host) in these cases". Read the rest of 4.5.1.2 (pp. 160-161); nothing qualifies the
+      claim.
+    contrary_evidence: none-found
+    citation_precision: exact
+  power-precedence:
+    basis: ec10d1698bd17c878eede83c2e83d1c8fed8ffebcfae7c82649fe74897cb3655
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: 'Section 4.6 and Table 4-19 (pp. 224-225): all Type-C devices shall support USB Type-C Current;
+      precedence USB PD (configurable up to 48 V, 5 A), Type-C Current 3.0 A and 1.5 A at 5 V, BC
+      1.2 (up to 1.5 A, Note 1), Default USB Power (USB 3.2, USB 2.0). The p. 225 paragraph gives
+      "abide by that power contract ignoring any other" and fallback "in precedence order". Section
+      4.6.2.1 (p. 226) gives 500 mA (USB 2.0) and 900 mA or 1,500 mA (USB 3.2 single-/dual-lane).
+      All match. The TODO accurately names what is omitted (Table 4-19 Note 1, PSD rules and Table
+      4-20). Searched the rest of 4.6 for qualifications: the opening of 4.6 (p. 224) adds that USB4
+      power requires a USB PD explicit contract and that a USB4 port operates as a USB 3.2 port before
+      one; this does not contradict the claim but is an omitted sibling rule (suggest adding: "A USB4
+      port behaves as a USB 3.2 port for power until it has a USB PD explicit contract (4.6, p. 224)."),
+      or naming it in the TODO.'
+    contrary_evidence: found
+    citation_precision: exact
+  source-rp-values:
+    basis: 7b29bcd426b2d7c5a56d09a991d41cb43b323798e6faed0b6c511cfb9fbe7c20
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: 'Table 4-27 (p. 245) values match exactly in all three columns, including tolerances and
+      pull-up ranges; Note 1 (56 kOhm +/-5% for the four listed legacy cable/adapter/captive cases,
+      IR-drop reason) and Note 2 (total current or resistance including leakage and parallel resistance)
+      are both carried; the "other pull-up voltages" sentence of 4.11.1 is carried. Searched the document
+      for the Rp values and "Default USB Power" Rp: section 4.5.3.2.4 (p. 224) requires a legacy adapter
+      Rp to advertise Default, consistent with Note 1. The 4.11.1 note that two connected Sources
+      may use different termination methods is not stated but does not qualify the values.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  sink-rd-and-cable-terminations:
+    basis: eae6dfb56155400a54731e841c9c3207ee8f3439b48b6524dbeed17e7f7fd27c
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'Document SHA-256 matched. Compared with Table 4-28 (p. 245: clamp 1.1 V +/-20% "No"; 5.1
+      kOhm +/-20% "No"; 5.1 kOhm +/-10% "Yes"; Note 1 "clamp implementation inhibits USB PD communication
+      although the system can start with the clamp and transition to the resistor"), Table 4-29 (p.
+      246: Ra 800 Ohm min, 1.2 kOhm max, Note 1 "minimum impedance may be less when VCONN is not applied")
+      and Table 4-30 (p. 246: zOPEN 126 kOhm minimum to GND, Disabled, ErrorRecovery and unpowered
+      Sources, "evaluated below vCC-Clamp"). p. 161 confirms Ra sits on the cable''s VCONN pin. Every
+      value, tolerance and condition matches. Searched the whole document for zOPEN, "5.1 k", "voltage
+      clamp" and vCC-Clamp, and read the rest of section 4.11.1 and the Sink functional model (pp.
+      165-166). Sibling rules the claim omits, none contradicting it: Table 4-28''s "Max voltage on
+      pin" column (1.32 V, 2.18 V, 2.04 V) and Note 2 (total equivalent resistance); the p. 245 rule
+      that a Sink may combine Rd implementations, with transitions shorter than tCCDebounce not read
+      as leaving the wider range and CC never leaving the connection band; and p. 171, where a direct-connect
+      or captive-cable device terminates only A5 and keeps B5 above zOPEN (Ra if it is a VCONN-Powered
+      Accessory), so "each CC pin" is the receptacle case. Suggest adding the max-voltage column and
+      the captive-cable exception, or a document TODO naming them.'
+    contrary_evidence: found
+    citation_precision: exact
+  cc-pin-states:
+    basis: 6ae1534c218bc7dc64fe7b599af7736a8a2c9662be4fa9a13d34f2e3f813d37b
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: 'Section 4.5.2.2 (p. 178) states each CC pin has its own state and the combination defines
+      transitions. Table 4-16 (p. 179): SRC.Open (Open, Rp) above max vRd; SRC.Rd within vRd range;
+      SRC.Ra below min vRd. Table 4-17: SNK.Rp above min vRd-Connected; SNK.Open (Open, Ra, Rd) below
+      it. All match. The table notes only point to 4.11.3.1.1/4.11.3.1.2 for the thresholds, which
+      the claim does not state numerically. Document search for vRd-Connected found only the threshold
+      tables and Force Detach uses; nothing contradicts.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  source-termination-combinations:
+    basis: f4b46461f59b927b5ac096e656c9be44fd2495d871314fb0b25e135d3a6df94a
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader A
+    note: 'Table 4-10 (p. 162) rows match the claim: Open/Open nothing; Rd/Open Sink; Ra/Open powered
+      cable without Sink or Liquid Corrosion Mitigation Mode; Rd/Ra powered cable with Sink, VPA or
+      VPD; Rd/Rd Debug Accessory Mode; Ra/Ra Liquid Corrosion Mitigation Mode. P. 161: "The Source
+      is not required to source VCONN unless Ra is detected." Checked against 4.5.2.2.7.2 (Ra/Open
+      causes no transition) and 4.5.2.2.9.1 (VCONN may be supplied unconditionally to the non-Rd pin),
+      both consistent with "need not". Table 4-11''s stale "analog audio" text concerns behavior,
+      not the combination meaning.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  plug-orientation:
+    basis: 0547ccc5396a47746d7aabf136c36f0696ed37bdcb625833bf09493aad29cc34
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 158 (4.5.1.1): the CC wire is aligned with TXp1/RXp1, and detecting which CC pin is
+      terminated selects the single-lane TX/RX pairs. p. 162: the powered Sink sees the CC pin "at
+      a higher voltage" than its ground. p. 182 (4.5.2.2.5 and 4.5.2.2.5.1): orientation is determined
+      "only upon entry" from the SNK.Rp pin, and a port that came straight from Unattached.SNK on
+      VBUS "shall not determine orientation". p. 187 (4.5.2.2.9.1): the Source uses the SRC.Rd pin,
+      only on entry. p. 153 (4.4.3): VCONN goes on the CC pin not connected to the cable''s CC wire.
+      All parts of the claim match. Searched for "orientation" and for the Attached.SRC VCONN options
+      (p. 187: the CC pin not in SRC.Rd, or the SRC.Ra pin, which is the same pin) and read section
+      4.5.1.1 in full. Omitted siblings: in dual-lane operation the pair aligned with CC is Lane 0,
+      the Configuration Lane (p. 158), and a direct-connect or captive-cable device senses CC only
+      on A5 (p. 171). Suggest adding the dual-lane sentence. The p. 162 locator gives no section number
+      (it is still 4.5.1.2.1); the page alone is enough to repeat the reading.'
+    contrary_evidence: found
+    citation_precision: exact
+  sink-attach:
+    basis: 558083a8e7a60f825d63a885b76be72ef35c2661b50a474ba6c5ec87de0af3d7
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'Compared with 4.5.2.2.3 (pp. 180-181), 4.5.2.2.4 (pp. 181-182) and 4.5.2.2.5 (p. 182).
+      Neither VBUS nor VCONN is driven and both CC pins have independent Rd in both states. The move
+      to AttachWait.SNK on SNK.Rp on at least one pin applies to a port that "supports USB PD or accessories".
+      The move to Attached.SNK needs "only one" pin SNK.Rp for tCCDebounce plus VBUS. The SNK.Open-for-tPDDebounce
+      exits go to Unattached.SNK, Unattached.Accessory or Unattached.SRC. The direct path is for a
+      USB 2.0-only Sink without accessories or USB PD that is self-powered or needs only default power.
+      All match. The claim''s "use more than Default USB Power" paraphrases the source''s "shall not
+      determine ... availability of higher than Default USB Power". These are effectively equivalent,
+      though the source''s wording is narrower. Searched the rest of 4.5.2.2.3-4.5.2.2.5. Omitted
+      siblings at the cited locators: a VCONN-Powered Accessory or VPD goes to Attached.SNK on VCONN
+      or VBUS without waiting tCCDebounce; with SNK.Rp on both pins a Debug Accessory Mode port goes
+      to DebugAccessory.SNK (p. 182); a Source-preferring DRP may go to Try.SRC; the maximum times
+      to reach AttachWait.SNK (tNoToggleConnect, tOnePortToggleConnect) are on p. 181; and there are
+      Charge-Through VPD rules. None contradicts the claim. Suggest a document TODO naming them.'
+    contrary_evidence: found
+    citation_precision: exact
+  sink-detach:
+    basis: 082f6076e5657ba9fe5728db5bfdf78c7e0211eb9528d2069cf0ab092ee4040f
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader D
+    note: 'Document SHA-256 matched. Section 4.5.2.2.5.2 (pp. 183-184) states the non-VCONN-Powered
+      port, absent a PR_Swap, Hard Reset or FR_Swap, "shall transition to Unattached.SNK within tSinkDisconnect"
+      when VBUS falls below vSinkDisconnect "for VBUS operating at or below 5 V" or below vSinkDisconnectPD
+      "when negotiated by USB PD to operate above 5 V"; the VCONN-Powered USB Device rule (VBUS below
+      vSinkDisconnect and VCONN below vVCONNDisconnect, no time bound); the optional CC monitoring
+      by a port that "has entered into USB PD communications" and seen CC exceed vRd-USB, exempting
+      only PR_Swap and FR_Swap, leaving within tSinkDisconnect after CC stays below vRd-USB for tPDDebounce;
+      and "cease to supply it within tVCONNOFF". Table 4-3 (p. 153) gives tSinkDisconnect max 40 ms
+      and vSinkDisconnect 0.8 V min, 3.67 V max "when VBUS is 5 V"; Note 1 points back to 4.5.2.2.5.2
+      for applicability. All values, conditions and port-type scopes match; the title fits. Search:
+      rest of 4.5.2.2.5 and Table 4-3 notes, and whole-document search for vSinkDisconnect, tSinkDisconnect,
+      vVCONNDisconnect, tPDDebounce context (incl. CTAttached.SNK exit in 4.5.2.2.27.2 and Appendix
+      H). Found sibling rules the claim omits without denying: the same section (p. 184) also has
+      a Charge-Through VPD leave Attached.SNK for CTUnattached.VPD when VCONN is present and the Host-side
+      CC is SNK.Open for tVPDCTDD; a port that detects a Charge-Through VPD via SOP'' goes to TryWait.SRC
+      (or Unattached.SRC/Unattached.Accessory); and after PS_RDY during a PR_Swap the port goes directly
+      to Attached.SRC keeping VCONN state and data role. Table 4-3 also says that for USB PD contracts
+      at 5 V the Sink "shall take IR drop and margin into account" when choosing the 3.67 V threshold.
+      Proposed addition: "A Charge-Through VCONN-Powered USB Device instead goes to CTUnattached.VPD
+      when VCONN is present and its Host-side CC is SNK.Open for tVPDCTDD; after PS_RDY in a PR_Swap
+      the port goes directly to Attached.SRC (p. 184)." The TODO (PPS variants of vSinkDisconnect
+      and vSinkPD_min, p. 153) can be settled by reading Table 4-3 and the claim states only the 5
+      V non-PPS range, so it does not cover an unsupported assertion.'
+    contrary_evidence: found
+    citation_precision: exact
+  source-attach:
+    basis: e41e601e2bebeb4387ca79b84ee744cf1150e8af0c73d5e9a78a909617768a66
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'Compared with 4.5.2.2.7 (pp. 184-185), 4.5.2.2.8 (pp. 185-186), 4.5.2.2.9 (pp. 186-187)
+      and Table 4-32 (p. 247: tVBUSON 275 ms max, tVCONNON 2 ms max, tVsafe0V). Unattached and AttachWait
+      drive no VBUS or VCONN and present a separate Rp on each pin, with the captive-cable/plug single-Rp
+      note. The AttachWait.SRC entry is SRC.Rd on either pin or SRC.Ra on both, and Ra plus Open causes
+      no transition. The load to vSafe0V within tVsafe0V matches. The Attached.SRC entry needs vSafe0V,
+      SRC.Rd on exactly one pin for tCCDebounce and VBULK ready. VBUS current follows Rp, with the
+      p. 187 note on USB PD contracts. Current is sourced on and monitored at the SRC.Rd pin, and
+      no USB PD runs before vSafe5V. The two VCONN options for a port signalling on TX/RX, within
+      tVCONNON, also match. Searched the rest of those sections and Table 4-32''s notes (Note 1: VCONN
+      may precede VBUS). Omitted siblings, none contradicting: from AttachWait.SRC, SRC.Open on both
+      pins, or SRC.Open with SRC.Ra, returns a Source to Unattached.SRC and a DRP to Unattached.SNK
+      (p. 186). Others: Rd on both pins leads to UnorientedDebugAccessory.SRC; a Sink-preferring DRP
+      may go to Try.SNK; ErrorRecovery or Disabled may follow if VBUS misses vSafe0V within tVBUSOFF;
+      a port without TX/RX may also supply VCONN; VBUS may be removed for a VPD partner (p. 187);
+      and the AttachWait.SRC detection times appear on p. 185. Suggest a TODO naming the AttachWait.SRC
+      abort exits.'
+    contrary_evidence: found
+    citation_precision: exact
+  source-detach:
+    basis: 6794414a29e634e371c3a365a36238e56ad5b8d726ee516ec787300a0af70480
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 188 (4.5.2.2.9.2). A Source supplying VCONN, or that yielded it via VCONN_Swap, goes
+      to UnattachedWait.SRC on SRC.Open at the monitored pin; otherwise it goes to Unattached.SRC.
+      Detection is within tSRCDisconnect. A DRP goes to Unattached.SNK, or to TryWait.SNK if it strongly
+      prefers Source. VBUS ceases within tVBUSOFF. p. 184 (4.5.2.2.6): Rdch on the discharged pin,
+      discharged below vVCONNDischarge, then Unattached.SRC. Table 4-32 (p. 247): tVBUSOFF 650 ms
+      max "from the time the Sink is detached until the Source removes VBUS and reaches vSafe0V".
+      Table 4-34 (p. 250): tSRCDisconnect 20 ms max. All match. Searched the rest of 4.5.2.2.6 and
+      4.5.2.2.9.2 and both tables'' descriptions. Omitted siblings, none contradicting: VCONN must
+      cease within tVCONNOFF unless leaving for PR_Swap or CTUnattached.SNK; after an accepted PR_Swap
+      the DRP goes directly to Attached.SNK; a Charge-Through VPD partner leads to CTUnattached.SNK;
+      and in UnattachedWait.SRC the port keeps Rp on the other pin and may delay the exit so the plug
+      can reapply Ra (p. 184). Suggest adding the tVCONNOFF rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  drp-toggling:
+    basis: 5e60e5aef82a311a426f7a2681ec6148ffa3937847065ab2939a7f01962b87e3
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: 'Document SHA-256 matched. Table 4-33 (p. 249) gives tDRP 50-100 ms, dcSRC.DRP 30%-70%,
+      tDRPTransition 0-1 ms, and the text above it says the swap clock and the Source percentage "should
+      not be derived from a precision timing source". 4.5.2.2.3.2 (p. 181) gives the Unattached.SNK
+      exit after both pins are SNK.Open for tDRP - dcSRC.DRP x tDRP, and 4.5.2.2.7.2 (p. 185) gives
+      the Unattached.SRC exit after dcSRC.DRP x tDRP, both within tDRPTransition. 4.5.1.3.3 (p. 167)
+      describes the DRP alternating until a stable state is reached. All values and ordering match.
+      Search: document grep for tDRP, dcSRC.DRP and tDRPTransition, and the rest of each cited section.
+      Sibling rules left out, which do not contradict the claim: both exits also happen "or if directed",
+      and 4.5.2.2 (p. 178) says entry into an unattached state when "directed from any state" shall
+      not be used to override the tDRP toggle. Proposed addition: "Being directed into an unattached
+      state must not override the tDRP toggle (4.5.2.2, p. 178)."'
+    contrary_evidence: found
+    citation_precision: exact
+  try-src-try-snk:
+    basis: c6d90115849a6e72d0a1861e31948e125af2cc4f483ee9417de3d2a983bee4c2
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 168 (4.5.1.4.1): a DRP "may incorporate either or both" mechanisms; they "can only be
+      used once as part of the initial connection process"; USB PD may then refine roles "if both
+      sides support USB PD"; and a DRP without USB PD "should implement either". p. 182 (4.5.2.2.4.2)
+      and p. 186 (4.5.2.2.8.2) match the two optional transitions word for word, including the missing
+      VBULK condition for Try.SNK. Table 4-12 (p. 169) was read. The claim leaves out its rows, and
+      the recommendation that the Try mechanism also be used for a preferred data role, which takes
+      precedence over power role for a single-data-role product (p. 168). The claim''s "after which
+      USB PD swaps may change roles" also omits "if both sides support USB PD", which any PD swap
+      implies. Searched 4.5.2.2.10-4.5.2.2.13 (pp. 188-191). p. 189 says that if both mechanisms are
+      implemented, "only one shall be enabled by the port at any given time"; Try.SNK also exists
+      for a Sink with Accessory Support (p. 190, Figure 4-14). Neither contradicts the claim. The
+      TODO accurately names the uncited state sections and timers, but not the omitted Table 4-12
+      rows or the data-role rule. Suggest extending the TODO text and adding the one-enabled-at-a-time
+      rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  cc-timing:
+    basis: e43d886e75e91d8a1f9f69cb35505421def0ed28bb7b875521d0905f0969b15d
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: 'Compared every stated row with Table 4-34 (p. 250): tCCDebounce 100-200 ms; tPDDebounce
+      10-20 ms (Sink detach, because of USB PD signaling); tTryCCDebounce 10-20 ms; tErrorRecovery
+      25 ms minimum for a self-powered port and 240 ms for a Source that was sourcing VCONN; tRpValueChange
+      10-20 ms when CC is not BMC Idle or the port cannot detect BMC Idle, 0-5 ms when PD signaling
+      can be detected and CC is BMC Idle; tSRCDisconnect 0-20 ms. All match. The TODO accurately lists
+      the only remaining rows of Table 4-34 (three connect-detection times and two CTVPD timers).
+      Search: document grep for each parameter name. Siblings, not contradictions: Table 4-34 adds
+      that a Source "should detect the SRC.Open state as quickly as practical"; and 4.5.1.2.1 (p.
+      161) also has the Source using tPDDebounce to hide USB PD BMC communication, so tPDDebounce
+      is not only a Sink timer. The claim asserts no exclusivity. Proposed addition: "A Source should
+      detect SRC.Open as quickly as practical."'
+    contrary_evidence: found
+    citation_precision: exact
+  sink-current-tracking:
+    basis: 4375dc812750e843d14d548f60a3470f6b32536d58802853cc7a876a087537fa
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: '4.5.2.3 (pp. 200-202): the sub-states apply in Attached.SNK (and CTAttached.SNK) while
+      the Source supplies default VBUS, starting in PowerDefault.SNK, until VBUS is removed or a USB
+      PD contract is established. The draw limits are default, 1.5 A and 3.0 A. A port that wants
+      more than default monitors vRd, waits for the new vRd to be stable for tRpValueChange, and reduces
+      consumption within tSinkAdj when moving down. Table 4-32 (p. 247) gives tSinkAdj a maximum of
+      60 ms (minimum tRpValueChange). These match. Search: document grep for tRpValueChange and tSinkAdj
+      (4.6.2.1, p. 227; 4.6.2.2, p. 228). Siblings left out: the sub-states also apply in CTAttached.SNK,
+      with further current limits (4.6.2.5); in Power1.5.SNK and Power3.0.SNK the port "shall monitor
+      vRd" in every case, not only when it wants more current; a BC 1.2 Sink drawing more than default
+      must implement the sub-state transitions (p. 228). The source excuses a default-only Sink from
+      the sub-state "transitions" (p. 201) rather than from the sub-states themselves; that is equivalent
+      in practice. Proposed addition: "In Power1.5.SNK and Power3.0.SNK the Sink always monitors vRd;
+      the same sub-states apply in CTAttached.SNK, with the limits of 4.6.2.5."'
+    contrary_evidence: found
+    citation_precision: exact
+  sink-vrd-thresholds-example:
+    basis: 1676b3729019d82ed6f66761fc3795ef1ef705d430ea9a84e7dcf75bb9737ccd
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: 'Table 4-36 (p. 254) gives vRd-USB 0.277-0.612 V, vRd-1.5 0.746-1.164 V, vRd-3.0 1.369-2.042
+      V, thresholds 0.613-0.745 V and 1.165-1.368 V, and disconnect at most 0.276 V. All match. The
+      4.11.3 note (p. 251) supports that thresholds now come from a design methodology with examples
+      rather than fixed tables, and 4.11.3.1.1 (p. 252) gives the Sink equations and lets the Rd variance
+      be smaller than Table 4-28''s maximum. Search: document grep for each value and for vRd-USB
+      and vRd-connected. Only Tables 4-35 and 4-36 hold them. Omitted row: Table 4-36''s vRd-connected,
+      0.277-2.042 V, which the TODO does not name. Also, 4.6.2.1 (p. 227) still points to "Table 4-38"
+      and "Table 4-39" for Sink voltage ranges, but those tables are now Source examples (pp. 256-257).
+      That stale cross-reference is worth noting. Proposed addition: "vRd-connected 0.277 to 2.042
+      V", or name it in the TODO.'
+    contrary_evidence: found
+    citation_precision: exact
+  error-recovery-and-disabled:
+    basis: 5b4ff4b6ce40e5810f42fa87dafb9b91793d153e0054880cd7a079757e0bbb8b
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: '4.5.2.2.1 (p. 179): Disabled removes all CC terminations. The port does not drive VBUS
+      or VCONN and presents "above zOPEN". It exits when directed. Entered from Attached.SNK, it keeps
+      terminations removed for at least tErrorRecovery. 4.5.2.2.2 (pp. 179-180): ErrorRecovery removes
+      terminations for tErrorRecovery and is "the equivalent of forcing a detach event". It then goes
+      to Unattached.SNK or Unattached.SRC by port type, or to CorrosionMitigation if directed. PD
+      ports shall support it, and supporting ports enter it from any state when directed. All match.
+      The TODO accurately names the per-type exits on p. 180. Siblings left out: Disabled is optional,
+      and a port without it is directed to an unattached state after power-on; a non-PD port may omit
+      ErrorRecovery, with the fallback order Disabled then Unattached (p. 180); a port "should" enter
+      Disabled from any state when directed (p. 179). Precision: 4.5.2.2.1 lies entirely on p. 179,
+      but both locators cite pp. 179-180; narrow the Disabled locator to p. 179.'
+    contrary_evidence: found
+    citation_precision: imprecise
+  vconn-source:
+    basis: 2064b5fb37134905e4e0b60293a9d4576ad31272c84f881fb91d1adb02c854e3
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: '4.4.3 (p. 153) puts VCONN on the CC pin not connected to the cable''s CC wire. Table 4-5
+      (p. 154) gives 3.0-5.5 V, at least 1 W (x1) or 1.5 W (x2) for Sources with TX/RX signals, and
+      100 mW in USB suspend or without TX/RX signals. The text after the table allows not sourcing
+      or turning off VCONN when Ra is not detected after tCCDebounce, with the other pin in SRC.Rd,
+      or when there is no GoodCRC to Discover Identity on SOP''. These match. Searched the whole section
+      and the notes of Tables 4-4 and 4-5. Omissions the TODO does not name: Table 4-5 Note 1, "During
+      transition from U3 to U0, VCONN Source shall provide up to max U0 power"; the "Source may latch-off
+      VCONN" and "Alternate modes may require higher power" notes (Appendix E). The TODO does name
+      the VPD row, Table 4-4, Rdch and Table 4-6. Proposed addition to the TODO: "Table 4-5 Note 1
+      (U3 to U0 transition power) and the latch-off and Alternate Mode notes are not extracted."'
+    contrary_evidence: found
+    citation_precision: exact
+  rp-ignored-under-pd-contract:
+    basis: af2eb3afe7467dce29007f70a0e4edd57688e24f3b8f2aa924ac55a91b9d306d
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 187 (4.5.2.2.9.1 note): in a USB PD contract "the supply level of VBUS current is no
+      longer associated with Rp, and the behavior of Rp may differ as defined in the USB PD specification".
+      p. 200 (4.5.2.3): the port remains in the Sink Power Sub-States "until either VBUS is removed,
+      or a USB PD contract is established". p. 226 (4.6.2.1): after entering a USB PD contract the
+      Sink "shall follow the USB PD specification to determine the current", stated there for a Source
+      advertising Default current. p. 227 generalizes: "While a USB PD contract is in place, a Sink
+      is not required to monitor USB Type-C current advertisements and shall not respond to" them.
+      Jointly these support the claim. Searched "USB PD contract" in 4.5.2.3, 4.6 and Table 4-19''s
+      surroundings; no conflict found. The claim leaves out the explicit p. 227 prohibition ("shall
+      not respond to USB Type-C current advertisements"). The sub-states also apply in CTAttached.SNK
+      (p. 200). Suggest adding the prohibition.'
+    contrary_evidence: found
+    citation_precision: exact
+  pd-signaling-looks-like-open:
+    basis: f2dd6ac807306e617c66af7f5e65cc5316ab92c2cb7ca78377079eafde52d65c
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 182 (4.5.2.2.4.2): the Source "may initiate USB PD communications which will cause brief
+      periods of the SNK.Open state ... but this event will not exceed tPDDebounce". On the same page
+      the AttachWait.SNK exits require both pins SNK.Open for tPDDebounce (Unattached.SNK, Unattached.Accessory,
+      Unattached.SRC). pp. 183-184 (4.5.2.2.5.2): CC-monitored detach after CC stays below vRd-USB
+      for tPDDebounce. Table 4-34 (p. 250): tPDDebounce 10-20 ms "due to the potential for USB PD
+      signaling on CC". All match. Searched every "will not exceed" note. The same rule recurs in
+      TryWait.SNK (p. 189). Try.SNK and the Charge-Through VPD states bound the glitch by tTryCCDebounce
+      instead (pp. 190, 200), and Debug Accessory Mode has its own variant (p. 182). Those siblings
+      are omitted and do not contradict the claim. The CC-monitoring rule''s PR_Swap/FR_Swap exclusion
+      is not restated, but this claim describes only the debounce, not the full exit rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  superspeed-vbus-holdoff:
+    basis: 5789cf37844792b637735da11ab26230fee13de5909de90ddfb62da4f63c6c39
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader B
+    note: 'p. 182 (end of 4.5.2.2.4.1, which starts on p. 181) says, nearly word for word, that it
+      is strongly recommended a USB 3.2 SuperSpeed device hold off VBUS detection to the device controller
+      until Attached.SNK or DebugAccessory.SNK, "i.e., at least one CC pin is in the SNK.Rp state".
+      Otherwise it may connect as USB 2.0 to a legacy host or hub DFP. This matches the claim. Search:
+      document grep for VBUS detection and hold-off wording. The only related rule is a separate USB4
+      rule, which holds off USB 2.0 speed identification until Enter_USB/Alternate Mode/tUSB4Timeout
+      (5.4.1 area). It does not qualify this claim.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  ra-ra-no-longer-audio:
+    basis: 8fca0da09f94d02a49e2ada42ad31f95edcedc2db56791848dba3c30691f1249
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader C
+    note: 'p. 27 (Revision History): Release 2.3 is "primarily for deprecating the Audio Adapter Accessory
+      Mode and replacing it with the Liquid Corrosion Mitigation Mode". p. 161 (in 4.5.1.2.1): "Ra/Ra
+      for Liquid Corrosion Mitigation Mode (Appendix A)". Table 4-10 (p. 162) lists Ra/Ra as LCMM.
+      p. 31''s terms table keeps "Audio Adapter Accessory Mode" (Ra/Ra), "deprecated and replaced
+      by Liquid Corrosion Mitigation Mode". Table 4-11 (p. 162) still lists "Reconfigure for analog
+      audio" as the LCMM Source behavior. Searched the whole document for "analog audio", "Audio Adapter"
+      and "audio": analog audio appears only in Table 4-11, and Appendix A never mentions audio. That
+      supports "a leftover", although that characterization is the author''s and is not stated in
+      the document. Wording it as an observation would be safer, for example "the table does not explain
+      it".'
+    contrary_evidence: none-found
+    citation_precision: exact
+  dead-battery-sink:
+    basis: 722254a0bdadd9ccaf269a288eb523cdb11b00c02926a6f90c3fc9bc9ff3aad1
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, Type-C reader D
+    note: 'Document SHA-256 matched. Section 4.5.2.2.3 (p. 180): "A port with a dead battery shall
+      enter this state while unpowered", and 4.5.2.2.3.1 requires both CC1 and CC2 terminated through
+      Rd. Section 4.8.5 (p. 235): a dead-battery system "shall apply Rd to both CC1 and CC2 and follow
+      all Sink rules", will receive "the default VBUS" from a Source, DRP or Sourcing Device, and
+      the dead-battery Rd circuitry "only needs to guarantee the voltage on CC is pulled within the
+      same range as the voltage clamp implementation of Rd". 4.8.5 scopes its rule to a system "that
+      supports being charged by USB", but 4.5.2.2.3 applies to any port, so the claim''s general scope
+      holds; the title matches. Search: rest of 4.5.2.2.3 and 4.8.5, whole-document search for "dead
+      batter", "unpowered" and "clamp", Table 4-28 and its notes (p. 245), Table 4-35, Appendix B.
+      Found siblings the claim omits without denying: Table 4-28 Note 1 says the clamp implementation
+      "inhibits USB PD communication" and the system can move to the resistor once able to do PD (with
+      the p. 245 rule that Rd transitions must not take CC outside the connection band); 4.8.5 lets
+      the system, once charged, use DR_Swap to become DFP; a DTS with a dead battery enters UnattachedDeb.SNK
+      (B.2.4.1.2, p. 366). Proposed addition: "A clamp Rd inhibits USB PD; the Sink can switch to
+      a resistor Rd once able to do PD, without taking CC outside the connection band (Table 4-28
+      Note 1, p. 245)."'
+    contrary_evidence: found
+    citation_precision: exact

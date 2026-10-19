@@ -23,11 +23,12 @@ documents:
   access: public
   subsystem: host-controller
   disposition: "excluded: superseded by revision 1.2c, and its pages are stamped Intel Confidential although Intel serves it publicly; a public root cites 1.2c instead"
-- name: usb-type-c-2.5
+- name: usb-type-c-2.5.pdf
   title: Universal Serial Bus Type-C Cable and Connector Specification, Release 2.5
+  sha256: 6636cd61387a2f78b0fa96c8ea86ccc0f39ec59f98821cdb57b206d31445a328
   access: public
   subsystem: type-c
-  disposition: "planned: the Type-C spec (connector detection, CC states, Rp/Rd current advertisement)"
+  disposition: spec:usb-type-c
 - name: usb-pd-r3.2
   title: Universal Serial Bus Power Delivery Specification, Revision 3.2
   access: public
@@ -101,7 +102,15 @@ blocks:
 - name: type-c-port
   title: USB Type-C port (CC detection and current advertisement)
   subsystem: type-c
-  disposition: "planned: the Type-C spec"
+  disposition: spec:usb-type-c
+- name: type-c-accessories-and-vpd
+  title: Type-C accessory modes, VCONN-Powered and Charge-Through devices
+  subsystem: type-c
+  disposition: "planned: sections 4.5.2.2.14 to 4.5.2.2.31 and Appendices A and B of the Type-C specification"
+- name: type-c-cable-emarker
+  title: Type-C cable eMarker and Ra management
+  subsystem: type-c
+  disposition: "planned: sections 4.5.2.4 and 4.5.2.5 and 4.9 of the Type-C specification"
 - name: usb-pd-protocol
   title: USB Power Delivery protocol layer
   subsystem: power-delivery
