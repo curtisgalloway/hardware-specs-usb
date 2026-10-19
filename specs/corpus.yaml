@@ -1,0 +1,116 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+# The corpus ledger (driver-lab, skills/spec-format/SKILL.md, "Corpus ledger"): every document
+# and block of the USB standard family found in discovery, each with a disposition. A document's
+# name equals its resources.documents name in the specs that cite it.
+format: 2
+derivation: >-
+  Documents: the USB-IF document library's specification listing (usb.org/documents, category
+  Specification) filtered to the USB, xHCI, Type-C, USB PD and TCPCI family, plus Intel's
+  public host controller interface specifications (xHCI, EHCI). Blocks: the software-visible
+  interfaces those documents define (host controller interfaces, port controller interfaces,
+  connector and power-delivery protocols), one per document that defines a programming model,
+  with the xHCI extended capabilities of Table 7-2 that a driver handles separately.
+documents:
+- name: xhci-1.2c.pdf
+  title: eXtensible Host Controller Interface for Universal Serial Bus (xHCI) Requirements Specification, Revision 1.2c
+  sha256: 0b06318005c3e0c8b896f2a002c2a3c78426b5fdacac4ad1cc02ffec15835190
+  access: public
+  subsystem: host-controller
+  disposition: spec:xhci
+- name: xhci-1.2b.pdf
+  title: eXtensible Host Controller Interface for Universal Serial Bus (xHCI) Requirements Specification, Revision 1.2b
+  access: public
+  subsystem: host-controller
+  disposition: "excluded: superseded by revision 1.2c, and its pages are stamped Intel Confidential although Intel serves it publicly; a public root cites 1.2c instead"
+- name: usb-type-c-2.5
+  title: Universal Serial Bus Type-C Cable and Connector Specification, Release 2.5
+  access: public
+  subsystem: type-c
+  disposition: "planned: the Type-C spec (connector detection, CC states, Rp/Rd current advertisement)"
+- name: usb-pd-r3.2
+  title: Universal Serial Bus Power Delivery Specification, Revision 3.2
+  access: public
+  subsystem: power-delivery
+  disposition: "planned: a USB PD protocol spec"
+- name: usb-tcpci-r2.0
+  title: Universal Serial Bus Type-C Port Controller Interface Specification, Revision 2.0, Version 1.3
+  access: public
+  subsystem: type-c
+  disposition: "planned: a TCPCI register-interface spec"
+- name: usb-ucsi-3.1
+  title: USB Type-C Connector System Software Interface (UCSI) Specification, Revision 3.1
+  access: public
+  subsystem: type-c
+  disposition: "planned: after the Type-C and PD specs it depends on"
+- name: usb-2.0
+  title: Universal Serial Bus Specification Revision 2.0 (with ECNs and errata)
+  access: public
+  subsystem: protocol
+  disposition: "planned: protocol facts the host controller specs refer to"
+- name: usb-3.2
+  title: Universal Serial Bus 3.2 Specification
+  access: public
+  subsystem: protocol
+  disposition: "planned: protocol facts the host controller specs refer to"
+- name: usb4
+  title: USB4 Specification
+  access: public
+  subsystem: protocol
+  disposition: "planned: no USB4 host router spec has been requested yet"
+- name: eusb2
+  title: Embedded USB2 (eUSB2) Version 2.0 Supplement to the USB 2.0 Specification
+  access: public
+  subsystem: protocol
+  disposition: "planned: no eUSB2 consumer yet"
+- name: usb-bc-1.2
+  title: Battery Charging Specification, Revision 1.2
+  access: public
+  subsystem: power-delivery
+  disposition: "planned: charger detection, after the Type-C spec"
+- name: ehci-1.0
+  title: Enhanced Host Controller Interface Specification for Universal Serial Bus, Revision 1.0
+  access: public
+  subsystem: host-controller
+  disposition: "planned: an EHCI spec when a SoC spec needs one"
+blocks:
+- name: xhci
+  title: xHCI host controller interface
+  subsystem: host-controller
+  disposition: spec:xhci
+- name: xhci-usb-legacy-support
+  title: xHCI USB Legacy Support capability (BIOS/OS handoff)
+  subsystem: host-controller
+  disposition: spec:xhci#bios-os-handoff
+- name: xhci-supported-protocol
+  title: xHCI Supported Protocol capability
+  subsystem: host-controller
+  disposition: spec:xhci#supported-protocol-capability
+- name: xhci-debug-capability
+  title: xHCI USB Debug Capability (DbC)
+  subsystem: host-controller
+  disposition: "planned: section 7.6 of the xHCI specification"
+- name: xhci-virtualization
+  title: xHCI I/O Virtualization and VTIO
+  subsystem: host-controller
+  disposition: "excluded: virtualization is out of scope for bring-up and driver porting work so far"
+- name: ehci
+  title: EHCI host controller interface
+  subsystem: host-controller
+  disposition: "planned: an EHCI spec when a SoC spec needs one"
+- name: type-c-port
+  title: USB Type-C port (CC detection and current advertisement)
+  subsystem: type-c
+  disposition: "planned: the Type-C spec"
+- name: usb-pd-protocol
+  title: USB Power Delivery protocol layer
+  subsystem: power-delivery
+  disposition: "planned: a USB PD protocol spec"
+- name: tcpci
+  title: Type-C Port Controller Interface registers
+  subsystem: type-c
+  disposition: "planned: a TCPCI register-interface spec"
+- name: ucsi
+  title: UCSI connector system software interface
+  subsystem: type-c
+  disposition: "planned: after the Type-C and PD specs"

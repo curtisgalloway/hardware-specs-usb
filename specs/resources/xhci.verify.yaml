@@ -1,0 +1,714 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: xhci
+spec_file: xhci.spec.yaml
+spec_sha256: a893ec9eb023dfc6d80648b0bbb8dc08c2e51f147664d7294a2bd7da469faeb0
+canonical: fact-v1
+sources:
+- name: xhci-1.2c.pdf
+  url: https://cdrdv2-public.intel.com/868295/xHCI__Rev1.2c.pdf
+  sha256: 0b06318005c3e0c8b896f2a002c2a3c78426b5fdacac4ad1cc02ffec15835190
+  fetch: ok
+  note: Fetched from Intel's public document server; each reader checked the SHA-256 and extracted
+    page text itself with pdftotext.
+summary:
+  pass: 38
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  interface-scope:
+    basis: 72758361ed691af3824350a024e6a6cb297d7778534b01b0ed0403a14a6001c5
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: Document bytes matched the declared SHA-256. Section 1.1 on p. 22 says the specification
+      describes the register-level host controller interface for USB "Revision 2.0 and above", includes
+      the hardware/software interface between system software and the controller, and that the USB
+      Specifications take precedence on all issues of conflict. All three parts of the claim match.
+      Read the rest of chapter 1 on p. 22 (1.2 scope, 1.3 organization) for qualifications; none narrows
+      or contradicts the claim.
+    contrary_evidence: none-found
+    citation_precision: exact
+  supported-protocol-capability:
+    basis: aa07799e339710d7a4ecd941f143decac9b39c4b83f88e5073c3a30c41d9cc7e
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: 'Compared with section 7.2 and Table 7-6 (p. 480: at least one capability required; Major
+      Revision 31:24, Minor 23:16, BCD), Table 7-7 (Name String), Table 7-8 (p. 481: Compatible Port
+      Offset 7:0, 1 to MaxPorts; Count 15:8) and its note that no capability references a port another
+      one references, Table 7-11 (p. 483: "USB " 20425355h with 02h/00h, 03h/00h, 10h, 20h), and the
+      notes on pp. 483-484 (one capability has offset 1, gaps allowed, undefined behavior for undefined
+      ports). Table 7-2 (p. 476) gives ID 2. All values match. Followed the reference to section 4.19.7
+      (pp. 300-301) and read 7.2.1-7.2.2.1.4 (pp. 481-488); nothing contradicts. Omitted sibling rules
+      (claim not contradicted): the p. 484 notes that USB3 and USB2 capabilities'' port sets must
+      not overlap and that both a USB 2.0 and a USB 3.x capability shall be declared when USB3 connectors
+      serve user-attached devices; and the PSIC field (offset 08h bits 31:28, p. 481), which the TODO
+      covers only implicitly under "PSI Dwords" and could name. Table 7-7 allows any four ASCII characters,
+      but Table 7-11 defines only "USB ", so the claim''s Name String is the defined value. The TODO
+      accurately names what it leaves out.'
+    contrary_evidence: found
+    citation_precision: exact
+  non-pci-required-capabilities:
+    basis: bc1a86c1b08a49c3da2ac253ded496894db1572300e7952d1dbed9a7d591b9c0
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: Table 7-2 (pp. 476-477) says ID 3 Extended Power Management is required for all non-PCI
+      implementations, ID 5 Message Interrupt or ID 17 Extended Message Interrupt is required for
+      them, and ID 2 Supported Protocol is required for all xHC implementations. Sections 7.3, 7.4
+      and 7.5 (pp. 488-489) repeat the same requirements for "implementations that do not support
+      PCI based system interfaces". A document search for "non-PCI" also found 4.10.2.6's out-of-band
+      catastrophic-error mechanism for non-PCI xHCs, which is about something other than capabilities
+      and does not contradict the claim. The SoC/MMIO wording is an illustrative example, not a separate
+      assertion.
+    contrary_evidence: none-found
+    citation_precision: exact
+  pci-header:
+    basis: 5fd9de120b1db6e302cbddb96e536c44481ae8c6d03f98743ecc2c36344bab2f
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: Section 5.2.1 on p. 339 requires PCI-based xHCs to implement a Type 0 header and at least
+      BAR 0 and BAR 1 "to enable 64-bit addressing", pointing to the start of the MMIO register space.
+      This matches the claim. Read 5.2 (PCI or PCIe conformance), the BAR0-size implementation note
+      on p. 339 and Figure 5-1 on p. 340. They add detail but do not qualify the claim.
+    contrary_evidence: none-found
+    citation_precision: exact
+  register-spaces:
+    basis: e236e874d8e477b39ad95b8b2a7cff3fdca0b224d4c4f1d2c1da2a949213460e
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Document hash matched. Compared with Table 5-1 (p. 336), section 5.3 (p. 347: "All Capability
+      Registers are Read-Only", offsets relative to Base), 5.3.1 (p. 348: CAPLENGTH 8 bits at Base
+      + 00h, offset to Operational space), 5.3.7 Table 5-14 (p. 354: DBOFF at Base + 14h, bits 1:0
+      Rsvd, offset in Dwords), 5.3.8 Table 5-15 (pp. 354-355: RTSOFF at Base + 18h, bits 4:0 Rsvd,
+      32-byte offset) and 5.4 (pp. 357-358: Operational Base = Base + CAPLENGTH, Dword aligned). All
+      values match. Searched for each register name and for alignment statements: 5.5 (p. 389) and
+      5.6 (p. 395) state 32-byte and Dword alignment unconditionally; the DBOFF/RTSOFF notes, Table
+      5-2 and the BAR0 implementation note (p. 339) give PAGESIZE alignment under virtualization,
+      which the claim''s last sentence covers by reference. Nothing contradicts the claim.'
+    contrary_evidence: none-found
+    citation_precision: exact
+    readers:
+    - verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader E
+      verdict: PASS
+      date: '2026-10-18'
+      note: 'Document hash matched the declared SHA-256. Compared with Table 5-1 (p. 336: capability
+        registers 0 to CAPLENGTH, operational at CAPLENGTH, runtime and doorbells pointed to by capability
+        registers); 5.3 (p. 347: all capability registers RO, offsets relative to Base); 5.3.1 (p.
+        348: CAPLENGTH, 8 bits at Base + 00h, offset to the operational space); 5.3.7 (pp. 353-354:
+        DBOFF at Base + 14h, bits 1:0 Rsvd, offset of the Doorbell Array, normally Dword aligned,
+        PAGESIZE aligned with IOV or VTIO; the example register value 0000 3000h for a 3000h offset
+        confirms the masked value is the byte offset); 5.3.8 (pp. 354-355: RTSOFF at Base + 18h, bits
+        4:0 Rsvd, 32-byte offset, PAGESIZE aligned under virtualization); 5.4 (pp. 357-358: Operational
+        Base = Base + CAPLENGTH, Dword aligned). Every offset, bit range and alignment in the claim
+        matches. Searched the document for CAPLENGTH, DBOFF and RTSOFF: 5.2.1 implementation note
+        (p. 339), 5.6 (p. 395, doorbell array Dword aligned, Base + DBOFF), the Page Size implementation
+        note in chapter 8 and section 8 PF/VF register locations (p. 551: PF0 at PBAR0 + CAPLENGTH/RTSOFF/DBOFF;
+        VF n at an offset VF BAR) — all consistent; the VF case is covered by the virtualization caveat.
+        The Table 5-2 IOV PF0 = 32/4 entries are the subject of the referenced disagreement fact and
+        do not contradict "can be larger". Minor omissions, not blockers: Table 5-2 gives the capability
+        registers Page alignment; Table 5-14 words the DBOFF field as "offset in Dwords", which read
+        alone could suggest shifting, though the 5.3.7 note settles it. The cross-reference to virtualization-alignment-disagreement
+        is free text only; the caveat is supported by this fact''s own 5.3.7/5.3.8 citations, so the
+        verdict does not depend on it, but the author could declare it with relates. Citation precision
+        exact (5.4''s sentence continues onto p. 358). contrary_evidence: none-found.'
+  capability-register-map:
+    basis: 37caf428afb331c5dbda0705dc4cc4095a36907af96846b81daa41ce8350e267
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: 'Table 5-9 (p. 348) gives every offset and size in the claim. 5.3.2 (pp. 348-349) defines
+      HCIVERSION as BCD, with examples 0100h = 1.0.0 and 0110h = 1.1.0. All match. Read the rest of
+      5.3 (pp. 348-357). The claim omits a sibling register without denying it: VTIOSOFF at Base +
+      20h (section 5.3.10, Table 5-17, p. 357), which Table 5-9 lists as Rsvd but 5.3.10 defines (it
+      is present when HCCPARAMS2 VTC = 1). The spec covers this in a separate gotcha fact. Also omitted:
+      the pre-release HCIVERSION note (p. 349, for example 0090h). Proposed addition: "VTIOSOFF (20h,
+      4 bytes) exists when VTIO is supported (5.3.10)."'
+    contrary_evidence: found
+    citation_precision: exact
+  hcsparams1:
+    basis: dc6b5d64a506eafe92ec34f48dcf3ec72c3dcb36916d938a8cb53a0c82e06433
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: Table 5-10 (p. 349) gives MaxSlots 7:0 (Device Context structures and Doorbell Array entries,
+      1-255), MaxIntrs 18:8 (Interrupter register sets, 1h-400h), MaxPorts 31:24 (highest port number,
+      1h-FFh, equal to the highest number a Supported Protocol capability assigns, and software uses
+      those capabilities to judge validity and protocol). All match. Searched the document for MaxSlots,
+      MaxIntrs and MaxPorts. Table 5-35 (IR0-IR1023, p. 389), 5.6 (up to 256 doorbells, p. 395), 4.19.7
+      (ports 1 to MaxPorts, p. 301) and 7.2 are consistent; none qualifies the stated ranges.
+    contrary_evidence: none-found
+    citation_precision: exact
+  hccparams1:
+    basis: 918b6d55553e62a33bb37ed4f6d4082f09023b3dbc3f13d0833af3bbe04abfe8
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: Table 5-13 (pp. 352-353) gives AC64 bit 0 (0 = 32-bit pointers; the xHC then ignores the
+      high 32 bits of data-structure pointer fields and software ignores the high 32 bits of 64-bit
+      registers), CSZ bit 2 (64- or 32-byte contexts, not Stream Contexts), PPC bit 3, LHRC bit 5,
+      and xECP 31:16 (Dword offset from Base, example shows << 2). All match. Footnote 77 (AC64 concerns
+      bus-master addressing, not decode) is consistent. Chapter 7 (p. 476) adds that xECP is non-zero
+      when any extended capability exists, which agrees. The TODO's bit list (1, 4, 6-11, 15:12) and
+      page ranges match the table and sections 5.3.5 and 5.3.9.
+    contrary_evidence: none-found
+    citation_precision: exact
+  operational-register-map:
+    basis: e5abeddc7f5cd5e4a21dfcfbbb1e07417532724426c9de1855ba7fd27df5b081
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-18 (p. 358) gives USBCMD 00h, USBSTS 04h, PAGESIZE 08h, DNCTRL 14h, CRCR 18h, DCBAAP
+      30h, CONFIG 38h, port sets 400-13FFh; CRCR and DCBAAP are 64-bit (pp. 367, 369). 5.4.8 (p. 370)
+      gives PORTSC at 400h + 10h*(n-1), n = 1..MaxPorts; 5.4.9/5.4.10 put PORTPMSC and PORTLI at 404h/408h.
+      Table 5-19 (pp. 358-359) lists only PORTHLPMC at Ch; 5.4.11 (p. 387, "only supported by ports
+      that support the USB2 protocol") and 5.4.12 (p. 388, PORTEXSC at 40Ch, USB3 only) support the
+      claim''s per-protocol split. Searched for each mnemonic. Sibling rules not stated: PORTEXSC
+      is reserved when the controller does not support link soft error counting ("LSECC = 0", p. 388),
+      and the USB2 PORTLI is reserved (treated as RsvdP) unless E2V2C = 1 (5.4.10.2, p. 385). Suggest
+      adding: "PORTEXSC is reserved when LSECC = 0."'
+    contrary_evidence: found
+    citation_precision: exact
+  register-access-width:
+    basis: 806d6a0b9716ab1478518d48797e1d8875925aef5c5c3b67af0c43670141dfde
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: '5.1 (p. 337) gives the AC64 Qword or low-Dword-first rule, Dword-only writes when AC64
+      = 0, little-endian register fields and the USBLEGSUP byte-access note; chapter 6 (p. 403) gives
+      little-endian data structures; 5.4 (p. 358) and 5.5 (p. 389) give Dword reads with masking and
+      read-modify-write for partial writes "unless otherwise stated"; 5.6 (p. 396) Dword-only doorbell
+      access; 5.4.4 (p. 366) "shall be written as a Dword. Byte writes produce undefined results";
+      7.1.1 note (p. 478) requires byte accesses on USBLEGSUP. All match. Document search for byte/Dword/Qword
+      access and little-endian found one sibling: the VTIO register space (5.7, p. 397) carries the
+      same Dword-read and Qword/low-Dword-first rules, which the claim does not mention. Suggest adding
+      "VTIO registers follow the same rules (5.7)".'
+    contrary_evidence: found
+    citation_precision: exact
+  reserved-field-rules:
+    basis: 718cea37ff123997f90332fa1d6a6a676285482236e737e29a87c99900ba6486
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-3 and its notes (pp. 337-338) match each statement: RW1C/RW1S write-0 has no effect;
+      RsvdP preserve; RsvdZ write 0; RsvdO "shall not write ... unless explicitly allowed by vendor
+      specific instruction"; mask Rsvd, RsvdP, RsvdZ to 0 before evaluating; set reserved fields to
+      0 when initially allocating a data structure. Searched the rest of 5.1.1 and chapter 6 intro.
+      Sibling rules omitted: Rsvd bits return 0 and software ignores the value read (Table 5-3); the
+      sticky variants RW1CS/RWS/ROS exist (Table 5-3); software preserves read-only fields on all
+      data structure writes (chapter 6, p. 403). Suggest adding the p. 403 rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  controller-not-ready:
+    basis: fc323621ccf6613c609f8eb6d4406cfa9df8ac21ea54b522253c72ede338b529
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader A
+    note: 'Section 4.2 (p. 69) requires waiting after a Chip Hardware Reset until CNR is 0 before
+      writing Operational or Runtime registers; its footnote 6 defines the reset as a PCI reset input
+      or an optional power-on reset input (glossary p. 27 agrees). Table 5-21 (p. 365) defines CNR
+      as bit 11, RO, default 1, 1 = Not Ready, and forbids writes to any Doorbell or Operational register
+      other than USBSTS until CNR = 0, with CNR staying 0 until the next Chip Hardware Reset. Together
+      these support the claim. Searched the document for CNR, "Controller Not Ready" and "Chip Hardware
+      Reset". Footnote 80 (p. 363: CNR may read 1 at first examination) agrees. Omitted sibling rule:
+      section 7.6.4.1 (p. 497) says Debug Capability registers should not be accessed while CNR is
+      set; proposed addition "nor access Debug Capability registers (7.6.4.1, p. 497)". The source
+      gives no time bound for CNR clearing; the fact states none and is not a sequence step, so no
+      bound is required here. A TODO saying the standard gives no timeout would help implementers.'
+    contrary_evidence: found
+    citation_precision: exact
+    readers:
+    - verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader E
+      verdict: PASS
+      date: '2026-10-18'
+      note: 'Compared with 4.2 (p. 69: after a Chip Hardware Reset wait until CNR in USBSTS is 0 before
+        writing any Operational or Runtime register; footnote 6: a Chip Hardware Reset is a PCI reset
+        input or an optional power-on reset input) and Table 5-21 bit 11 (p. 365: CNR RO, default
+        1, 0 = Ready, 1 = Not Ready; software shall not write any Doorbell or Operational register
+        other than USBSTS until CNR = 0; set after a Chip Hardware Reset, cleared when ready, remains
+        0 until the next Chip Hardware Reset) with footnote 80 (p. 363). The claim''s doorbell, operational
+        and runtime list is the union of the two passages; the USBSTS exception, bit position, polarity
+        and persistence all match. Searched the whole document for CNR, "Not Ready" and "Chip Hardware
+        Reset" (including HCRST in 5.4.1 and 4.23 power wells): nothing says HCRST sets CNR, so "until
+        the next Chip Hardware Reset" is not contradicted. Omitted sibling rule (contrary_evidence:
+        found, not a blocker): 7.6.4.1 (p. 497) says the Debug Capability registers should not be
+        accessed while CNR is set; proposed addition: "Debug Capability registers should not be accessed
+        while CNR is 1 (7.6.4.1, p. 497)." The document gives no time bound for CNR to clear; the
+        fact is not a sequence step, but the author may add a document TODO saying the standard states
+        no CNR timeout. Citation precision exact.'
+  initialization-sequence:
+    basis: e1aad0c3db9cc0e9860081059560086dbac5532334f9c91c8133f05e308cc887
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader F
+    note: 'Document SHA-256 matched the registry. Section 4.2 (pp. 68-70): after Chip Hardware Reset
+      wait for CNR ''0'' before writing operational or runtime registers; the Note says the text "does
+      not imply a specific order" but the operations "shall be completed before setting" R/S; bullets
+      program MaxSlotsEn, DCBAAP, CRCR (first TRB address), and for each active interrupter allocate
+      and initialize the Event Ring segments, the ERST (base and size in TRBs), ERSTSZ, ERDP (first
+      segment''s start), ERSTBA ("writing the ERSTBA enables the Event Ring"), then IMOD Interval,
+      USBCMD INTE and IMAN IE; then R/S = 1 "allows the xHC to begin accepting doorbell references".
+      Footnote 7: "Interrupts are optional. The xHC may be managed by polling Event Rings." Section
+      4.9.4 (pp. 163-164): before writing ERSTBA, segments are initialized to ''0'' and ERST entries
+      filled; ERSTSZ and ERDP are written; ERST sizes at least 16. The ERDP/ERSTSZ-before-ERSTBA order
+      is further backed by 4.9.4.1 (p. 167, steps 4-7: an ERSTBA write starts the state machine, which
+      fetches ERST[0]). Table 5-24 and its notes (pp. 367-368): RCS sets the Command Ring CCS, and
+      the internal CCS and dequeue pointer "shall be initialized before setting USBCMD Run/Stop".
+      Section 5.5.2 Note (p. 391): primary interrupter registers before R/S, secondary after but before
+      any event targets them, otherwise undefined. Table 5-41 (p. 394) agrees ERSTBA holds the table
+      address. The related fact primary-interrupter-before-run agrees with these pages. Contrary search:
+      rest of 4.2 and 4.3 (p. 71), 4.9.4.1 and 4.9.4.3, 4.20 (p. 305), every ERSTBA occurrence in
+      the document, and "Run/Stop ... to ''1''" preconditions elsewhere; nothing contradicts the claim.
+      Omissions not named by the TODO: 4.2''s "Initialize the system I/O memory maps, if supported"
+      (p. 69) and setting FLADJ at boot (p. 68, PCI). Proposed TODO addition: "nor the conditional
+      system I/O memory map initialization (p. 69) and FLADJ setting (p. 68)." The MSI-X and scratchpad
+      omissions the TODO names are accurate (4.20, p. 305: scratchpad allocated before R/S = 1).'
+    contrary_evidence: found
+    citation_precision: exact
+    readers:
+    - verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader G
+      verdict: PASS
+      date: '2026-10-18'
+      note: 'Document hash matched the declared SHA-256. Read every cited locator: section 4.2 (pp.
+        68-70) gives the wait for CNR = 0 after Chip Hardware Reset, the note that the listed operations
+        have no implied order but shall complete before Run/Stop = 1, the MaxSlotsEn, DCBAAP and CRCR
+        steps, the per-interrupter Event Ring steps (segments, ERST, ERSTSZ, ERDP = first segment,
+        ERSTBA = table address, ERSTBA write enables the ring), IMOD interval, USBCMD INTE, IMAN IE,
+        then Run/Stop = 1 so the controller accepts doorbells; footnote 7 makes interrupts optional
+        (polling the Event Rings). Table 5-24 and its p. 368 note support writing the RCS with the
+        CRCR pointer and initializing CCS and the dequeue pointer before Run/Stop. Section 4.9.4 (pp.
+        163-164) supports clearing segments to 0, filling ERST entries with base and size in TRBs,
+        size at least 16, and ERSTSZ/ERDP before ERSTBA in its listed order. Section 5.5.2 (p. 391
+        note) supports primary interrupter before Run/Stop and the secondary-interrupter rule; 5.5.2.3.2
+        that the primary ERSTBA is not modified while HCH = 0. Searched the whole document for CNR,
+        "before setting"/"prior to" Run/Stop and "Start state": the CNR definition (Table 5-23, 5.4.2)
+        agrees; scratchpad before Run/Stop (4.20, p. 305) is covered by the TODO, which is a sound
+        document check. Findings, not blockers: (1) section 6.5 (Table 6-95, p. 474, Ring Segment
+        Size, valid values 16 to 4096) gives an upper bound the claim omits; propose "size in TRBs
+        (16 to 4096)". (2) The "then" before ERSTBA follows the document''s list order; the only explicit
+        "prior to writing ERSTBA" requirement (4.9.4) covers zeroing the segments and initializing
+        the ERST, and 4.2''s no-order note arguably spans the nested steps, so the claim could say
+        the ERSTSZ/ERDP-then-ERSTBA order is the document''s listed order. (3) The 4.2 FLADJ and I/O
+        memory-map steps are platform steps not extracted; the TODO could name them. Citation precision
+        exact (4.9.4 rules are on pp. 163-164 within the cited 162-164).'
+  primary-interrupter-before-run:
+    basis: 93cf4dfe4305e4777fc51d5ec6d6b7ffb99ab5b21ee63ff3899cb2eec9bbc0e4
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: 'Section 5.5.2 note (p. 391): all Primary Interrupter registers initialized before R/S =
+      1; secondary interrupters may be initialized after, but before any event targets them; otherwise
+      undefined behavior. Table 5-40 (p. 393): writing 0 to the primary ERSTSZ is undefined and the
+      Primary Event Ring cannot be disabled. Table 5-41 (p. 394): primary ERSTBA shall not be modified
+      if HCH = 0. All match. Contrary search: 4.9.4.1-4.9.4.3 (pp. 169-171), 4.2, and a document search
+      for "Primary Interrupter" and ERSTBA. No contradiction. Omitted sibling rule: the 4.9.4.1 note
+      (p. 170) forbids modifying ERST entries 0 to ERSTSZ-1 while HCH = 0 (for every interrupter);
+      suggest adding it. Also, for secondary interrupters, writing ERSTSZ = 0 disables the ring (p.
+      393), which the claim does not state.'
+    contrary_evidence: found
+    citation_precision: exact
+  run-stop-and-halt:
+    basis: 0fe10ed7e6aa3ed537bfa6e9365347d76c9c13905a8ab03b321c63946e454322
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: 'Table 5-20 bit 0 (p. 359): R/S 1 = run, 0 = stop; on clear the xHC completes current or
+      queued commands/TDs then halts; software shall not write 1 unless HCH = 1. 5.4.1.1 (p. 362)
+      note: forced to halt within 16 ms of clearing R/S irrespective of queued work. Table 5-21 bit
+      0 (p. 363): HCH RO default 1, set after stopping; no SOFs, microSOFs or ITPs while 1. All match.
+      Contrary search: rest of 5.4.1 and 5.4.1.1, Table 5-21 notes, search for HCHalted and "16 ms".
+      The Table 5-20 text conditions the 16 ms halt on the halt recommendations being met, while the
+      p. 362 note says it is forced regardless; the claim follows the note, which the source states.
+      Omitted sibling rules: not following the halt recommendations may lose or abort commands and
+      transactions (undefined behavior, p. 362); any pending USB2 port reset must complete before
+      R/S is cleared (p. 362); clearing R/S while an Event Ring is full may lose events (p. 359);
+      HCH is also set when hardware clears R/S (internal error, p. 363), and received packets are
+      dropped while HCH = 1.'
+    contrary_evidence: found
+    citation_precision: exact
+  host-controller-reset:
+    basis: eaac7ef293123f7ef926ac90cdfb315cf0dcb67e2125585483e5451fdab64517
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: 'Table 5-20 bit 1 (pp. 360): HCRST resets internal pipelines, timers, state machines; USB2
+      ports get no USB reset, USB3 root hub ports a Hot or Warm Reset (footnote 79); PCI configuration
+      registers unaffected; all operational registers including port registers set to initial values;
+      reinitialize per 4.2; cleared by the xHC on completion; software cannot end it early and shall
+      not write operational or runtime registers while it is 1; shall not be set while HCH = 0. All
+      match. Contrary search: rest of 5.4.1, footnote 79, and a document search for HCRST (4.19.1.2
+      pp. 280, 296; 4.23.1 p. 312; DbC 7.6). Omitted sibling facts: 4.23.1 (p. 312) states runtime
+      registers are also returned to defaults by HCRST; HCRST completion is not gated by root hub
+      port reset (p. 360, p. 280); PP is undefined while HCRST is asserted and VBus may drop when
+      PPC = 1 (p. 296); HCRST also resets the Debug Capability (p. 490). None contradicts the claim.'
+    contrary_evidence: found
+    citation_precision: exact
+  usbsts-fields:
+    basis: 65a6f6a13db976864ca279f35095900830579eb4cef61ac9a5baf853f8968760
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: 'Table 5-21 (pp. 363-365): HCH bit 0 RO; HSE bit 2 RW1C, xHC clears R/S; EINT bit 3 RW1C;
+      PCD bit 4 RW1C; SSS bit 8 RO; RSS bit 9 RO; SRE bit 10 RW1C; CNR bit 11 RO; HCE bit 12 RO, internal
+      error requiring reset and reinitialization; EINT must be cleared before IP flags, else a new
+      IP transition can be lost. All match, including offset 04h. Contrary search: the whole table
+      and its notes, footnote 80, and a search for EINT/CNR/HCE. Omitted sibling rules: bits 1, 7:5
+      and 31:13 are RsvdZ (write 0) which matters for RW1C writes; the notes on p. 365 that EINT and
+      PCD are typically used only with interrupts disabled or in SMI, and that EINT need not be cleared
+      to clear an interrupt; SRE also clears when a Save or Restore starts; footnote 80 (CNR may read
+      1 on first examination). None contradicts the claim.'
+    contrary_evidence: found
+    citation_precision: exact
+  pagesize:
+    basis: 2401ec351dc292f906fd2ca76027dd23c86dbb53e299ff98dfe4ed6bb18544a3
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: '5.4.3 and Table 5-22 (pp. 365-366): offset 08h, RO; bit n set means 2^(n+12) page size;
+      bit 0 means 4K; "various xHC resources reference PAGESIZE to describe their minimum alignment
+      requirements". Matches (Table 6-1, pp. 403-404, also uses PAGESIZE as a boundary). Contrary
+      search: rest of 5.4.3 and a document search for PAGESIZE. Omitted sibling facts: maximum page
+      size is 128M (p. 366); for an SR-IOV Virtual Function the register reflects the System Page
+      Size selected in the SR-IOV capability rather than the implementation default (p. 366); bits
+      31:16 Rsvd. Suggest adding the 128M limit.'
+    contrary_evidence: found
+    citation_precision: exact
+  command-ring-control:
+    basis: e8b152adfc1d7e4802bd103599222fa86bbf5e4f3f4b12d01a5edccd7c4d4099
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-24 (pp. 367-368): RCS bit 0 (writes ignored when CRR = 1, reads 0), CS bit 1 RW1S
+      (stop after current command), CA bit 2 RW1S (terminate current command and stop), CRR bit 3
+      RO, pointer bits 63:6 (writes ignored when CRR = 1, reads 0), and the note "The Command Ring
+      is 64 byte aligned". 4.1 (p. 68) and Table 5-43 (p. 396: value 0 = Command Doorbell, Stream
+      ID cleared to 0) support doorbell 0 written with 0. All match. The TODO correctly names the
+      CS+CA and early-doorbell notes. Other siblings, not marked: CS and CA writes are ignored when
+      CRR = 0, and the next command doorbell restarts the ring (p. 367-368). The internal CCS and
+      dequeue pointer are undefined after reset and are set before Run/Stop (p. 368 note). CRR stays
+      1 while the ring is idle (4.9.3 note, p. 162). Suggest adding these or naming them in the TODO.'
+    contrary_evidence: found
+    citation_precision: exact
+  device-context-base-address-array:
+    basis: 1ba0726789003fe27707d50da5f2e86556427abb964e369eb85f17fb45a578ac
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: '5.4.6 and Table 5-25 (p. 369): offset 30h, 64-bit, bits 5:0 RsvdZ, physically contiguous
+      and 64-byte aligned. 6.1 (pp. 404-405): indexed by Slot ID, 64-byte aligned, contiguous within
+      a page, MaxSlotsEn + 1 entries, max 256 entries or 2K bytes, software initializes it to 0 and
+      sets entries as slots are allocated, DCBAAP written before R/S = 1, entry 0 points to the Scratchpad
+      Buffer Array when Max Scratchpad Buffers > 0 and is cleared to 0 otherwise. All match. Contrary
+      search: rest of 6.1, Tables 6-2/6-3 and the p. 406 note, Table 6-1 row (p. 403). Omitted sibling
+      rules: software shall not modify a DCBAA entry while its Device Slot is enabled, and entries
+      for unallocated slots are 0 (p. 405); Table 6-1 gives a PAGESIZE boundary requirement. Suggest
+      adding the no-modify-while-enabled rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  config-max-slots:
+    basis: 142ad28d6a236755b6bb4964f39e9efe7d9264c5b8fc4d35df48659433820d14
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: '5.4.7 and Table 5-26 (pp. 369-370): CONFIG at 38h; bits 7:0 MaxSlotsEn, valid 0 to MaxSlots,
+      slots allocated contiguously (16 means slots 1 to 16), 0 disables all, a disabled slot does
+      not respond to doorbells, not modified while R/S = 1. All match. Contrary search: the three
+      notes under Table 5-26 and a search for MaxSlotsEn. Omitted sibling rule: when reducing MaxSlotsEn
+      (with the xHC stopped) the slots being cut off must already be in the Disabled state, otherwise
+      undefined behavior (p. 370). Also a nonzero write signals the driver is loaded (p. 370). Suggest
+      adding the reduction rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  scratchpad-buffers:
+    basis: ce70570da5bcb0c64ade77ddb273b524b2814a0d5fb8b83dcffe8054cff1c03a
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-11 (pp. 350-351): Hi bits 25:21, SPR bit 26, Lo bits 31:27, valid 0-1023, SPR =
+      1 means integrity is kept across power events. 4.20 (pp. 305-306): allocation steps (array of
+      Max entries, DCBAA entry 0, PAGESIZE buffer on a PAGESIZE boundary, cleared to 0, address stored),
+      before Run/Stop, and "System software shall not read or write a Scratchpad buffer". 4.23.2 (pp.
+      313-314): save step 8 "If Max Scratch Pad Buffers is > ''0'' and SPR = ''1'', then save an image",
+      before step 10 removes Core Well power; restore step 3. All match. Sibling rules not stated:
+      saved structures, scratchpads included, must be restored to the same physical addresses (notes,
+      pp. 314-315). The Scratchpad Buffer Array is 64-byte aligned and does not cross PAGESIZE (Table
+      6-1, p. 404). Controller accesses to these buffers should not snoop (p. 306).'
+    contrary_evidence: found
+    citation_precision: exact
+  interrupter-registers:
+    basis: d66f766f35f53dc2a63235725e794ca4cae320484880f195a43a3c5e0315b16d
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: 'Table 5-35 (p. 389): MFINDEX at 0000h, IR0 at 0020h to IR1023 at 8000h (consistent with
+      20h + 32*n). 5.5.1 (p. 390): increments every 125 us, only while R/S = 1. Table 5-37 (p. 391):
+      IMAN 00h, IMOD 04h, ERSTSZ 08h, ERSTBA 10h (64), ERDP 18h (64). Table 5-38: IP bit 0 RW1C, IE
+      bit 1. Table 5-39 (p. 392): IMODI 15:0, 250 ns units, default 4000 (~1 ms), 0 disables throttling;
+      IMODC 31:16 down counter. Table 5-40 (p. 393): ERSTSZ 15:0. Table 5-41 (p. 394): ERSTBA bits
+      5:0 RsvdP. Table 5-42 (pp. 394-395): DESI 2:0, EHB 3, pointer 63:4. All match. Contrary search:
+      all notes in 5.5, and section 4.17.2 (p. 270) via the IMAN reference. Omitted sibling facts:
+      with MSI or MSI-X enabled, IP is cleared automatically when the interrupt write completes; software
+      clears it only for pin interrupts (p. 270 and the p. 392 note); only MaxIntrs sets are implemented.
+      None contradicts the claim.'
+    contrary_evidence: found
+    citation_precision: exact
+  event-ring-consumption:
+    basis: 381277638d4f8b954e7f6e075b1680f2a3cb50bfca5b8a10327d65a16d7ba4a0
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader B
+    note: '4.9.4 (pp. 162-163): xHC PCS initialized to 1, toggled each wrap, written to the Cycle
+      bit; software CCS initialized to 1, toggled each wrap; Cycle = CCS means valid, mismatch means
+      stop (ring empty); software writes ERDP to mark processing complete up to and including the
+      referenced TRB. 5.5.2.3.3 (pp. 394-395): software writes the address of the processed Event
+      TRB to ERDP; EHB RW1C, set when IP is set, cleared by software when ERDP is written. All match.
+      Contrary search: rest of 4.9.4 (pp. 163-166), the p. 395 notes, 4.17.2 (pp. 265-270). Omitted
+      sibling rules: software shall not write ERDP with the same value on two consecutive writes,
+      except a FULL to EMPTY advancement (p. 166, p. 395); the p. 163 note that on a Cycle mismatch
+      software writes ERDP with that TRB''s address; writing DESI with the segment index alongside
+      ERDP (p. 395); recommendation to process many events per ERDP write (p. 166). Suggest adding
+      the no-repeat ERDP rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  event-ring-segment-table:
+    basis: 4c66fef2c70c522e80695b389899b5d3c8d718d609a8d40f9d468940bbf459e0
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Document hash matched the registry. Compared with Figure 6-40 and Tables 6-94/6-95 (p.
+      474): 16-byte entry, base address bits 63:6 with 5:0 RsvdZ and a 64-byte boundary requirement,
+      Ring Segment Size at offset 08h bits 15:0, valid 16 to 4096. HCSPARAMS2 bits 7:4 ERST Max, maximum
+      entries = 2^ERST Max (Table 5-11, p. 350). Read the rest of 6.5, the p. 475 note, ERSTSZ/ERSTBA
+      (5.5.2.3.1-2, p. 393), Table 6-1 (pp. 403-404) and searched the document for "ERST Max" and
+      "segment size" (DbC''s DCERST Max is a separate field). Nothing contradicts the claim. Omitted
+      sibling rules: software rounds the allocation of each segment and of the ERST up to a 64-byte
+      multiple (notes p. 475 and p. 393); Table 6-1 gives Event Ring segments a 64 KiB maximum that
+      must not cross a 64 KiB boundary. Proposed addition: "Software allocates each segment and the
+      table rounded up to a 64-byte multiple." Also noted: the ERSTSZ note on p. 393 says the size
+      may be set "up to ERST Max", loosely worded against the 2^ERST Max definition on p. 350; the
+      claim follows the definition.'
+    contrary_evidence: found
+    citation_precision: exact
+  doorbells:
+    basis: df03b91dbbf9e5feae5683e7b23ad8a59d4bc08be1213871c624e8a4f5658a1c
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with 5.6 and Table 5-43 (pp. 395-397): up to 256 Dword doorbells, one per Device
+      Slot; doorbell 0 is the host controller with DB Target 0 = Command Doorbell; slot doorbells''
+      DB Target 1 = control EP 0, 2..31 = EP1 OUT..EP15 IN; bits 31:16 DB Stream ID, cleared for the
+      command doorbell, and a non-zero value with MaxPStreams = 0 makes the doorbell ignored; the
+      note forbids ringing an endpoint''s doorbell before a successful Configure Endpoint completion.
+      Followed the reference to 4.7 (pp. 143-144). No contradiction. Omitted sibling rules: with streams,
+      Stream IDs 0, 65534 and 65535 are reserved and must not be written (p. 397); targets 32-247
+      reserved, 248-255 vendor defined (p. 396); software must not ring a doorbell for a Disabled
+      slot or Disabled endpoint, and the xHC ignores doorbells to Halted or Error endpoints (4.7,
+      p. 144); Dword-only access (p. 396). Proposed addition: "Do not ring a doorbell of a Disabled
+      slot or endpoint (4.7, p. 144); with streams, Stream IDs 0, 65534 and 65535 are reserved." Minor
+      source inconsistency: Figure 5-29 labels bits 31:16 "DB Task ID" while the table names them
+      DB Stream ID; 4.7 calls doorbell 0 targets 1-255 reserved while Table 5-43 makes 248-255 vendor
+      defined.'
+    contrary_evidence: found
+    citation_precision: exact
+  trb-format:
+    basis: 9da8438aaf4a7f2031f331983b587497d75a056c437e3378dfec051184c6919f
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with 4.11.1, Figure 4-13 and the note spanning pp. 189-190: Parameter (00-07h),
+      Status (08h), Control (0Ch); TRB Type in Control bits 10-15; Cycle in bit 0; if the four Dwords
+      are not written atomically, Parameter and Status are initialized before Control (otherwise undefined).
+      6.4 (p. 427): all TRBs 16-byte aligned. Also read 4.11.1.2, 4.9 (p. 152: all TRBs 16 bytes)
+      and the bus-mastering implementation note. No contradiction. Omitted sibling rule: all TRBs
+      of a Command, Transfer or Event Ring are initialized to 0 by software when the ring is created
+      (4.11.1.1/4.11.1.2, pp. 189-190; also p. 153). Proposed addition: "Software zeroes every TRB
+      when it creates a ring."'
+    contrary_evidence: found
+    citation_precision: exact
+  memory-structure-alignment:
+    basis: e0ad43a9479e4cb572a6d1eb5475c4de2dcec97da9704b21b4fd0d7bb10b277d
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader F
+    note: 'Section 6 (p. 403): software ensures no structure with Max Size at most 64KB spans a 64KB
+      boundary and none at most PAGESIZE spans a PAGESIZE boundary. Table 6-1 (pp. 403-404): Transfer
+      Ring segments 64K/64KB/16, Command and Event Ring segments 64K/64KB/64, ERST and DCBAA alignment
+      64, Slot and Endpoint Context alignment 32. 6.4.1 Note (p. 428): data buffers referenced by
+      Transfer TRBs shall not span 64KB boundaries; software chains TRBs. All match. Contrary search:
+      grep for 64KB boundary, span, and alignment statements across the document; 4.11.5.1 (pp. 206-207)
+      restates 16-byte Transfer and 64-byte Command segment alignment, 6.1 (p. 404) 64-byte DCBAA,
+      6.5 64-byte segment bases; no conflict. The TODO accurately names the omitted Table 6-1 rows
+      and columns. Sibling rule omitted: 4.11.5.1 (p. 207) "All Transfer and Command Ring Segments
+      are multiples of 16 bytes in size"; proposed addition: "Transfer and Command Ring segments are
+      a multiple of 16 bytes (section 4.11.5.1, p. 207)." The ERSTSZ note (p. 393) that the ERST buffer
+      is rounded up to 64 bytes is also unstated.'
+    contrary_evidence: found
+    citation_precision: exact
+  extended-capability-list:
+    basis: e7ff3a8328cae62ffbfefb081d2b6b10553b7c16fa074b5240b7612bba36a129
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with chapter 7 intro and Tables 7-1/7-2 (pp. 476-477) and HCCPARAMS1 xECP (Table
+      5-13, p. 353): first capability at Base + (xECP << 2); Capability ID bits 7:0; Next pointer
+      bits 15:8, a relative Dword offset from this Dword, 00h ends the list. The listed IDs (1, 2,
+      3, 4, 5, 6, 10, 17, 18; 192-255 vendor) are exactly Table 7-2''s defined entries. Searched for
+      other capabilities: Audio Sideband, Time Stamp Correlation and Camera Sideband (7.9, 7.10, 7.12)
+      are addressed through the Extended Capability Index of Get/Set Extended Property, not Table
+      7-2 IDs, so no conflict. Omitted sibling condition: the list exists only when xECP is non-zero
+      (chapter 7 intro, p. 476; Table 5-13, p. 353); since Supported Protocol is mandatory this is
+      always so for a compliant xHC. Proposed addition: "A non-zero xECP indicates the list exists."'
+    contrary_evidence: found
+    citation_precision: exact
+  bios-os-handoff:
+    basis: e308a790e70bcbe22398068aee8df511a98f96ac653475d2589740151a03ab92
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with 4.22.1 (pp. 308-310), Table 7-3 (p. 477), Table 7-4 (p. 478), Table 7-5 (p.
+      479): BIOS Owned bit 16, OS Owned bit 24, adjacent bytes with byte access supported; OS sets
+      OS Owned and owns the xHC when OS Owned reads 1 and BIOS Owned reads 0; the wait "should not
+      exceed 1 second" (p. 310); USBLEGCTLSTS carries SMI enables (plus shadow and RW1C status bits);
+      both registers in the Aux power well. No contradiction found. Omitted sibling rules: to relinquish,
+      the OS clears OS Owned and must re-request ownership afterwards (p. 310); the semaphores reset
+      to 0 when Aux power is restored (p. 309); the spec does not say what the OS does when the 1
+      s wait expires. Proposed addition: "To release the controller the OS clears OS Owned (4.22.1,
+      p. 310)."'
+    contrary_evidence: found
+    citation_precision: exact
+  portsc-port-enable:
+    basis: 5e72e2103e6f2e5c57c18eb174f396758cb9e20ea08c4552e98cfc1f25a82df9
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader F
+    note: 'Table 5-27 (pp. 371-378): CCS bit 0 ROS ("Sticky - Read-only" per Table 5-3, p. 337), ''1''
+      = connected; PED bit 1 RW1CS, "Software cannot enable a port by writing a ''1''", writing ''1''
+      disables; USB2 Disabled ports reset with PR = 1 to enable; USB3 ports from Polling enable after
+      successful link training; footnote 82: PED and PR both ''1'' in one write is undefined; PR bit
+      4 RW1S. Bits 17-23 CSC, PEC, WRC, OCC, PRC, PLC, CEC are RW1CS cleared by writing ''1''; WRC
+      and CEC are RsvdZ on USB2 ports. Note on p. 371: software ensures HCH = ''0'' before writing
+      PORTSC. All match. Contrary search: rest of 5.4.8 to p. 380, section 4.3 (pp. 71-72), and a
+      document search for PORTSC writes tied to halt or Run/Stop; no conflict. Rules omitted that
+      the TODO does not name: CCS, PED and PR read ''0'' when PP is ''0'' (pp. 371-373); PEC is never
+      set on a USB3 port (p. 377); a USB3 port in Disabled is recovered by writing PLS = 5, not PR
+      (p. 372); PED''s attribute is RW1CS. Proposed TODO addition naming these. Minor: the TODO''s
+      "pp. 372-380" should be pp. 371-379 (Table 5-27 ends on p. 379).'
+    contrary_evidence: found
+    citation_precision: exact
+  port-power:
+    basis: 0ce02aba496cbd3b0d4e0e1be1969c90f38da4c557045f6e52389b1b35d8e558
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with 5.4.8 (p. 371): software cannot change port state unless PP = 1, regardless
+      of PPC; power stable within 20 ms of PP 0 to 1; with PPC = 1 software waits 20 ms before changing
+      port state. Matches. The source names the actor ("Software cannot change the state of the port");
+      the claim''s passive "cannot be changed" is slightly broader, and "Software cannot change ..."
+      would be exact. Searched "20 ms", read PP (Table 5-27 bit 9, p. 375) and 4.19.4 (pp. 295-296);
+      no contradiction. Omitted sibling rules: after writing PP software reads it back and confirms
+      the target state before modifying it again, else undefined (p. 375, footnote 91); over-current
+      clears PP; with PPC = 0 ports are hard wired to power; PP is asserted automatically after reset,
+      possibly delayed until MaxSlotsEn is written (p. 295). Proposed addition: "After writing PP,
+      software reads it back until it reaches the written value before writing it again (Table 5-27
+      bit 9)."'
+    contrary_evidence: found
+    citation_precision: exact
+  specification-revisions:
+    basis: 013c7a3ed8cf2c0b993aa7ee61561d8244c442b9129ccb09caba1af5ba8b8ea2
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'The Revision History (p. 21) lists 0.96 5/8/2009, 1.0 5/21/10, 1.1 12/20/13 and 11/7/17
+      (with errata up to 4), 1.2 May 2019, 1.2b April 2023 (USB3 Tunneling Support Capability), and
+      1.2c October 2025 (eUSB2V2, Double Isoch Bandwidth, Camera Sideband Capability). 5.3.2 (pp.
+      348-349) has HCIVERSION as BCD of the supported revision. Table 5-13 bit 10 (p. 353) makes SEC
+      = 1 mandatory for 1.1 and 1.2 compliant xHCs. All match. Sibling found: FSC = 1 is likewise
+      mandatory for 1.1 and 1.2 (4.23.2 note, p. 313); suggest adding it. Precision: the Table 5-16
+      locator (pp. 355-356) supports none of the claim''s statements. It holds DIC (bit 11, p. 356),
+      but E2V2C (bit 12) is on p. 357. Drop that locator or cite pp. 356-357 as evidence of the 1.2c
+      capability bits.'
+    contrary_evidence: found
+    citation_precision: imprecise
+  capability-table-omits-vtiosoff:
+    basis: 6935c1f65974c16d7eb115616e05ad691bb2c9b16cdc838f57c5aa041df82f15
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-9 (p. 348) lists the last row as offset 20h, size "CAPLENGTH-20h", Rsvd. 5.3.10
+      and Table 5-17 (p. 357) define VTIOSOFF at "Base + (20h)". Table 5-16 bit 9 (p. 356) is VTC,
+      "indicates that the xHC supports ... VTIO". Searched the document for VTIOSOFF and offset 20h
+      in the capability space: only the table of contents, 5.3.10 and the 5.7 VTIO Base definition
+      (p. 397) mention it. Nothing in Table 5-9 or its notes resolves the discrepancy. Claim as stated
+      is accurate.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  virtualization-alignment-disagreement:
+    basis: 15be413b3ab39e377816f3dc66c680f6a09ca22894bbd83dd6ab6ed5aea0c09f
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader D
+    note: 'Table 5-2 (pp. 336-337): Runtime IOV PF0 = 32, VFn = Page, VTIO Page, neither 32; Doorbell
+      IOV PF0 = 4, VFn = Page, VTIO Page, neither 4. The DBOFF note (p. 354) and RTSOFF note (p. 355)
+      say both are PAGESIZE aligned "if virtualization is supported ... (either through IOV or VTIO)".
+      The claim is an accurate description of both. Document search for RTSOFF, DBOFF and alignment
+      found more passages that bear on the disagreement without settling it in the document''s own
+      terms. The BAR0 implementation note (p. 339) says that under virtualization RTSOFF and DBOFF
+      place Runtime and Doorbell registers on their own pages. The page-size implementation note (p.
+      527) says PF and VF register sets each reside on separate pages when virtualization is enabled.
+      Chapter 8 (p. 552) uses the same RTSOFF and DBOFF for PF0 and every VF. These side with the
+      notes; 5.5 (p. 389) and 5.6 (p. 395) state the 32-byte and Dword minimums unconditionally. Suggest
+      citing p. 339 and p. 527 as additional evidence.'
+    contrary_evidence: found
+    citation_precision: exact
+  erstba-value-wording:
+    basis: a68cd7f29b0ce9ffa7d8af849efaf6d98af3674194fa8f9932705ca18800b796
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader F
+    note: 'Section 4.9.4''s rules (p. 164) say "Write the ERST Base Address (ERSTBA) register with
+      the value of ERST(0).BaseAddress", quoted correctly. Section 4.2 (p. 70) programs ERDP "with
+      the starting address of the first segment" and ERSTBA "with a 64-bit address pointer to where
+      the Event Ring Segment Table is located". Section 5.5.2.3.2 (pp. 393-394) and Table 5-41: ERSTBA
+      "identifies the start address of the Event Ring Segment Table". So the inconsistency is real.
+      Contrary search: every "ERST(0)" and "BaseAddress" occurrence; 4.9.4 itself on p. 163 says ERST(0)
+      "is pointed to by" ERSTBA (agrees with the claim); 4.9.4.1 step 7 (p. 167) has the xHC fetch
+      ERST[ERST Count] after an ERSTBA write, consistent with ERSTBA being the table address; the
+      Debug Capability init (section 7.6, DCERSTBA) also loads the table address and DCERDP the first
+      segment. No passage supports the 4.9.4 wording. Locators are section ranges; the statements
+      sit on p. 164, p. 70 and p. 394, which could be narrowed but are easy to find.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  bus-master-disable-while-running:
+    basis: 5deab12743ec150ed63e6fa3f0e8829c197a9751c81f130182146bf775062729
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with 4.21.2 (p. 308): the xHC should be halted (R/S 0, HCH verified 1) before
+      BME is cleared; clearing BME while running may be treated as a Host Controller Error, asserting
+      HCE and halting immediately; recovery requires HCRST. Followed the reference to 4.24.1 Internal
+      Errors (p. 328) and HCE in Table 5-21 (p. 365). Consistent. Omitted sibling rule: after HCRST
+      software reinitializes the controller (4.24.1, p. 328; Table 5-21). Proposed addition: "then
+      reinitialize it."'
+    contrary_evidence: found
+    citation_precision: exact
+  interrupt-moderation-default:
+    basis: 0c7458c8dcf4d15458fd6da87f319add1e93af42b4737fb0ea5672382a340468
+    verdict: PASS
+    date: '2026-10-18'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, reader C
+    note: 'Compared with Table 5-39 (p. 392): IMODI default 4000 (~1 ms), 250 ns units, minimum inter-interrupt
+      interval, 0 disables throttling; the text after the table calls it a guaranteed inter-interrupt
+      delay, so at most about one interrupt per millisecond follows directly. 4.2 (p. 70) has software
+      initialize the Interval with the target moderation rate. No contradiction. Omitted sibling rules:
+      the IMODC down-counter (bits 31:16) reloads from IMODI whenever IP is cleared and may be written
+      by software at any time to change the rate (p. 392); the text states the observable interrupt
+      rate "should never exceed 8000 interrupts/sec". Proposed addition: "The counter restarts when
+      IP is cleared, so the interval runs from interrupt acknowledgement."'
+    contrary_evidence: found
+    citation_precision: exact

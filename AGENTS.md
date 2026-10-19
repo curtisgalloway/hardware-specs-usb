@@ -25,10 +25,17 @@ Instructions for coding agents working in this repository. The user guide is the
 - **Scope:** the USB standard family only (USB, xHCI, Type-C, PD, TCPCI), generic facts of the
   standard. How a particular SoC or board integrates a USB controller belongs in that chip's or
   board's spec, which composes these through `describes` and `instances[].ip`.
-- **Licenses:** specs, the root marker and prose are CC-BY-4.0. The CI files, when they arrive
-  (copied from `hardware-specs-docs`: `.github/workflows/checks.yml`,
-  `.github/workflows/publish.yml`, `scripts/checks.sh`), are Apache-2.0 and bring
-  `LICENSES/Apache-2.0.txt` with them. Keep each file's header with its kind.
+- **Licenses:** specs, the root marker, the corpus ledger and prose are CC-BY-4.0. The CI files
+  (`.github/workflows/checks.yml`, `.github/workflows/publish.yml`, `scripts/checks.sh`,
+  copied from driver-lab's `skills/spec-format/ci/` templates) are Apache-2.0, with
+  `LICENSES/Apache-2.0.txt`. Keep each file's header with its kind.
+- **Corpus ledger:** `specs/corpus.yaml` lists every document and block of the family found,
+  each with a disposition. Add a document there when you find it, and change its disposition
+  to `spec:<id>` when a spec cites it; CI fails a root without a ledger (`REQUIRE_CORPUS=1`).
+- **Document bytes:** never commit a cited document. Record its URL, SHA-256, page count and
+  `access` class (checked yourself, not assumed), keep the bytes in a scratch directory outside
+  the repository, and run `spec.py resolve --docs-dir` against them; `spec.py index` builds
+  `specs/index/<document>.index.yaml` from a PDF's outline.
 - **Names:** every spec is `specs/<name>.spec.yaml` (`kind` says what it is; an overlay uses a
   filename distinct from its target's id when the target is in this root), and its verification
   record is `specs/resources/<name>.verify.yaml`. A fact's `id` is stable: never reuse or rename
@@ -36,12 +43,14 @@ Instructions for coding agents working in this repository. The user guide is the
   `spec-verifier` on the changed facts (`spec.py status --stale` lists them).
 - **Generated views:** the Markdown view and the viewer are built by CI (`publish.yml`) and
   published to the repository's GitHub Pages site; never commit or hand-edit a view.
-- **Checks (once CI is added; none exist yet):** `CHECKS_PYTHON=<venv>/bin/python RESOLVE_SRC=1 scripts/checks.sh all <driver-lab
-  checkout>` runs what CI runs; the venv holds driver-lab's
+- **Checks:** `CHECKS_PYTHON=<venv>/bin/python RESOLVE_SRC=1 REQUIRE_CORPUS=1
+  scripts/checks.sh all <driver-lab checkout>` runs what CI runs; the venv holds driver-lab's
   `skills/spec-format/requirements.txt`, installed with `pip install --require-hashes`. The
   default `--mode pr` is the pull-request policy; CI runs `--mode main` on `main`. CI pins
   driver-lab to the commit in `.github/workflows/checks.yml`, and `publish.yml`'s `TOOL_COMMIT`
-  names the same commit: bump both together, and check against that commit.
+  names the same commit: bump both together, and check against that commit. Other spec
+  repositories read this one as a context root, so never pin a newer driver-lab here than they
+  do.
 - **Do not** widen `accepts:` in `specs/board-specs.yaml` to make a spec pass: that changes the
   repository's license policy, which is the user's decision. Do not add the self-test's fixture
   specs to `specs/`.
@@ -51,5 +60,5 @@ Instructions for coding agents working in this repository. The user guide is the
   of the file; in Markdown, an HTML comment.
 - **Privacy:** this repository is public. No host names, addresses, user names or home paths in
   any file or commit message.
-- **Git:** a topic branch and a pull request per change; push or open a pull request only on the
-  user's explicit "push".
+- **Git:** a topic branch and a pull request per change. The user has allowed pushing branches
+  and opening pull requests here without asking each time; never push `main` directly.
