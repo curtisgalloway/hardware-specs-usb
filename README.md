@@ -39,13 +39,14 @@ disposition: specified, planned or excluded. Full definitions: driver-lab's
 | [`eusb2`](specs/eusb2.spec.yaml): Embedded USB2 (eUSB2V2) physical and link layer supplement | eUSB2 Version 2.0 Supplement, Version 1.0 (August 2024) | `public` | none yet |
 | [`ucsi`](specs/ucsi.spec.yaml): USB Type-C Connector System Software Interface | UCSI Revision 3.1 (June 2026) | `public` | none yet |
 | [`tcpci`](specs/tcpci.spec.yaml): USB Type-C Port Controller Interface (TCPCI) | TCPCI Revision 2.0, Version 1.3 (January 2022) | `public` | none yet |
+| [`usb4`](specs/usb4.spec.yaml): USB4 router, fabric and tunneling protocol | USB4 Version 2.0 (November 2025, with errata through Nov 19, 2025) | `public` | none yet |
 
 The views (a Markdown copy and an HTML viewer of each spec) are built by CI and published to
 https://curtisgalloway.github.io/hardware-specs-usb/ from `main`; nothing generated is
 committed here. A pull request's views are in its `spec-views` artifact.
 
-`specs/corpus.yaml` lists what is planned next: the USB PD specification, and the
-USB 3.2 and USB4 protocol specifications.
+`specs/corpus.yaml` lists what is planned next: the USB PD specification and the
+USB 3.2 protocol specification.
 Protocol data structures (descriptor layouts, request tables) are written as prose claims for
 now; driver-lab#164 tracks a spec kind that would carry them as structured layouts.
 

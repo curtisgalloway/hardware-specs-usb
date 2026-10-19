@@ -1,0 +1,353 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb4
+spec_file: usb4.spec.yaml
+spec_sha256: 043d156705e584bff4ed3b4f8ebf49762d4e26abd1de5670d1e5ed8150d23c6b
+canonical: fact-v1
+sources:
+- name: usb4-2.0.pdf
+  url: https://www.usb.org/sites/default/files/USB4%202.0%2020251120.zip
+  sha256: d2c27a35f5436559ba7e52448b873553434218544b2b8f160667bfd036ec024b
+  fetch: ok
+  note: The USB4 Specification Version 2.0 PDF (November 2025, 922 pages) inside the USB-IF zip
+    download; SHA-256 verified and page text compared directly against cited sections, tables,
+    and figures.
+summary:
+  pass: 24
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  usb4-architectural-layers-and-tunneling:
+    basis: d36283066ca04b1a65480b6e33b5e4038c1282c58b4359dce6bb6605260cab32
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 2.1 (pp. 51-53), Figure 2-2 (p. 52), Section 2.1.4.2 (pp. 61-62),
+      Section 2.2 (pp. 74-75), and Figure 2-26 (p. 74). Confirmed the four functional layers
+      (Protocol Adapter Layer, Transport Layer, Logical Layer, Electrical Layer), the three product
+      types (USB4 Host, USB4 Hub, USB4 Device) with Host Router, Hub Router, and Device Router,
+      and the required vs. optional Protocol Adapters per product type (Host: USB3 and DisplayPort
+      tunneling and Host Interface required, PCIe optional; Hub: PCIe and USB3 required, DisplayPort
+      and Host Interface optional; Device: all optional). Also confirmed Time Management Unit (TMU)
+      wall clock synchronization and Connection Manager (CM) software/firmware roles.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-router-and-adapter-architecture:
+    basis: 51b65bdaf58cdd57113bb8889f09581b98289aee6ddc4ba86fd6eb8051915e6a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 2.1.1 (pp. 53-55), Figures 2-3 and 2-4 (pp. 53-54), and Section
+      2.1.1.1 (pp. 55-58). Confirmed up to 64 Adapters per Router numbered 0..63, Adapter 0 as
+      the Control Adapter terminating Control Packets on the Transport Layer, Lane Adapters and
+      Protocol Adapters (USB3 Upstream/Downstream, DisplayPort IN/OUT, PCIe Upstream/Downstream,
+      Host Interface), and two consecutive Lane Adapters (Lane 0 Adapter at the lower Adapter
+      Number and Lane 1 Adapter at Lane 0 + 1) plus Sideband Channel interface per USB4 Port.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-link-speeds-widths-and-encoding:
+    basis: 6365af31089c8f3e744af74acfa37ea439a9c1530a51289b5e527677afb37ad7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 2.1.3 (pp. 59-60), Section 4.1 (p. 113), Sections 4.2.1-4.2.2
+      (pp. 151-156), Sections 4.3.1-4.3.2 (pp. 166-206), and Section 8.2.2.1.1 Table 8-10 (pp.
+      455-460). Confirmed Gen 2 (10.0 Gbps/lane, 128b/132b, NRZ, optional RS(128,120) FEC), Gen 3
+      (20.0 Gbps/lane, 128b/132b, NRZ, optional RS(128,120) FEC), and Gen 4 (40.0 Gbps/lane, PAM3
+      11-bit to 7-trit 384-byte Precoding Block with 4B Sync Header + 372B data + 8B RS(192,188)
+      FEC), Symmetric Single-Lane (1Tx/1Rx, 20/40/80 Gbps), Symmetric Dual-Lane (2Tx/2Rx, 20/40/80
+      Gbps), and Gen 4 Asymmetric 3Tx/1Rx or 1Tx/3Rx (120 Gbps / 40 Gbps), as well as Current/Target
+      Link Speed/Width/Asymmetric Link encodings in PORT_CS_18 and ADP_CS_4/ADP_CS_5.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-lane-adapter-states-and-sideband:
+    basis: ee61472f43f2e36bc40e41d96313011bc6b732caf60b4bb40b06e8bf6efb64b6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 4.1.1 (pp. 113-114), Section 4.1.2 (pp. 139-142), Section 4.2.3
+      Figure 4-15 (pp. 156-165), Section 4.4 (pp. 235-256), Section 5.1.3.1 (pp. 299-301), and
+      Section 8.2.2.1.1 Table 8-10 (pp. 455-456). Confirmed SBTX/SBRX 1 Mbps UART (1 start, 8 data,
+      1 stop, no parity), AT/RT/LT transaction types, Phase 1..5 Lane Initialization, all eight
+      3-bit Adapter State encodings in ADP_CS_4[28:26] (000b Disabled, 001b Training, 010b CL0,
+      011b Tx CL0s, 100b Rx CL0s, 101b CL1, 110b CL2, 111b CLd), Ordered Set entry handshakes after
+      PM Packet (PDF = Eh) clears path objections on Paths with PMPS = 1b, and the Gen 2/3 vs.
+      Gen 4 Hub DFP CL2 initiation rules.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-domain-topology-and-addressing:
+    basis: 76b8bad5ceb9a2ca445cde81283f65c112a22dccfa91a24cc1d98e607d4eee10
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.1.1 (pp. 317-318), Section 6.2 (pp. 318-320), Figures 6-1 and
+      6-2 (pp. 318-320), Section 6.4.2 Figures 6-5 through 6-14 (pp. 326-336), and Section 8.1.1
+      Table 8-2 (pp. 441-446). Confirmed tree topology up to depth 6 (Levels 0..6, max 7 Routers in
+      series), 56-bit TopologyID (7 bytes L0..L6, Host Router = 0, child appends parent DFP Lane 0
+      Adapter Number), and 64-bit Route String in Control Packets with DW1 = Route String High
+      (bits 63:32, Level 4..6 and CM bit 31) and DW2 = Route String Low (bits 31:0, Level 0..3).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-transport-packet-format-and-hec:
+    basis: ca868647786e6b91e29dff4ba19458809e23f848829dbfc1e0586f97c42a3275
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Sections 5.1.1-5.1.3 (pp. 295-303), Tables 5-1 through 5-10, Figures 5-1
+      through 5-8, and Section 7.3.3.2-7.3.3.3 Figures 7-22 and 7-23 and Tables 7-8 and 7-9 (pp.
+      379-382). Confirmed 32-bit Transport Layer Packet Header layout (HEC[7:0], Length[15:8],
+      HopID[22:16], Reserved[26:23], SuppID[27], PDF[31:28]), Length 00h = 256Bpayload and max 256B
+      payload (260B total), HEC CRC-8 (x^8 + x^2 + x + 1, init 00h, XOR 55h) with ERR_HEC (12 / 0Ch),
+      Link Management Packets (Idle 08010011h, Credit Grant PDF=1h/HopID=01h/max 64 records, Path
+      Credit Sync PDF=0h/SuppID=1b/HopID>7/Length=04h, Shared Buffers Credit Sync PDF=2h/SuppID=0b/
+      HopID=01h/Length=04h), PM Packet (PDF=Eh/SuppID=0b/Length=04h/HopID>7, CLx State[1:0] 00b/01b/11b),
+      and Time Sync Packets (HopID=03h/SuppID=0b, Follow-Up PDF=1h/Length=3Ch and Inter-Domain Time
+      Stamp PDF=2h/Length=1Ch).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-hopid-allocation-and-routing:
+    basis: 9105ef5e8d7ab265fdf367eabbb360283d6312a684110dd51e1f47eb785a175f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 5.2 (pp. 305-307), Table 5-12 (p. 305), Section 5.3 (pp. 308-315),
+      Section 8.2.1 Table 8-5 (pp. 448-451), and Section 8.4.1 Table 8-19 (pp. 482-484). Confirmed
+      Table 5-12 HopID assignments on a USB4 Link (0 Control, 1 Credit Grant/Shared Buffers Credit
+      Sync, 2 Reserved, 3 Time Sync, 4..6 Reserved, 7 TBT3 Compatibility, 8..Max Input HopID Tunneled
+      and PM Packets), Protocol Adapter fixed HopIDs (PCIe = 8, USB3 = 8, DP IN/OUT Aux = 8, Main = 9),
+      PATH_CS_0/PATH_CS_1 fields, credit rules prior to setting Valid = 1b, and Path teardown waiting
+      tTeardownWait (10 us) when Pending Packets (bit 29) is 1b before clearing Valid to 0b.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-control-packet-protocol:
+    basis: a652616cae3ab9560c4e0bfa718573cee0fe7934f4aabd05d0192716ca54d736
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Sections 6.4-6.6 (pp. 324-348), Tables 6-2 through 6-12, and Figures 6-5
+      through 6-14. Confirmed HopID = 00h, big-endian byte ordering with DW-granular CRC-32 (1EDC6F41h,
+      reflected, init/XOR FFFFFFFFh), all nine Control Packet PDFs (1h Read Request, 2h Write Request,
+      3h Notification Packet, 4h Hot Plug Event, 5h Notification Acknowledgment, 6h Inter-Domain
+      Request, 7h Inter-Domain Response, 8h Enhanced Notification Acknowledgment, plus Read/Write
+      Request/Response sharing PDF 1h/2h distinguished by CM bit 31 of Route String High), Read/Write
+      Request/Response DWlayout, Configuration Space encoding (00b Path, 01b Adapter, 10b Router, 11b
+      Counters), and all 20 Table 6-12 Event Codes (0/00h ERR_CONN through 39/27h ASYM_LINK).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-router-cs-basic-registers:
+    basis: 5c4348338a6baa5c8a348e59697561e2228e3385a5680f922accbd14cdbed77a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 8.1 (pp. 440-448), Tables 8-1 through 8-3, and Figure 8-1. Confirmed
+      ROUTER_CS_0..26 field offsets, bit ranges, access types, and semantics, including Vendor ID,
+      Product ID, Upstream Adapter, Max Adapter, Depth, Revision Number, Next Capability Pointer,
+      TopologyID[55:0], TopologyID Valid, Notification Timeout, CM USB4 Version, Configuration Valid,
+      Sleep Bit, Tunneling On bits, Router Ready, Configuration Ready, Sleep Ready, UUID, and
+      ROUTER_CS_25/26 Opcode/Status/Op Valid.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-router-enumeration-and-reset:
+    basis: 797e96a6c0b92103dfa0a4edf42ce603ee84f54898f4be4dee8880f9441e4585
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.3 (pp. 320-324), Sections 6.7-6.9 (pp. 348-356), and Section 8.1.1
+      Table 8-2 (pp. 441-446). Confirmed Uninitialized (Unplugged/Plugged), Enumerated, and Sleep
+      states, rejection of writes prior to enumeration with ERR_ENUM (8 / 08h), enumeration sequence
+      setting TopologyID, CM USB4 Version, Notification Timeout, and TopologyID Valid = 1b, Router
+      Ready (ROUTER_CS_6[0]) polling and ROP_CMPLT (Event Info 01h for TBT3-Compatible Routers),
+      Configuration Valid (ROUTER_CS_5[0]) and Configuration Ready (ROUTER_CS_6[1]) / ROP_CMPLT (02h),
+      Downstream Port Reset via PORT_CS_19[0] = 1b for tDPR, and Host Router Reset via Host Interface.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-adapter-cs-basic-and-types:
+    basis: 4ce609bf165b5eabf7045b165b797bfb9b3ea8453d30f0c4adda95338016f5cd
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 8.2.1 (pp. 448-453), Tables 8-4 through 8-7, and Figure 8-2. Confirmed
+      ADP_CS_0..8 layout, Next Capability Pointer (ADP_CS_1[7:0]), Max Input/Output HopID, Adapter
+      Type 24-bit code in ADP_CS_2[23:0] and all nine Table 8-6 values (000000h Unsupported, 000001h
+      Lane, 000002h Host Interface, 100101h Downstream PCIe, 100201h Upstream PCIe, 0E0101h DP OUT,
+      0E0201h DP IN, 200101h Downstream USB3, 200201h Upstream USB3), Plugged (ADP_CS_4[30]), Lock
+      (ADP_CS_4[31]), and Link Credits Allocated (ADP_CS_5[6:0]).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-lane-and-port-capabilities:
+    basis: 8274b92d64f7e060931b9a87e980427bd3b158ecddb1b172bde77d851008cb2f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 8.2.2 (pp. 453-470), Tables 8-8 through 8-12. Confirmed Capability
+      ID = 1h (Lane Adapter Configuration Capability, 3 DWs, ADP_CS_0..2) on both Lane 0 and Lane 1
+      Adapters and Capability ID = 6h (USB4 Port Capability, 20 DWs, PORT_CS_0..19) on Lane 0
+      Adapters only, including Supported/Target/Current Link Speeds and Widths, CL0s/CL1/CL2 Enable,
+      LD (Lane Disable), LB (Lane Bonding), Target/Current Asymmetric Link, PORT_CS_1..17 SB target
+      access (Offset, Length, Target, Retimer Index, WnR, No Resp, Result Code, PND, Data), and
+      PORT_CS_18/19 status, DPR, and Wake Enable bits.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-protocol-adapter-capabilities:
+    basis: 8e0f61e4ff7c0f461c50ca5fd0bef5919d4325d162c20beb9bed99a80a2caa08
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 8.2.3 (pp. 470-481), Tables 8-13 through 8-18. Confirmed Capability
+      ID = 4h for PCIe (ADP_PCIE_CS_0..1, 2 DWs, Path Enable bit 31, LTSSM[19:16]), DisplayPort
+      (ADP_DP_CS_0..8, 9 DWs, Aux/Video HopIDs, Protocol Adapter Version, UFFP, Local/Remote DPCD
+      Caps,DPRX Capabilities Read Done, Bandwidth Allocation Mode), USB3 Gen X (ADP_USB3_GX_CS_0..4,
+      5 DWs, Path Enable, Valid, Allocated/Consumed BW, Scale, Actual/Maximum Link Rate), and USB3
+      Gen T (ADP_USB3_GT_CS_0..1 + Gen T Port Count 2-DW port entries ADP_USB3_GT_PORT_CS_0..1).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-path-and-counters-cs:
+    basis: ee94cf063fbe1f73a35f9455f04acc5537b2d0a43cdc7baf593d4358275b9f69
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 8.4 (pp. 482-485, Tables 8-19 and 8-20) and Section 8.5 (pp.
+      485-486, Table 8-21). Confirmed Path CS (CS = 00b) indexed by Ingress HopID k with 2-DW entry
+      at DW offsets 2*k (PATH_CS_0: Output HopID[6:0], Output Adapter[16:11], Path Credits Allocated
+      [23:17], Valid[31]) and 2*k + 1 (PATH_CS_1: Weight[3:0], Priority[11:8], Counter ID[22:12],
+      Counter Enable[23],ESE/EFC/ISE/IFC/PMPS[28:24], Pending Packets[29], Block Low Power[30]), and
+      Counters CS (CS = 11b) 3-DW entry at 3*c..3*c+2 (Received Packets Low/High, Dropped Packets)
+      cleared via Counter Clear (ADP_CS_3[29]).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-router-and-port-operations:
+    basis: 2fa9076bef5414b3bb788d97310f12ba06fa3d8997068f64bde0b9bbff1eb5e4
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.5.2 Table 6-12 (pp. 346-347) and Section 8.3 (pp. 481-537,
+      Tables 8-22 through 8-100). Confirmed Router Operation mailbox (ROUTER_CS_26 Opcode[15:0],
+      Status[29:24], Op Not Supported[30], Op Valid[31], Metadata in ROUTER_CS_25, Data in
+      ROUTER_CS_9..24) with ROP_CMPLT (Event Code = 33 / 21h, Event Info = 00h), Port Operation
+      execution via USB4 Port Capability SB target access (Target = 000b) to Router SB Register
+      Space Opcode (09h), Tx Metadata (0Ah), Rx Metadata (19h), and Data (1Ah) with POP_CMPLT
+      (Event Code = 34 / 22h, Event Info = Lane 0 Adapter Number), and Table 8-22/Table 8-58 opcodes.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-tmu-time-synchronization:
+    basis: 85920df7ded1492fccfd41abffa3d682d8e4fc84f514b4fe7d6c78f6388e4e60
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Chapter 7 Sections 7.1-7.5 (pp. 357-388) and Sections 8.1.2.1 and 8.2.2.2
+      (pp. 446-448, 468-470, Tables 8-3 and 8-12). Confirmed 80-bit Grandmaster wall clock (48-bit
+      seconds, 32-bit fractional nanoseconds), Time Sync Handshake messages (Delay Request/Response
+      TSNOS and Follow-Up Packet on HopID = 03h), four modes (Low-Power TSInterPacketInterval = 1000,
+      HiFi Bi-Directional = 16, HiFi Uni-Directional = 16, Enhanced Uni-Directional combining
+      Adaptive Uni-Directional and Inversed Bi-Directional), and TMU Router Capability (ID = 3h,
+      TMU_RTR_CS_0..29) and TMU Adapter Capability (ID = 3h, TMU_ADP_CS_0..8) registers.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-host-interface-mmio-registers:
+    basis: 2368252c6984c08ffc476b464c89fb0bc3d9d492985e603cdcd188d28ccf698d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Sections 12.1-12.2 and Section 12.6 (pp. 746-749, 756-773, Tables 12-7
+      through 12-17). Confirmed Total Paths in Host Interface Adapter Configuration Capability
+      ADP_HI_CS_0[10:0] (Capability ID = 5h, Table 8-18 p. 481), Host Interface MMIO layout for k
+      paths (0 <= n < k): Tx Ring Descriptor Table at 00000h + n*16 (Base Low/High, Producer/Consumer
+      Index[31:0], Ring Size[15:0]), Rx Ring Descriptor Table at 08000h + n*16 (Base Low/High,
+      Consumer/Producer Index[31:0], Ring Size[15:0], EOF PDF Bitmask[15:0], SOF PDF Bitmask[31:16]),
+      Tx Ring Control at 19800h + n*32 (Raw/E2E/NS/Valid), Rx Ring Control at 29800h + n*32, and
+      Interrupt Management at 38200h (ISR, ISC, ISS, IMR, IMC, IMS) plus Host Interface Control at
+      39864h (Host Router Reset bit 0, Disable ISR Auto-Clear bit 1, E2E Flow Control Enable bit 2).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-host-interface-descriptors-and-modes:
+    basis: 7d3b8baeda1427fee5d61a63532a344c0dae88840acffbc7d5325ffd3df2e973
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Sections 12.3-12.5 (pp. 749-756, Figures 12-2 through 12-5, Tables 12-1
+      through 12-6). Confirmed 16-byte little-endian Tx Buffer Descriptors, Rx Request Descriptors,
+      and Rx Buffer Descriptors, field bit positions (Length[11:0] where 000h = 4096 bytes, EOF_PDF
+      [15:12], SOF_PDF[19:16], IE[21], RS[22], DD[23], BO/CRC_ERR[20], Offset[31:24]), Raw Mode vs.
+      Frame Mode behavior, and producer/consumer modulo-Ring_Size ring emptiness/fullness rules.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-router-read-response-adapter-num:
+    basis: 70f431e61d0baf0051c65cdf42e3842ba9ae9e98826582c1c920f1ca95135d08
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.4.2.1 Table 6-2 (p. 327) and Section 6.4.2.2 Table 6-3 (p. 328).
+      Confirmed that while a Read Request for Router CS (CS = 10b) requires Adapter Num = 00h, the
+      resulting Read Response sets Adapter Num (DW3 bits 29:24) to the Adapter Number of the Adapter
+      on which the Read Request was received rather than echoing 00h.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-control-and-lane1-adapter-cs-access:
+    basis: 85ec6f72ae347c785f5f7fe19b9e4b9bd9d4e15063ec1dba95c00f36d02bf4fa
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.4.3 (pp. 337-339), Section 6.4.3.3 (pp. 341-342), Section 8.2
+      (pp. 448-451), and Section 8.4 (pp. 482-484). Confirmed that Adapter 0 has no Adapter, Path,
+      or Counters CS and targeting Adapter Num = 00h with CS != 10b returns ERR_ADP (Event Code = 4 /
+      04h); targeting Adapter Num > Max Adapter returns ERR_ADP (4 / 04h); Lane 1 Adapters omit
+      USB4 Port (ID = 6h) and TMU (ID = 3h) capabilities and have no Path or Counters CS, returning
+      ERR_ADDR (2 / 02h) on Path/Counters CS access when unlocked or ERR_NUA (9 / 09h) when locked
+      or bonded.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-path-cs-access-and-teardown-delay:
+    basis: 8174d6fb192603f551307df1e297dc2bf2526d137e465becff84a16189561240
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 5.2.3 (pp. 306-307), Section 6.4.3.3 (p. 342), and Section 8.4.1
+      Table 8-19 (pp. 482-484). Confirmed that Path CS entries are only accessible from HopID 8 to
+      Max Input HopID (DW addresses 10h through 2 * Max Input HopID + 1; HopIDs 0..7 return ERR_ADDR
+      = 2), and that tearing down a Path requires disabling the upstream source first and waiting
+      tTeardownWait (10 us) if Pending Packets (PATH_CS_1[29]) is 1b before clearing Valid (PATH_CS_0[31]).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-tmu-register-locking-and-bidi-clx:
+    basis: 27fffa60f9ee059cdcc741420f2869fd40f89e70cc12c839455f94f43fc6db53
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 7.2.1 (pp. 360-367), Section 8.1.2.1 Table 8-3 (pp. 446-448), and
+      Section 8.2.2.2 Table 8-12 (pp. 468-470). Confirmed that Bi-Directional Time Sync requires
+      CL0s/CL1/CL2 to be disabled on the Link, that TMU_RTR_CS_3[31:16] TSInterPacketInterval
+      Cannot be updated while Time Disruption (TMU_RTR_CS_0[27]) is 1b or downstream ports run
+      Bi-Directional mode, and that TMU_ADP_CS_3[29] EnableUniDirectionalMode can only be modified
+      while TSInterPacketInterval == 0, with violations ignored by the Router.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-hi-endianness-ring-indices-and-4096-length:
+    basis: 1387a6fc468d49f41192a189b4e3e5c6a4da6ff49d5f4c32b92fbd0070d79336
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.4.1 (p. 324) and Sections 12.2-12.6 (pp. 747-768, Tables 12-1
+      through 12-10). Confirmed three Host Interface pitfalls: (1) Control Packet headers/payloads
+      and CRC-32 are big-endian whereas Host Interface MMIO and ring descriptors are little-endian;
+      (2) Tx Ring packs Producer Index[15:0] and Consumer Index[31:16] at offset +08h, whereas Rx
+      Ring reverses them (Consumer Index[15:0], Producer Index[31:16]); and (3) Descriptor Length
+      [11:0] encodes 4096 bytes as 000h (whereas Transport Layer Packet Header Length[7:0] encodes
+      256 bytes as 00h).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  usb4-gotcha-host-router-reset-and-isr-autoclear:
+    basis: bafaf513f4e6cda51ed724e0040168dbd689860431e73aa74b018c820f77262f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), spec-verifier subagent, USB4 2.0 reader
+    note: 'Compared with Section 6.9.2 (p. 356) and Sections 12.6.3-12.6.4 (pp. 769-773, Tables
+      12-12 through 12-17). Confirmed that Host Router Reset (MMIO 39864h bit 0) resets the Host
+      Router while preserving Host Interface MMIO registers so Ring 0 stays operational, and that
+      reading ISR (38200h) automatically clears all 32 interrupt status bits unless Disable ISR
+      Auto-Clear (39864h bit 1) is set to 1b (in which case software clears bits by writing 1s to
+      ISC at 38204h).'
+    contrary_evidence: none-found
+    citation_precision: exact

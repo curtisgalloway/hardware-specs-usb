@@ -1,0 +1,1184 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb4
+name: Universal Serial Bus 4 (USB4) router, fabric and tunneling protocol
+triggers:
+- usb4
+- USB4
+- USB4 router
+- USB4 Connection Manager
+- USB4 Host Interface
+- USB4 tunneling
+resources:
+  documents:
+  - name: usb4-2.0.pdf
+    class: standard
+    title: Universal Serial Bus 4 (USB4) Specification
+    revision: Version 2.0 with Errata and ECN through November 19, 2025, November 2025
+    url: https://www.usb.org/document-library/usb4r-specification-v20
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/USB4%20Specification%20November%202025.zip
+    sha256: d2c27a35f5436559ba7e52448b873553434218544b2b8f160667bfd036ec024b
+    pages: 839
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      PDF page numbers are cited throughout because the frontmatter and table of contents (PDF pages 1-44)
+      use unnumbered/Roman pagination; add 44 to a body chapter printed page number to obtain the PDF
+      page number.
+orientation: >-
+  USB4 defines a packet-based switching fabric over USB Type-C connectors organized into five functional
+  stack layers: Electrical Layer, Logical Layer (which together form the Physical Layer), Transport Layer,
+  Configuration Layer, and Protocol Adapter Layer. Rather than carrying raw USB bus signaling on dedicated
+  wires, a USB4 Fabric encapsulates and tunnels USB3 (Enhanced SuperSpeed Gen X and bandwidth-extended
+  Gen T), DisplayPort (DP IN and DP OUT), PCI Express (PCIe Down and PCIe Up), and Host-to-Host traffic
+  inside 4-byte-header Transport Layer Packets switched across Routers by 7-bit HopIDs. A USB4 Domain
+  forms a Spanning Tree of up to 6 levels (depths 0 through 5) rooted at a Host Router (depth 0, TopologyID
+  0,0,0,0,0,0,0) with Device Routers at depths 1 through 5 addressed by a 56-bit TopologyID encoding the
+  Downstream Facing Port (DFP) Lane 0 Adapter Numbers at each level along the path from the Host Router.
+  Physical links operate at Gen 2 (10.0 Gbps/lane, or 10.3125 Gbps in TBT3-Compatible Mode), Gen 3 (20.0
+  Gbps/lane, or 20.625 Gbps in TBT3-Compatible Mode), or Gen 4 (40.0 Gbps/lane at 25.6 GBaud PAM3 with
+  11b-to-7t mapping and RS(504, 480) FEC) in Single-Lane (x1, Gen 2/3 only), Symmetric Aggregated (2 Tx
+  / 2 Rx), or Asymmetric Aggregated (3 Tx + 1 Rx or 1 Tx + 3 Rx, Gen 4 only) configurations alongside
+  a 1 Mbps Sideband Channel (SBTX/SBRX) and a parallel USB 2.0 bus. A Connection Manager (CM) enumerates
+  Routers, configures Adapters and Paths, and manages link power and time synchronization by exchanging
+  CRC-32C-protected Control Packets on HopID 0 with each Router's Control Adapter (Adapter 0). Each Router
+  exposes four Configuration Spaces addressed by the 2-bit CS field in Read and Write Requests: Router
+  Configuration Space (CS = 10b, basic registers ROUTER_CS_0..26 plus a linked capability list including
+  the required TMU Router Configuration Capability ID 03h and optional Vendor Specific Capabilities ID
+  05h), Adapter Configuration Space (CS = 01b, basic registers ADP_CS_0..8 plus per-adapter capabilities:
+  Lane Adapter ID 01h, TMU Adapter ID 03h, Protocol Adapter ID 04h, Vendor Specific ID 05h, and USB4 Port
+  Capability ID 06h on Lane 0), Path Configuration Space (CS = 00b, 2-DW routing entries PATH_CS_0..1
+  indexed by 2 * HopID), and optional Counters Configuration Space (CS = 11b, 3-DW counter sets CNT_CS_0..2).
+  Long-running Router Operations (DP resource allocation, NVM/DROM access, PCIe/connector discovery) execute
+  via ROUTER_CS_9..26, while Port Operations execute via Sideband Register Space registers 8, 9, and 18
+  accessed through the USB4 Port Capability mailbox (PORT_CS_1..17). On a PCIe Host Router (PCI Class
+  Code 0C0340h), the CM and host software interface to the fabric through the Chapter 12 Host Interface
+  Adapter Layer residing in a single PCIe Memory BAR with N Transmit and N Receive Descriptor Rings (3
+  <= N <= 21), where Ring 0 operates in Raw Mode for Control Packets and Rings 1..N-1 support Raw Mode
+  and Frame Mode with optional modulo-8192 End-to-End (E2E) credit flow control. USB4 has several strict
+  protocol and register-access invariants that break enumeration or data transfer if violated: (1) In
+  a Read Response to Router Configuration Space (CS = 10b), Hardware overwrites the Adapter Num field
+  (DW3 bits 24:19) with the Adapter Number on which the Read Request arrived (used by the CM to discover
+  the Router's Upstream Adapter), whereas a Write Response echoes Adapter Num = 0; (2) When writing ROUTER_CS_1
+  or ROUTER_CS_4, the CM must preserve the read-only Upstream Adapter and USB4 Version fields by writing
+  back the exact values read, and must never set Notification Timeout to 0; (3) Adapter 0 (Control Adapter)
+  has no Adapter, Path, or Counters Configuration Space, and on an Aggregated Link the CM must never access
+  Lane 1's capability list or write Lane 1's ADP_CS_0..8 or LANE_ADP_CS_2 registers (only LANE_ADP_CS_1
+  may be written to toggle Lane Disable); (4) Path Configuration Space entries must be read and written
+  as atomic 2-DW requests (Address = 2 * HopID, Length = 2), only Weight and Valid may be modified while
+  Valid = 1b, and after clearing Valid to 0b the CM must wait at least tTeardown (2 us) after Pending
+  Packets (PP) clears to 0b before re-enabling the Path; (5) Multi-DW TMU registers and computation groups
+  lock their Middle/High DWs only when the Low DW (such as LocalTime Low, TimeOffsetFromHR Low, or Inter-Domain
+  Time Stamp Low) is read first; and (6) In the Host Interface, Data Buffers map big-endian into Transport
+  Packet payload DWs while Descriptors map little-endian, a Data Length or Data Buffer Size field of 0
+  means 4096 bytes, TX and RX rings invert which side owns Producer Index vs Consumer Index, and reading
+  ISR (37800h) auto-clears all status bits in that DW unless Disable ISR Auto-Clear (39864h bit 17) is
+  set to 1b.
+facts:
+- id: usb4-architectural-layers-and-tunneling
+  section: standards
+  title: Five-layer USB4 architectural stack, tunneled protocols, and Type-C coexistence
+  claim: >-
+    The USB4 architecture comprises five functional stack layers: - `Electrical Layer`: Physical signaling
+    characteristics, transmitter/receiver equalization, and Low Frequency Periodic Signaling (`LFPS`)
+    - `Logical Layer`: Symbol/block encoding, scrambling, Reed-Solomon Forward Error Correction (`RS-FEC`),
+    Lane initialization, Lane bonding, link power management (`CLx`), Sideband Channel (`SBTX`/`SBRX`)
+    transactions, and Time Sync Notification Ordered Sets (`TSNOS`). Together, the `Electrical Layer`
+    and `Logical Layer` form the `Physical Layer`. - `Transport Layer`: 4-byte-header Transport Layer
+    Packet framing, Header Error Control (`HEC`), HopID-based packet switching, link flow control (`Credit
+    Grant` and `Credit Sync` packets), quality-of-service (`QoS`) scheduling, and Path teardown - `Configuration
+    Layer`: Control Packet processing on `HopID 0`, Router enumeration, TopologyID addressing, Notification/Hot
+    Plug event reporting, and access to Router, Adapter, Path, and Counters Configuration Spaces - `Protocol
+    Adapter Layer`: Encapsulation and decapsulation of native protocol traffic into Tunneled Packets for
+    `USB3` (`Gen X` using USB 3.2 Enhanced SuperSpeed architecture and `Gen T` extended to operate up
+    to USB4 link bandwidth), `DisplayPort` (`DP IN` and `DP OUT`), `PCIe` (`PCIe Down` and `PCIe Up`),
+    and `Host-to-Host` communication via the `Host Interface (HI)` Adapter. USB4 over USB Type-C operates
+    alongside a parallel `USB 2.0` bus (`D+`/`D-`) and defines no separate `VBUS` power model of its own,
+    relying on the USB Type-C and USB Power Delivery (`USB PD`) specifications for connection detection,
+    USB4 mode entry, and power delivery.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '56'
+      - '57'
+      section: '2.1'
+    - pages:
+      - '63'
+      - '65'
+      section: 2.2.1
+    - pages:
+      - '73'
+      - '80'
+      section: 2.2.10
+  todo:
+    check: document
+    text: >-
+      Verify USB3 (Chapter 9), DisplayPort (Chapter 10), and PCIe (Chapter 11) protocol-specific tunneling
+      encapsulation and adapter state machines in usb4-2.0.pdf pp. 521-730 if implementing protocol-specific
+      adapter logic.
+- id: usb4-router-and-adapter-architecture
+  section: standards
+  title: Host and Device Routers, Adapter numbering rules, and USB4 Port composition
+  claim: >-
+    A USB4 Fabric is built from two types of Routers (`Host Router` in a USB4 Host, where the `Connection
+    Manager` resides, and `Device Router` in a USB4 Hub, USB4-Based Dock, or USB4 Peripheral Device).
+    Each Router contains up to `64` Adapters identified by a 6-bit `Adapter Number` (`0..63`): - `Control
+    Adapter`: Always assigned `Adapter Number 0`. It is a logical-only entity that sends and receives
+    Control Packets to and from the Connection Manager; it has no physical layer and does not have an
+    `Adapter Configuration Space`, `Path Configuration Space`, or `Counters Configuration Space`. - `Lane
+    Adapters`: Interface the Router to a USB4 Link. Every `USB4 Port` (`Downstream Facing Port` / `DFP`
+    or `Upstream Facing Port` / `UFP`) contains two Lane Adapters (`Lane 0` and `Lane 1`) assigned consecutive
+    Adapter Numbers with `Lane 0` having the lower Adapter Number (`Lane 1 = Lane 0 + 1`). On an Aggregated
+    Link (`x2` Symmetric or `3 Tx`/`3 Rx` Asymmetric), all Transport Layer traffic is routed through the
+    `Lane 0` Adapter while the `Lane 1` Adapter is not used by the Transport Layer. In a Device Router,
+    the `Lane 0` Adapter of the `Upstream Facing Port` (`UFP`) is always assigned the lowest Adapter Number
+    among all Lane Adapters in that Router. - `Protocol Adapters`: Translate between Tunneled Packets
+    and internal native controllers/switches (`USB3 Gen X`, `USB3 Gen T`, `DP IN`, `DP OUT`, `DP OUT AUX`,
+    `Downstream PCIe`, `Upstream PCIe`, `Host Interface`, and `Vendor Specific`). A Device Router shall
+    not contain a `Host Interface Adapter`. In a Device Router that supports PCIe tunneling, the `Upstream
+    PCIe Adapter` is assigned the lowest Adapter Number among all PCIe Adapters; in a Device Router that
+    supports USB3 tunneling, the `Upstream USB3 Adapter` is assigned the lowest Adapter Number among all
+    USB3 Adapters.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '58'
+      - '62'
+      section: 2.1.1
+    - page: '306'
+      section: 5.2.1
+    - page: '398'
+      section: '8.2'
+    - page: '731'
+      section: '12'
+- id: usb4-link-speeds-widths-and-encoding
+  section: standards
+  title: Gen 2, Gen 3, and Gen 4 link speeds, Single-Lane and Aggregated widths, and line encodings
+  claim: >-
+    USB4 Links support three speed generations and two link width modes across the two Lane Adapters of
+    a USB4 Port: - `Gen 2 Speed`: `10.0 Gbps` per lane (`10.3125 Gbps` per lane when operating in `TBT3-Compatible
+    Mode`). Support for Gen 2 is mandatory for all Router Assemblies. When RS-FEC is off, Gen 2 uses `64b/66b`
+    encoding (`2` sync header bits `01b` for data or `10b` for an Ordered Set followed by `64` payload
+    bits). - `Gen 3 Speed`: `20.0 Gbps` per lane (`20.625 Gbps` per lane in `TBT3-Compatible Mode`). Support
+    for Gen 3 is mandatory for USB4 Hubs and optional for USB4 Hosts and USB4 Peripheral Devices. When
+    RS-FEC is off, Gen 3 uses `128b/132b` encoding (`4` sync header bits `0101b` for data or `1010b` for
+    an Ordered Set followed by `128` payload bits). - `Gen 4 Speed`: `40.0 Gbps` per lane at `25.6 GBaud`
+    `PAM3` signaling using `11-bit` symbols grouped into 4-symbol sets (`44 bits`), `RS(504, 480)` Reed-Solomon
+    Forward Error Correction over `GF(2^11)` (`480` payload symbols = `660 bytes` plus `24` redundancy
+    symbols = `33 bytes`, correcting up to `12` symbol errors per RS-FEC block), `11b-to-7t` binary-to-ternary
+    mapping, scrambling, and pre-coding. Support for Gen 4 is optional for all products. - `Link Widths`:
+    A USB4 Link operates either as a `Single-Lane Link` (`x1`, where `Lane 0` is enabled and `Lane 1`
+    is disabled; supported only at `Gen 2` and `Gen 3` speeds) or as an `Aggregated Link` where `Lane
+    0` and `Lane 1` are bonded into a single Transport Layer link. An Aggregated Link operates as a `Symmetric
+    Link` (`2 Tx` and `2 Rx`, supported at `Gen 2`, `Gen 3`, and `Gen 4`, yielding `20 Gbps`, `40 Gbps`,
+    or `80 Gbps` full-duplex) or an `Asymmetric Link` (`3 Tx + 1 Rx` at one end paired with `1 Tx + 3
+    Rx` at the Link Partner, supported at `Gen 4` only, yielding `120 Gbps` in the 3-lane direction and
+    `40 Gbps` in the 1-lane direction).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '58'
+      - '61'
+      section: 2.1.1.3
+    - page: '91'
+      section: '3.1'
+    - pages:
+      - '126'
+      - '127'
+      section: '3.2'
+    - pages:
+      - '247'
+      - '251'
+      section: 4.3.1
+    - pages:
+      - '254'
+      - '262'
+      section: 4.3.2
+    - page: '764'
+      section: '13.1'
+  todo:
+    check: document
+    text: >-
+      Check Chapter 3 (pp. 91-159) for electrical transmitter/receiver eye masks, jitter, SSC, and TxFFE
+      preset tables, and Section 4.3 (pp. 246-290) for Gen 2/3 RS-FEC encoding, scrambling LFSR polynomials,
+      and Ordered Set bit patterns.
+- id: usb4-lane-adapter-states-and-sideband
+  section: standards
+  title: Lane Adapter state machine encodings and 1 Mbps Sideband Channel transactions
+  claim: >-
+    Each Lane Adapter implements a Logical Layer state machine reported in `LANE_ADP_CS_1.Adapter State`
+    (bits `29:26`) with eight defined state encodings: - `0000b` (`Disabled`): Lane is inactive (`Lane
+    Disable = 1b`) - `0001b` (`Training` or `Lane Bonding`): Physical/Logical link initialization (`Training`)
+    or bonding `Lane 0` and `Lane 1` into an Aggregated Link (`Lane Bonding` state is used by `Gen 2`/`Gen
+    3`; `Gen 4` bonds during Lane Initialization) - `0010b` (`CL0`): Active data communication state (`CL0`
+    on both bonded lanes is `CL0 (Aggregated)`) - `0011b` (`Transmitter in CL0s`) and `0100b` (`Receiver
+    in CL0s`): Low-power sub-states for asymmetric link-idle power savings on `Gen 2` and `Gen 3` links
+    (`CL0s Enable` is ignored on `Gen 4` links) - `0101b` (`CL1`) and `0110b` (`CL2`): Optional deeper
+    Low Power link states entered via Ordered Set handshakes (`CL1_REQ`/`CL2_REQ`, `CL1_ACK`/`CL2_ACK`,
+    and `CL_OFF` Ordered Sets on `Gen 2`/`Gen 3` Links, or `CL_OFF` Ordered Sets with `CLx State = 1t`/`2t`
+    from `CL0s` on `Gen 4` Links, after a `PM Packet` with `PDF = Eh` clears path objections on Paths
+    with `PMPS = 1b`) and exited via `LFPS` handshake; on `Gen 2`/`Gen 3` Links a Hub Router's Downstream
+    Facing Port Lane Adapters shall not initiate entry to `CL2` (while on `Gen 4` Links a Hub Router's
+    DFP only initiates entry to `CL0s (TX)` with option to enter `CL2` if it is already in `CL0s (RX)`
+    with option to enter `CL2`) - `0111b` (`CLd`): Disconnected state (default reset value `7h`). Each
+    USB4 Port also maintains a `1 Mbps` (`SBX_UI = 970..1030 ns`) `Sideband Channel` over `SBTX` and `SBRX`
+    wires using 10-bit Start/Stop symbols (`1` Start bit `0b`, `8` payload bits sent LSB-first, `1` Stop
+    bit `1b`). Sideband traffic uses four Transaction types starting with a `DLE` symbol (`FEh`): 3-byte
+    `Link Type (LT)` (`StartLT = 10b, ELT = 0b`, bitwise-complement `CLSE`), 3-byte `Extended Link Type
+    (ELT)` (`StartLT = 10b, ELT = 1b`, bitwise-complement `CELSE`), `Administrative Type (AT)` (`StartAT
+    = 00b`), and `Re-timer Type (RT)` (`StartRT = 01b`, Broadcast or Addressed). AT and RT transactions
+    end with a 16-bit CRC (poly `8005h`, init `FFFFh`, RefIn/RefOut `True`, XorOut `0000h` over `STX`
+    and `Data` symbols, with `FEh` byte-stuffing) followed by `DLE-ETX` (`FEh-40h`), and access the per-port
+    `SB Register Space` (`Reg 0` `Vendor ID`, `Reg 1` `Product ID`, `Reg 5` `Debug Configuration`, `Reg
+    6` `Debug`, `Reg 7` `LRD Tuning`, `Reg 8` `Opcode`, `Reg 9` `Metadata`, `Reg 12` `Link Configuration`,
+    `Reg 13` `Gen 2/3 TxFFE`, `Reg 14` `Gen 4 TxFFE`, `Reg 15` `Sideband Channel Version`, `Reg 18` `Data`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '157'
+      - '158'
+      section: '3.3'
+    - pages:
+      - '161'
+      - '175'
+      section: 4.1.1
+    - pages:
+      - '195'
+      - '198'
+      section: 4.2.1
+    - pages:
+      - '214'
+      - '228'
+      section: 4.2.1.6
+    - pages:
+      - '299'
+      - '300'
+      section: 5.1.3.1
+    - pages:
+      - '430'
+      - '435'
+      section: 8.2.2.3
+  todo:
+    check: document
+    text: >-
+      Check Table 4-20 (pp. 175-194) for individual bitfields within SB Registers 5, 7, 12, 13, and 14,
+      and Section 4.2 (pp. 195-245) for detailed Lane Initialization, TxFFE negotiation, and CLx entry/exit
+      state transition conditions and timers.
+- id: usb4-domain-topology-and-addressing
+  section: standards
+  title: Domain Spanning Tree depth limits and 56-bit TopologyID / 64-bit Route String addressing
+  claim: >-
+    Routers within a USB4 Domain are organized in a `Spanning Tree` hierarchy with up to `6` levels (`Depth
+    0` through `Depth 5`, supporting up to `5` hops from the Host Router): - The `Host Router` is at the
+    root of the Spanning Tree (`Depth = 0`) and is always assigned `TopologyID = 0,0,0,0,0,0,0`. - Each
+    `Device Router` at `Depth X` (`1 <= X <= 5`) is addressed by a 56-bit `TopologyID` structured as 7
+    bytes (`Level 0` through `Level 6`), where each byte holds a 6-bit `Adapter Number` in bits `5:0`
+    and `00b` in reserved bits `7:6`. Bytes `0` through `X - 1` contain the `Lane 0` Adapter Numbers of
+    the Downstream Facing Ports traversed at each level from the Host Router (`Level 0`) down to the parent
+    Router (`Level X - 1`), and bytes `X` through `6` are `00h`. Control Packets carry the target or source
+    `TopologyID` inside a 64-bit `Route String` split across two header Doublewords: - `Route String High`
+    (`DW1`, bits `63:32` of Route String): `Level 4` in bits `5:0` (`Reserved` `7:6`), `Level 5` in bits
+    `13:8` (`Reserved` `15:14`), `Level 6` in bits `21:16` (`Reserved` `23:22`), `Reserved` in bits `30:24`
+    (bits `62:56` of Route String), and the `CM` direction bit in bit `31` (bit `63` of Route String,
+    set to `0b` for packets sent from a Connection Manager to a Router and `1b` for packets sent from
+    a Router to a Connection Manager). - `Route String Low` (`DW2`, bits `31:0` of Route String): `Level
+    0` in bits `5:0` (`Reserved` `7:6`), `Level 1` in bits `13:8` (`Reserved` `15:14`), `Level 2` in bits
+    `21:16` (`Reserved` `23:22`), and `Level 3` in bits `29:24` (`Reserved` `31:30`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '326'
+      section: '6.1'
+    - pages:
+      - '326'
+      - '327'
+      section: '6.2'
+    - pages:
+      - '330'
+      - '332'
+      section: 6.4.2.2
+    - pages:
+      - '342'
+      - '343'
+      section: 6.4.3.2
+- id: usb4-transport-packet-format-and-hec
+  section: standards
+  title: Transport Layer Packet 4-byte header, HEC CRC-8, Idle Packet, and Link Management Packets
+  claim: >-
+    Every USB4 `Transport Layer Packet` begins with a 32-bit (`1 DW`) Header followed by `0` to `256`
+    payload bytes (padded with `0..3` trailing zero bytes to a 4-byte multiple): - `HEC` (bits `7:0`):
+    8-bit Header Error Control CRC calculated over header bits `31:8` (`Width = 8`, `Poly = 07h`, `Init
+    = 00h`, `RefIn = False`, `RefOut = False`, `XorOut = 55h`). Receivers correct single-bit header errors
+    and drop packets with uncorrectable multi-bit HEC errors (incrementing `ADP_CS_6.HEC Errors` and,
+    if `ADP_CS_5.HEE = 1b`, setting `ADP_CS_3.HE = 1b` and sending an `ERR_HEC` Notification Packet).
+    - `Length` (bits `15:8`): Payload byte count excluding padding (`01h..FFh` = `1..255` bytes; `00h`
+    = `256` bytes for packets with payload, or `0` bytes for the header-only `Idle Packet`). - `HopID`
+    (bits `22:16`): 7-bit Path identifier (`00h..7Fh`) used by the Ingress Adapter to look up routing
+    and flow-control state. - `Rsvd` (bits `26:23`): Reserved (`0h`). - `SuppID` (bit `27`): Supplemental
+    ID bit differentiating packet classes (`1b` for `Path Credit Sync Packets`; `0b` for all other Transport
+    Layer Packets). - `PDF` (bits `31:28`): 4-bit Protocol Defined Field. Tunneled Power Management and
+    Transport Layer Link Management Packets use fixed header and payload encodings: - `Idle Packet`: 4-byte
+    header only (`PDF = 8h, SuppID = 0b, HopID = 01h, Length = 00h, HEC = 11h`, i.e. `08010011h`) inserted
+    when no other packet is ready for transmission. - `PM Packet`: Tunneled Packet (`PDF = Eh, SuppID
+    = 0b, Length = 04h, HopID = Path HopID > 7`), carrying a 1-DW payload with `CLx State` in bits `1:0`
+    (`00b` no CLx states possible, `01b` CL1 possible, `10b` reserved, `11b` CL1 and CL2 possible) and
+    `Reserved` (`0`) in bits `31:2`. - `Credit Grant Packet`: `PDF = 1h, SuppID = 0b, HopID = 01h`, `Length
+    = 4 * K` for `1 <= K <= 63` (or `00h` when carrying `64` Credit Grant Records = `256` bytes), where
+    each 1-DW Credit Grant Record carries `ECC` in bits `7:0` (CRC-8 over bits `31:8` with `Poly = 07h,
+    Init = 00h, RefIn/RefOut = False, XorOut = 00h`), `Credits` in bits `15:8`, `CreditHopID` in bits
+    `22:16`, `Rsvd` in bits `30:23`, and `L Flag` in bit `31` (`0b` Path, `1b` Shared Buffer). - `Path
+    Credit Sync Packet`: `PDF = 0h, SuppID = 1b, HopID = Path HopID (> 7), Length = 04h`, with a 1-DW
+    payload containing `ECC` in bits `7:0`, 8-bit `PCC` (`Path Credits Consumed`) in bits `15:8`, and
+    `Rsvd` in bits `31:16`. - `Shared Buffers Credit Sync Packet`: `PDF = 2h, SuppID = 0b, HopID = 01h,
+    Length = 04h`, with a 1-DW payload containing `ECC` in bits `7:0`, 8-bit `SCC` (`Shared Credits Consumed`)
+    in bits `15:8`, and `Rsvd` in bits `31:16`. - `Time Sync Packet`: `HopID = 03h, SuppID = 0b` (`PDF
+    = 1h, Length = 3Ch` / `60` bytes `Follow-Up Packet` or `PDF = 2h, Length = 1Ch` / `28` bytes `Inter-Domain
+    Time Stamp Packet`, each protected by a trailing 32-bit `CRC32`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '296'
+      - '305'
+      section: 5.1.1
+    - page: '337'
+      section: 6.4.2.7
+    - pages:
+      - '379'
+      - '382'
+      section: 7.3.3.2
+    - pages:
+      - '420'
+      - '425'
+      section: 8.2.2.1
+  todo:
+    check: document
+    text: >-
+      Check Tables 5-2 through 5-9 (pp. 299-304) for exact bit layouts of PM Packet, Credit Grant Record,
+      Credit Sync Packet, and Time Sync Packet payload DWs if constructing or parsing link-layer management
+      packets in software.
+- id: usb4-hopid-allocation-and-routing
+  section: standards
+  title: HopID allocation ranges, Routing Table lookup, flow control, and 3-tier Traffic Manager scheduler
+  claim: >-
+    Each Adapter (except the Control Adapter) has a `Path Configuration Space` that acts as its `Routing
+    Table`, indexed by the incoming packet's 7-bit `Ingress HopID`: - `HopID 0`: Reserved on Lane Adapters
+    and Host Interface Adapters for `Control Packets` (`Path 0`). `HopID 0` always uses `Dedicated Flow
+    Control` with at least `2` initial credits (`PATH_CS_0.Path Credits Allocated >= 2h`) and is assigned
+    exclusively to `Priority Group 0` (no other traffic may use `Priority Group 0`). - `HopIDs 1..7` on
+    Lane Adapters: Reserved for Transport Layer Link Management Packets (`HopID 1` for Credit Grant and
+    Shared Buffers Credit Sync, `HopID 3` for Time Sync; packets received on a Lane Adapter with `HopID
+    2` or `4..7` are dropped without incrementing `Invalid HopID Errors`). - `Tunneled Packet HopIDs`:
+    When a Path's Egress Adapter is not a Host Interface Adapter, the Egress `Output HopID` must be in
+    `[8, Max Output HopID]` of the Egress Adapter and `<= Max Input HopID` of the next Router's Ingress
+    Adapter. When a Path's Egress Adapter is a Host Interface Adapter, the Egress `Output HopID` must
+    be in `[1, Max Input HopID]` of the Host Interface Adapter (corresponding to Receive Descriptor Rings
+    `1..N-1`). A Router's `Traffic Manager` arbitrates egress transmission across three hierarchical scheduling
+    layers: 1. `Path Scheduler` (per Priority Group `0..7`): Schedules among Paths within the same Priority
+    Group using Weighted Round Robin (`WRR`) according to `PATH_CS_1.Weight` (`1..15`), or for USB3 Gen
+    T Paths on a Host Router with `ROUTER_CS_6.GTBW = 1b`, using the shared `PORT_CS_19.Bundle Weight`
+    (`1..255`). 2. `Priority Group Scheduler`: Arbitrates among the eight Priority Groups using strict
+    priority where `Priority Group 0` is highest and `Priority Group 7` is lowest. 3. `Link Scheduler`:
+    Multiplexes onto the physical link using strict priority from highest to lowest: `Flow Control Packets`
+    (`Credit Grant` / `Credit Sync`) > `Time Sync Packets` > `Packets from the Priority Group Scheduler`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '306'
+      - '310'
+      section: 5.2.2
+    - pages:
+      - '311'
+      - '323'
+      section: 5.3.1
+    - pages:
+      - '401'
+      - '406'
+      section: 8.2.1.1
+    - pages:
+      - '436'
+      - '441'
+      section: 8.2.2.4
+    - page: '469'
+      section: 8.2.3.1
+  todo:
+    check: document
+    text: >-
+      Check Table 5-12 (p. 309) for the full Ingress-to-Egress Adapter connectivity permission matrix
+      and Section 5.3.2 (pp. 313-321) for Dedicated vs Shared Flow Control credit state variable equations
+      (PCA, PCC, PCS, SCA, SCC, SCS, LCA, LCC) and Table 5-13/5-15 IFC/ISE and EFC/ESE encodings.
+- id: usb4-control-packet-protocol
+  section: standards
+  title: Control Packet types, PDF encodings, DW layouts, and Castagnoli CRC-32C protection
+  claim: >-
+    All Configuration Layer `Control Packets` are transmitted with `HopID = 00h` and `SuppID = 0b`, carry
+    the 64-bit `Route String` in `DW1` (`Route String High`) and `DW2` (`Route String Low`), and end with
+    a 32-bit Castagnoli `CRC-32C` (`Width = 32`, `Poly = 1EDC6F41h`, `Init = FFFFFFFFh`, `RefIn = True`,
+    `RefOut = True`, `XorOut = FFFFFFFFh`, bit-swapped into the CRC DW as shown in Section 12.3.2.1 /
+    Table 6-1) calculated over `Route String High`, `Route String Low`, and all `Control Data` DWs (excluding
+    `DW0` Header): - `Read Request` (`PDF = 1h`, `Length = 10h`, 5 DWs total) and `Read Response` (`PDF
+    = 1h`, `Length = 10h + 4 * Read Size`): `DW3` contains 13-bit DW `Address` (bits `12:0`), 6-bit `Read
+    Size` in DWs (bits `18:13`, `1..60` DWs), 6-bit `Adapter Num` (bits `24:19`), 2-bit `Configuration
+    Space (CS)` selector (bits `26:25`: `00b` `Path`, `01b` `Adapter`, `10b` `Router`, `11b` `Counters`),
+    2-bit `Sequence Number (SN)` (bits `28:27`), and `Rsvd` (bits `31:29`). `Read Response` inserts `Read
+    Size` DWs of `Read Data` before the trailing `CRC` DW. - `Write Request` (`PDF = 2h`, `Length = 10h
+    + 4 * Write Size`) and `Write Response` (`PDF = 2h`, `Length = 10h`, 5 DWs total): `DW3` has the same
+    layout as `Read Request` with `Write Size` (`1..60` DWs) in bits `18:13`; `Write Request` carries
+    `Write Data` in `DW4..DW(N+3)` followed by `CRC` in `DW(N+4)`, while `Write Response` echoes `DW3`
+    followed by `CRC` in `DW4`. - `Notification Packet` (`PDF = 3h`, `Length = 10h`, 5 DWs total): `DW3`
+    contains `Event Code` (bits `7:0`, defined in Table 6-12 as: `0` / `00h` `ERR_CONN`, `1` / `01h` `ERR_LINK`,
+    `2` / `02h` `ERR_ADDR`, `4` / `04h` `ERR_ADP`, `7` / `07h` `HP_ACK`, `8` / `08h` `ERR_ENUM`, `9` /
+    `09h` `ERR_NUA`, `11` / `0Bh` `ERR_LEN`, `12` / `0Ch` `ERR_HEC`, `13` / `0Dh` `ERR_FC`, `14` / `0Eh`
+    `ERR_PLUG`, `15` / `0Fh` `ERR_LOCK`, `32` / `20h` `DP_BW`, `33` / `21h` `ROP_CMPLT`, `34` / `22h`
+    `POP_CMPLT`, `35` / `23h` `PCIE_WAKE`, `36` / `24h` `DP_CON_CHANGE`, `37` / `25h` `DPTX_DISCOVERY`,
+    `38` / `26h` `LINK_RECOVERY`, and `39` / `27h` `ASYM_LINK`), `Adapter Num` (bits `13:8`), `PG` (bits
+    `15:14`: `00b` not Hot Plug Ack, `10b` Hot Plug Event Ack, `11b` Hot Unplug Event Ack), `Event Info`
+    (bits `23:16`), `Sequence (Sq)` (bit `24`), and `Rsvd` (bits `31:25`); `DW4` is `CRC`. - `Notification
+    Acknowledgement Packet` (`PDF = 4h`, `Length = 0Ch`, 4 DWs total): `DW0` Header, `DW1..2` Route String,
+    `DW3` `CRC`. - `Hot Plug Event Packet` (`PDF = 5h`, `Length = 10h`, 5 DWs total): `DW3` contains `Adapter
+    Num` (bits `5:0`), `Rsvd` (bits `30:6`), and `UPG` (bit `31`: `0b` Hot Plug, `1b` Hot Unplug); `DW4`
+    is `CRC`. - `Inter-Domain Request` (`PDF = 6h`) and `Inter-Domain Response` (`PDF = 7h`): Transfer
+    `N` DWs of `InterDomain Data` (`DW3..DW(N+3)`) between Connection Managers with `CM = 0b`. - `Enhanced
+    Notification Acknowledgement Packet` (`PDF = 8h`, `Length = 10h`, 5 DWs total): Used when the `Sequence
+    bit in Notification Packet` capability (`Capability Index = 02h` in `Get/Set Capabilities` Router
+    Operations) is enabled; `DW3` carries `Sequence (Sq)` in bit `0` (`Rsvd` bits `31:1`) matching the
+    acknowledged Notification Packet, and `DW4` is `CRC`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '48'
+      section: 1.6.10
+    - pages:
+      - '330'
+      - '342'
+      section: 6.4.1
+    - pages:
+      - '346'
+      - '348'
+      section: '6.5'
+  todo:
+    check: document
+    text: >-
+      Check Table 6-12 (pp. 346-347) and Sections 6.5-6.6 (pp. 346-348) for per-event Adapter Num, Event
+      Info, and retransmission priority ordering rules across all 20 Notification Event Codes.
+- id: usb4-router-cs-basic-registers
+  section: programming-model
+  title: Router Configuration Space (CS = 10b) basic registers ROUTER_CS_0 through ROUTER_CS_26
+  claim: >-
+    `Router Configuration Space` (`CS = 10b`, `Adapter Num = 0` in requests) begins with 27 Doublewords
+    (`ROUTER_CS_0` through `ROUTER_CS_26`, DWs `0..26`) followed by a linked list of Capabilities starting
+    at the DW index in `ROUTER_CS_1.Next Capability Pointer` (where `TMU Router Configuration Capability`
+    `ID = 03h` is required and `Vendor Specific Capability` / `Extended Capability` `ID = 05h` is optional):
+    - `ROUTER_CS_0` (`DW0`): `Vendor ID` (bits `15:0`, RO) and `Product ID` (bits `31:16`, RO) - `ROUTER_CS_1`
+    (`DW1`): `Next Capability Pointer` (bits `7:0`, RO), `Upstream Adapter` (bits `13:8`, RO: Host Interface
+    Adapter on a Host Router, or UFP Lane 0 Adapter on a Device Router), `Max Adapter` (bits `19:14`,
+    RO: highest numbered Adapter), `Depth` (bits `22:20`, R/W, `0..5`), `Reserved` (bit `23`), and `Revision
+    Number` (bits `31:24`, RO) - `ROUTER_CS_2` (`DW2`) and `ROUTER_CS_3` (`DW3`): `TopologyID Low` (`DW2[31:0]`,
+    R/W), `TopologyID High` (`DW3[23:0]`, R/W), `Reserved` (`DW3[30:24]`), and `TopologyID Valid (V)`
+    (`DW3[31]`, R/W: `1b` = Router is enumerated) - `ROUTER_CS_4` (`DW4`): `Notification Timeout` (bits
+    `7:0`, R/W, default `0Ah` ms), `Connection Manager USB4 Version (CMUV)` (bits `15:8`, R/W: `Major[15:12].Minor[11:8]`,
+    `0xh` = TBT3 CM, `10h` = Ver. 1, `20h` = Ver. 2), `Reserved` (bits `23:16`), and `USB4 Version` (bits
+    `31:24`, RO, `40h` = USB4 Ver. 2.0 with `Major[31:29] = 010b, Minor[28:24] = 00000b`; `20h` = USB4
+    Ver. 1.0 with `001b/00000b`) - `ROUTER_CS_5` (`DW5`): `Enter Sleep (SLP)` (bit `0`, R/W), `Enable
+    Wake on PCIe (WoP)` (bit `1`, R/W), `Enable Wake on USB3 (WoU)` (bit `2`, R/W), `Enable Wake on DP
+    (WoD)` (bit `3`, R/W), `Enumerated State PCIe Wake (WP2)` (bit `4`, R/W), `Reserved` (bits `22:5`),
+    `CM TBT3 Not Supported (CNS)` (bit `23`, R/W), `PCIe Tunneling On (PTO)` (bit `24`, R/W), `USB3 Tunneling
+    On (UTO)` (bit `25`, R/W), `Internal Host Controller On (HCO)` (bit `26`, R/W), `SW Mapping (SWM)`
+    (bit `27`, R/W), `Host Supports USB3 Gen T (HSGT)` (bit `28`, R/W), `Reserved` (bits `30:29`), and
+    `Configuration Valid (CV)` (bit `31`, R/W) - `ROUTER_CS_6` (`DW6`): `Sleep Ready (SLPR)` (bit `0`,
+    RO), `Reserved` (bit `1`), `Wake on PCIe Status` (bit `2`, RO), `Wake on USB3 Status` (bit `3`, RO),
+    `Wake on DP Status` (bit `4`, RO), `Reserved` (bits `17:5`), `Internal Host Controller Implemented
+    (HCI)` (bit `18`, RO), `Partial DP Connectivity Implementation (PI)` (bit `19`, RO), `DPTX Discovery
+    Support (DDS)` (bit `20`, RO), `Reserved` (bit `21`), `Gen T Bundle Weight Mode (GTBW)` (bit `22`,
+    RO), `Gen T Full Connectivity Support (GTFC)` (bit `23`, RO), `Router Ready (RR)` (bit `24`, RO),
+    `Configuration Ready (CR)` (bit `25`, RO), and `Reserved` (bits `31:26`) - `ROUTER_CS_7..8` (`DW7..8`):
+    64-bit Router `UUID High` (`DW7`, bits `63:32` = `Vendor ID[63:48]` + `Component ID[47:32]`) and `UUID
+    Low` (`DW8`, bits `31:0` = `Component ID[31:4]` + `Router ID[3:0]`, RO) - `ROUTER_CS_9..24` (`DW9..24`):
+    `Data[0]` through `Data[15]` (R/W) for Router Operations - `ROUTER_CS_25` (`DW25`): `Metadata` (bits
+    `31:0`, R/W) for Router Operations - `ROUTER_CS_26` (`DW26`): `Opcode` (bits `15:0`, R/W), `Reserved`
+    (bits `23:16`), `Status` (bits `29:24`, R/W), `Operation Not Supported (ONS)` (bit `30`, R/W), and
+    `Operation Valid (OV)` (bit `31`, R/W).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '399'
+      - '409'
+      section: 8.2.1
+  todo:
+    check: document
+    text: >-
+      Check Sections 8.2.1.3-8.2.1.4 (pp. 417-418) for Vendor Specific Capability (VSC_CS_0) and Vendor
+      Specific Extended Capability (VSEC_CS_0..1) header layouts.
+- id: usb4-router-enumeration-and-reset
+  section: programming-model
+  title: Router enumeration sequence, Configuration Valid/Ready handshake, and Port/Host Router resets
+  claim: >-
+    A Connection Manager enumerates and initializes a Router across four Configuration Layer states (`Uninitialized
+    Unplugged`, `Uninitialized Plugged`, `Enumerated`, and `Sleep`) using the following sequence: 1. Discover
+    the Router's `Upstream Adapter`, `Max Adapter`, `USB4 Version`, and `UUID` by reading `ROUTER_CS_0..8`
+    (`CS = 10b`). 2. Enumerate the Router using a single Write Request to `ROUTER_CS_1..4` that sets `Depth`
+    (`0` for Host Router, `1..5` for Device Router), `TopologyID Low/High` matching `Depth`, `CMUV` (`20h`
+    for a Ver. 2 CM on a Ver. 2 Router), and `TopologyID Valid (V) = 1b` while writing back the exact
+    read values of `Upstream Adapter` and `USB4 Version`. Setting `V = 1b` transitions the Router from
+    `Uninitialized Plugged` to `Enumerated` and resets its Control Packet sequence numbers (`SN` and `Sq`)
+    to `0`. 3. If `CMUV >= 20h`, poll `ROUTER_CS_6.Router Ready (RR)` (bit `24`) until it reads `1b` (the
+    Router must assert `RR = 1b` within `tSetRR` max `50 ms` of `V = 1b`). 4. For a Device Router, configure
+    `TMU Adapter Configuration Capability` on its UFP (for a Ver. 2 CM), write the desired protocol tunneling
+    flags (`CNS`, `PTO`, `UTO`, `HSGT`, `HCO` — never setting both `UTO` and `HCO` to `1b`) in `ROUTER_CS_5`,
+    and set `Configuration Valid (CV) = 1b` (bit `31`) before configuring any Paths through the Router.
+    If `PTO = 1b` or `UTO = 1b`, poll `ROUTER_CS_6.Configuration Ready (CR)` (bit `25`) until it reads
+    `1b` (asserted within `tSetCR` max `50 ms` of `CV = 1b`) before setting up PCIe or USB3 Paths. 5.
+    To unlock a Downstream Facing Port after receiving a `Hot Plug Event Packet` (`PDF = 5h, UPG = 0b`),
+    configure `ADP_CS_5.DHP` if desired and clear `ADP_CS_4.Lock (LCK)` (bit `31`) from `1b` to `0b` so
+    Control Packets can be forwarded to the downstream Router. To reset a Downstream Facing Port, the
+    CM sets `PORT_CS_19.Downstream Port Reset (DPR)` (bit `0`) to `1b`, waits at least `tClearDPR` (`10
+    ms`), and clears `DPR` to `0b`. To reset a Host Router, the CM sets `Host Router Reset` (`39898h`
+    bit `0` `HRR = 1b`), which transitions the Host Router to `Uninitialized Plugged`, drives `SBTX` low
+    for `tDisconnectTx` on all DFPs, restores Configuration Spaces (except `Target Link Speed`, `Request
+    RS-FEC Gen 2`, and `Request RS-FEC Gen 3`) and Host Interface BAR registers to defaults, and clears
+    `HRR` to `0b` within `tHRReset` (max `500 ms`, recommended `<= 200 ms`) without resetting the PCIe
+    Endpoint configuration space or MSI/MSI-X structures.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '328'
+      - '329'
+      section: '6.3'
+    - pages:
+      - '345'
+      - '346'
+      section: 6.4.4
+    - pages:
+      - '348'
+      - '354'
+      section: '6.7'
+    - pages:
+      - '401'
+      - '408'
+      section: 8.2.1.1
+    - pages:
+      - '427'
+      - '430'
+      section: 8.2.2.2
+- id: usb4-adapter-cs-basic-and-types
+  section: programming-model
+  title: Adapter Configuration Space (CS = 01b) basic registers ADP_CS_0..8 and 24-bit Adapter Type codes
+  claim: >-
+    Every Adapter except the Control Adapter (`Adapter 0`) implements an `Adapter Configuration Space`
+    (`CS = 01b`) starting with 9 basic registers (`ADP_CS_0` through `ADP_CS_8`, DWs `0..8`) followed
+    by a capability linked list starting at `ADP_CS_1.Next Capability Pointer`: - `ADP_CS_0` (`DW0`):
+    `Vendor Defined` (bits `31:0`, VD) - `ADP_CS_1` (`DW1`): `Next Capability Pointer` (bits `7:0`, RO),
+    `Max Counter Sets` (bits `18:8`, RO), `Counters Configuration Space (CCS) Flag` (bit `19`, RO), `Bytes
+    Counter Supported (BCS)` (bit `20`, RO), `Received Bytes Counter Enable (RBE)` (bit `21`, R/W), `Lock
+    Bytes Counter with TimeOffsetFromHR Low Supported (LBS)` (bit `22`, RO), `Lock Bytes Counter with
+    TimeOffsetFromHR Low Enable (LBE)` (bit `23`, R/W), and `Reserved` (bits `31:24`) - `ADP_CS_2` (`DW2`):
+    `Adapter Type Sub-type` (bits `7:0`, RO), `Adapter Type Version` (bits `15:8`, RO), `Adapter Type
+    Protocol` (bits `23:16`, RO), and `Reserved` (bits `31:24`, RO, fixed to `01h`). Defined 24-bit `Protocol:Version:Sub-Type`
+    (`ADP_CS_2[23:0]`) encodings in Table 8-10 are:
+      - `000000h` (`00h:00h:00h`): `Unsupported Adapter`
+      - `000001h` (`00h:00h:01h`): `Lane Adapter`
+      - `000002h` (`00h:00h:02h`): `Host Interface Adapter`
+      - `100101h` (`10h:01h:01h`): `Downstream PCIe Adapter`
+      - `100102h` (`10h:01h:02h`): `Upstream PCIe Adapter`
+      - `0E0101h` (`0Eh:01h:01h`): `DP IN Adapter`
+      - `0E0102h` (`0Eh:01h:02h`): `DP OUT Adapter`
+      - `0E0103h` (`0Eh:01h:03h`): `DP OUT AUX Adapter`
+      - `200101h` (`20h:01h:01h`): `Downstream USB3 Gen X Adapter`
+      - `200102h` (`20h:01h:02h`): `Upstream USB3 Gen X Adapter`
+      - `210101h` (`21h:01h:01h`): `Downstream USB3 Gen T Adapter`
+      - `210102h` (`21h:01h:02h`): `Upstream USB3 Gen T Adapter`
+      - `FFxxxxh` (`FFh:VD:VD`): `Vendor Specific Adapter`
+    - `ADP_CS_3` (`DW3`): `Reserved` (bits `19:0`), `Adapter Number` (bits `25:20`, RO), `Reserved` (bits
+    `28:26`), `HEC Error (HE)` (bit `29`, R/Clr), `Flow Control Error (FCE)` (bit `30`, R/Clr), and `Shared
+    Buffering Capable (SBC)` (bit `31`, RO, mandatory `1b` on USB4 Hub Lane 0 Adapters) - `ADP_CS_4` (`DW4`):
+    `Non-Flow Controlled Buffers` (bits `9:0`, R/W), `Reserved` (bits `19:10`), `Total Buffers` (bits
+    `29:20`, RO), `Plugged` (bit `30`, RO), and `Lock (LCK)` (bit `31`, R/W: when `1b`, blocks forwarding
+    of Control Packets to a downstream Router; automatically set to `1b` on disconnect) - `ADP_CS_5` (`DW5`):
+    `Max Input HopID` (bits `6:0`, RO), `Reserved` (bits `10:7`), `Max Output HopID` (bits `17:11`, RO),
+    `Reserved` (bits `21:18`), `Link Credits Allocated` (bits `28:22`, R/W), `HEC Error Enable (HEE)`
+    (bit `29`, R/W), `Flow Control Error Enable (FCEE)` (bit `30`, R/W), and `Disable Hot Plug Events
+    (DHP)` (bit `31`, R/W) - `ADP_CS_6..8` (`DW6..8`): Saturating 32-bit `W/Clr` error counters `HEC Errors`
+    (`DW6`), `Invalid HopID Errors` (`DW7`), and `ECC Errors` (`DW8`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '418'
+      - '426'
+      section: 8.2.2
+- id: usb4-lane-and-port-capabilities
+  section: programming-model
+  title: Lane Adapter Configuration Capability (ID = 01h) and USB4 Port Capability (ID = 06h)
+  claim: >-
+    A Lane Adapter implements the `Lane Adapter Configuration Capability` (`Capability ID = 01h`, 3 DWs
+    `LANE_ADP_CS_0..2`) and `TMU Adapter Configuration Capability` (`Capability ID = 03h`), and a `Lane
+    0` Adapter in a USB4 Port additionally implements the `USB4 Port Capability` (`Capability ID = 06h`,
+    20 DWs `PORT_CS_0..19`): - `LANE_ADP_CS_0` (`DW0`): `Next Capability Pointer` (bits `7:0`, RO), `Capability
+    ID = 01h` (bits `15:8`, RO), `Supported Link Speeds` (bits `19:16`, RO: bit `17` `Gen 4`, bit `18`
+    `Gen 3`, bit `19` `Gen 2`), `Supported Link Widths (SLW)` (bits `21:20`, RO, default `11b`: bit `20`
+    `x1`, bit `21` `x2`), `Gen 4 Asymmetric Support (G4AS)` (bits `23:22`, RO: bit `22` `Support 3 Tx`,
+    bit `23` `Support 3 Rx`), `CL0s Support` (bit `26`, RO), `CL1 Support` (bit `27`, RO), and `CL2 Support`
+    (bit `28`, RO). - `LANE_ADP_CS_1` (`DW1`): `Target Link Speed` (bits `3:0`, R/W: `1000b` Gen 2, `1100b`
+    Gen 3, `1110b` Gen 4), `Target Link Width` (bits `5:4`, R/W: `01b` two Single-Lane Links, `11b` Symmetric
+    Link), `Target Asymmetric Link` (bits `7:6`, R/W S: `00b` Symmetric, `01b` 3 Tx, `10b` 3 Rx), `CL0s
+    Enable` (bit `10`, R/W), `CL1 Enable` (bit `11`, R/W), `CL2 Enable` (bit `12`, R/W), `Lane Disable
+    (LD)` (bit `14`, R/W), `Lane Bonding (LB)` (bit `15`, R/W SC: set to `1b` to initiate Gen 2/3 Lane
+    Bonding), `Current Link Speed` (bits `19:16`, RO: `1000b` Gen 2, `0100b` Gen 3, `0010b` Gen 4), `Negotiated
+    Link Width` (bits `25:20`, RO: `000001b` x1, `000010b` x2 Symmetric, `000100b` 3 Tx, `001000b` 3 Rx),
+    `Adapter State` (bits `29:26`, RO), and `PM Secondary (PMS)` (bit `30`, R/W). - `LANE_ADP_CS_2` (`DW2`):
+    7-bit `Logical Layer Errors` (bits `6:0`, R/Clr: `ALE`, `OSE`, `TE`, `EBE`, `DBE`, `RDE`, `RST`) and
+    `Logical Layer Errors Enable` (bits `22:16`, R/W). - `USB4 Port Capability` (`PORT_CS_0..19`, `Capability
+    ID = 06h` in `PORT_CS_0[15:8]`): `PORT_CS_1` (`DW1`) and `PORT_CS_2..17` (`Data[0..15]`) form the
+    Sideband Register Space access mailbox (`Address[7:0]`, `Length[15:8]` up to `64` bytes, `Target[18:16]`
+    where `000b` = local Router, `001b` = Link Partner via AT, `010b` = Re-timer at `Re-timer Index[23:20]`
+    via RT, `WnR[24]`, `No Response (NR)[25]`, `Result Code (RC)[26]`, and `Pending (PND)[31]` set to
+    `1b` to start and cleared to `0b` by hardware upon completion). `PORT_CS_18` (`DW18`) reports cable/link
+    status (`Cable USB4 Support[7:0]`, `Bonding Enabled (BE)[8]`, `TCM[9]`, `CPS[10]`, `RE2[11]`, `RE3[12]`,
+    `Router Detected (RD)[13]`, `Wake Status[19:16]`, `CG3[20]`, `CG4[21]`, `CSA[22]`, `CSC[23]`, `TIP[24]`),
+    and `PORT_CS_19` (`DW19`) controls port operations (`Downstream Port Reset (DPR)[0]`, `Request RS-FEC
+    Gen 2/3 (RS2/RS3)[2:1]`, `Port is Configured (PC)[3]`, `Port is Inter-Domain (PID)[4]`, `Bundle Weight[15:8]`,
+    `Enable Wake[19:16]`, `StartAsymmetricFlow[24]`, `Initiate/Enable Gen 4 Link Recovery (ILR/ELR)[31:30]`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '418'
+      - '419'
+      section: 8.2.2
+    - pages:
+      - '430'
+      - '442'
+      section: 8.2.2.3
+- id: usb4-protocol-adapter-capabilities
+  section: programming-model
+  title: Protocol Adapter Configuration Capabilities (ID = 04h) for USB3, DisplayPort, PCIe, and VSA
+  claim: >-
+    Protocol Adapters implement a required `Protocol Adapter Configuration Capability` with `Capability
+    ID = 04h` in bits `15:8` of `DW0` (`Next Capability Pointer` in bits `7:0`): - `USB3 Gen X` (`ADP_USB3_GX_CS_0..4`,
+    5 DWs, Table 8-14): `DW0` contains `Valid (V)` (bit `30`, R/W) and `Path Enable (PE)` (bit `31`, R/W);
+    `DW1..3` manage periodic USB3 bandwidth (`Consumed` and `Allocated` Upstream/Downstream Bandwidth
+    in units of `512 * 2^Scale` bytes per 1 ms frame, `Host Controller Ack (HCA)` bit `31` of `DW1`, `Connection
+    Manager Request (CMR)` bit `31` of `DW2`, `Scale` in `DW3[5:0]`); `DW4` reports `Actual Link Rate`
+    (bits `6:0`), `USB3 Link Valid (ULV)` (bit `7`), `Port Link State (PLS)` (bits `11:8`), and `Maximum
+    Supported Link Rate` (bits `18:12`). - `USB3 Gen T` (`ADP_USB3_GT_CS_0..1` plus `Gen T Port Count`
+    2-DW port entries `ADP_USB3_GT_PORT_CS_0..1` at `DW 2+2n` and `DW 3+2n`, `(Gen T Port Count) * 2 +
+    2` DWs total, Table 8-15): `ADP_USB3_GT_CS_0` (`DW0`) contains `Gen T Port Count` (bits `22:16`, RO)
+    and `Gen X Adapter Coupled (XAC)` (bit `23`, RO); `ADP_USB3_GT_CS_1` (`DW1`) is Reserved; for each
+    Gen T Port `n`, `ADP_USB3_GT_PORT_CS_0` (`DW 2+2n`) reports `Port Link State (PLS)` (bits `3:0`, RO),
+    `Maximum Tx/Rx Supported Link Rate` (bits `6:4` and `9:7`, RO: `2h` 40G, `3h` 80G, `4h` 120G), `USB3
+    Host Controller Index` (bits `13:10`, RO), and `Gen T Port Number` (bits `21:14`, RO), while `ADP_USB3_GT_PORT_CS_1`
+    (`DW 3+2n`) controls `Active Tx/Rx Link Rate` (bits `2:0` and `5:3`, R/W: `0h` 10G through `4h` 120G),
+    `Gen T Port Not Available (PNA)` (bit `6`, R/W), `U2CL2 Enable (U2CL2)` (bit `7`, R/W), `Link Commands
+    Aggregation Enable (LCAE)` (bit `8`, R/W), `Valid (V)` (bit `30`, R/W), and `Path Enable (PE)` (bit
+    `31`, R/W). - `DP IN` (`ADP_DP_CS_0..13`, 14 DWs) and `DP OUT` (`ADP_DP_CS_0..8`, 9 DWs): `DW0` contains
+    fixed `Video HopID = 9` (bits `22:16`, RO), `AUX Enable (AE)` (bit `30`, R/W), and `Video Enable (VE)`
+    (bit `31`, R/W); `DW1` contains fixed `AUX Tx HopID = 8` (bits `6:0`, RO) and `AUX Rx HopID = 8` (bits
+    `17:11`, RO); `DW4..7` hold `DP_LOCAL_CAP`, `DP_REMOTE_CAP` (written by CM), `DP_STATUS` / `DP_STATUS_CTRL`,
+    and `DP_COMMON_CAP`. `DP IN` additionally provides `DP BW Allocation Mode` (`Estimated BW`, `Allocated
+    BW`, `Requested BW`, `Granularity`, `CM Ack`, `DPTX Req`) and `DPTX Discovery` (`DW9..13`). `DP OUT
+    AUX` (`ADP_DP_CS_0..1`, 2 DWs) provides `AUX Enable (AE)` (`DW0[30]`) and `HPD Status` (`DW1[0]`).
+    - `PCIe` (`ADP_PCIE_CS_0..1`, 2 DWs): `ADP_PCIE_CS_0` (`DW0`) contains `Link` (bit `16`, RO), `TX
+    EI` (bit `17`, RO), `RX EI` (bit `18`, RO), `RST` (bit `19`, RO: `PERST#` state), `LTSSM` (bits `28:25`,
+    RO: `0h` Detect through `Ah` Hot Reset), and `Path Enable (PE)` (bit `31`, R/W); `ADP_PCIE_CS_1` (`DW1`)
+    bit `0` is `Extended Encapsulation (EE)` (R/W, must be configured before setting `PE = 1b`). - `Vendor
+    Specific Adapter` (`ADP_VS_CS_0..n`): `DW1` holds `VSA Vendor ID` (bits `15:0`, RO) and `VSA Type`
+    (bits `31:16`, RO).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '418'
+      - '420'
+      section: 8.2.2
+    - pages:
+      - '442'
+      - '468'
+      section: 8.2.2.5
+  todo:
+    check: document
+    text: >-
+      Check Tables 8-14 through 8-20 (pp. 442-468) for full bitfield layouts of ADP_USB3_GX_CS_3..4, ADP_USB3_GT_CS_0..1,
+      ADP_USB3_GT_PORT_CS_0..1, and DP_LOCAL_CAP / DP_REMOTE_CAP / DP_COMMON_CAP capability bits.
+- id: usb4-path-and-counters-cs
+  section: programming-model
+  title: Path Configuration Space (CS = 00b) 2-DW entries, Path teardown, and Counters CS (CS = 11b)
+  claim: >-
+    `Path Configuration Space` (`CS = 00b`) in each Adapter (except Adapter 0) contains a 2-Doubleword
+    entry (`PATH_CS_0` at DW `2 * n` and `PATH_CS_1` at DW `2 * n + 1`) for each supported Ingress `HopID
+    n`: - `Path 0 Entry` (`HopID = 0`, DWs `0..1` on Lane Adapters and Host Interface Adapters): `PATH_CS_0[23:17]`
+    is `Path Credits Allocated` (RO, minimum `2h`); `PATH_CS_1` contains `Counter ID` (bits `22:12`, R/W)
+    and `Counter Enable (CE)` (bit `23`, R/W), while `PATH_CS_0[5:0]`, `PATH_CS_0[31]`, `PATH_CS_1[11:0]`,
+    and `PATH_CS_1[31:24]` are `Vendor Defined (VD)`. - `Lane Adapter Path Entry n` (`HopID n` in `8..Max
+    Input HopID`; entries `1..7` are reserved) and `Protocol Adapter Path Entry n` (`HopID n` in `1..Max
+    Input HopID` for Host Interface Adapter, or `8..Max Input HopID` for USB3/PCIe/DP Adapters):
+      - `PATH_CS_0` (`DW 2*n`): `Output HopID` (bits `6:0`, R/W), `Reserved` (bits `10:7`), `Output Adapter`
+    (bits `16:11`, R/W), `Path Credits Allocated` (bits `23:17`, R/W on Lane Adapters; VD on Protocol
+    Adapters), `PM Packet Support (PMPS)` (bit `24`, R/W on Lane Adapters; Reserved on Protocol Adapters),
+    `Reserved` (bits `30:25`), and `Valid` (bit `31`, R/W: `1b` = Path enabled, `0b` = Path disabled).
+      - `PATH_CS_1` (`DW 2*n+1`): `Weight` (bits `3:0`, R/W), `Reserved` (bits `7:4`), `Priority` (bits
+    `10:8`, R/W, `1..7`), `Reserved` (bit `11`), `Counter ID` (bits `22:12`, R/W), `Counter Enable (CE)`
+    (bit `23`, R/W), `Ingress Flow Control (IFC) Flag` (bit `24`, R/W on Lane Adapters; VD on Protocol
+    Adapters), `Egress Flow Control (EFC) Flag` (bit `25`, R/W), `Ingress Shared Buffering Enable (ISE)
+    Flag` (bit `26`, R/W on Lane Adapters; VD on Protocol Adapters), `Egress Shared Buffering Enable (ESE)
+    Flag` (bit `27`, R/W), `Pending Packets (PP)` (bit `28`, RO: `1b` while packets for the Path wait
+    to be dequeued), `Reserved` (bit `29`, RsvdZ), and `Reserved` (bits `31:30`).
+    A Connection Manager tears down a Path starting from the `Destination Adapter` and ending at the `Source
+    Adapter` by clearing `PATH_CS_0.Valid` from `1b` to `0b`; the Router responds to the Write Request,
+    drains or discards queued packets within `tTeardown` (max `2 us`) after setting `Pending Packets (PP)`
+    to `0b`, and blocks further transmission until `Valid` is set to `1b` again. When `ADP_CS_1.CCS =
+    1b`, the Adapter implements `Counters Configuration Space` (`CS = 11b`) containing `Max Counter Sets`
+    3-DW counter sets (`CNT_CS_0..2` at DWs `3 * id .. 3 * id + 2`, all `W/Clr`): 64-bit saturating `Received
+    Counter Low` (`CNT_CS_0`) and `Received Counter High` (`CNT_CS_1`) counting received packets (`ADP_CS_1.RBE
+    = 0b`) or payload bytes (`RBE = 1b`), and 32-bit saturating `Dropped Packets` (`CNT_CS_2`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '323'
+      - '325'
+      section: '5.4'
+    - pages:
+      - '469'
+      - '477'
+      section: 8.2.3
+- id: usb4-router-and-port-operations
+  section: programming-model
+  title: Router Operations (ROUTER_CS_9..26) and Sideband Port Operations (SB Registers 8, 9, and 18)
+  claim: >-
+    USB4 defines two concurrent command execution interfaces for a Connection Manager: 1. `Router Operations`
+    (via `ROUTER_CS_9..26` in Router Configuration Space): The CM writes input parameters to `ROUTER_CS_9..24`
+    (`Data[0..15]`) and `ROUTER_CS_25` (`Metadata`), writes the 16-bit `Opcode` (`ROUTER_CS_26[15:0]`),
+    and sets `Operation Valid (OV)` (`ROUTER_CS_26[31]`) from `0b` to `1b` (zeroing any unused `Metadata`
+    or `Data` DWs). Upon completion, the Router updates `Metadata` and `Data[0..15]` if applicable, sets
+    `Operation Not Supported (ONS)` (bit `30`) to `1b` if unsupported or `0b` with completion `Status`
+    in bits `29:24` (`0h` = success, `1h` = failed/not executed or reserved field value), clears `OV`
+    to `0b`, and sends a Notification Packet with `Event Code = ROP_CMPLT` (`33` / `21h`, `Event Info
+    = 00h`). Defined Router Operation Opcodes in Table 8-26 are: - `10h` `Query DP Resource Availability`,
+    `11h` `Allocate DP Resource`, `12h` `De-allocate DP Resource`, `13h` `Connect DP OUT Adapter` - `20h`
+    `NVM Write`, `21h` `NVM Authenticate Write`, `22h` `NVM Read`, `23h` `NVM Set Offset`, `24h` `DROM
+    Read`, `25h` `Get NVM Sector Size` - `30h` `Get PCIe Downstream Entry Mapping`, `31h` `Get Capabilities`,
+    `32h` `Set Capabilities`, `33h` `Buffer Allocation Request`, `34h` `Block Sideband Port Operations`,
+    `35h` `Unblock Sideband Port Operations`, `36h` `Get Container-ID`, `37h` `Get Connectors Information`,
+    and `8000h..FFFFh` `Vendor Specific Router Operations`. 2. `Port Operations` (via `SB Register Space`
+    of a target USB4 Port or Re-timer, accessed through the `USB4 Port Capability` mailbox `PORT_CS_1..17`):
+    The CM writes `Metadata` (`SB Reg 9`, 4B), writes `Data` (`SB Reg 18`, 64B), and then writes a 32-bit
+    `FourCC` command code to `Opcode` (`SB Reg 8`, 4B), verifying each SB write before issuing the next.
+    Writing `SB Reg 8` triggers execution; when finished, the target sets `SB Reg 8` (`Opcode`) to `00000000h`
+    on success, `"!CMD"` (`444D4321h`) if unsupported, or `"ERR "` (`20525245h`) if supported but failed,
+    and the Router sends a `POP_CMPLT` (`34` / `22h`) Notification Packet. Defined Port Operation FourCC
+    opcodes in Table 8-65 include `TXCM` (`4D435854h`), `RXCM` (`4D435852h`), `SBER` (`52454253h`), `EBER`
+    (`52454245h`), `BBER` (`52454242h`), `RBER` (`52454252h`), `EEIT` (`54494545h`), `LFPT` (`5450464Ch`),
+    `LNKT` (`544B4E4Ch` `SET_LINK_TYPE`), `LSEN` (`4E45534Ch` `ROUTER_OFFLINE_MODE`), `ENUM` (`4D554E45h`
+    `ENUMERATE_RE-TIMERS`), `FERS` (`53524546h` `FEC_ERRORS_STAT`), `RDCP` (`50434452h`), `RHMG` (`474D4852h`),
+    `RSMG` (`474D5352h`), `RDSW` (`57534452h`), `SCLT` (`QUERY_CLX_LATENCY_TOL`), and `QCLT` (`SET_CLX_LATENCY_TOL`).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '337'
+      section: 6.4.2.7
+    - pages:
+      - '346'
+      - '347'
+      section: '6.5'
+    - pages:
+      - '477'
+      - '501'
+      section: '8.3'
+  todo:
+    check: document
+    text: >-
+      Check Sections 8.3.1.1-8.3.1.4 (pp. 480-499) and Sections 8.3.2.2-8.3.2.6 (pp. 501-537) for per-operation
+      Metadata and Data DW field layouts.
+- id: usb4-tmu-time-synchronization
+  section: programming-model
+  title: Time Management Unit (TMU) Local Clock, capabilities (ID = 03h), handshake modes, and Post Time
+  claim: >-
+    Every Router with one or more DFPs, or supporting DP tunneling, USB3 tunneling with exposed downstream
+    USB3 ports, or PCIe tunneling with PTM, must support the `Time Synchronization Protocol`, and all
+    Routers must implement the `TMU Router Configuration Capability` (`Capability ID = 03h`, `TMU_RTR_CS_0..25`
+    in Router CS) and `TMU Adapter Configuration Capability` (`Capability ID = 03h`, `TMU_ADP_CS_0..9`
+    in each Lane Adapter CS): - `Local Clock & Counter`: Each Router provides a free-running non-spread-spectrum
+    `Local Clock` at `>= 125 MHz` (`+/- 100 ppm`, `<= 8 ns` timestamp resolution) incrementing an 80-bit
+    unsigned `LocalTime` counter (`Nanoseconds[79:16]` in `TMU_RTR_CS_2..3` and upper half of `TMU_RTR_CS_1`,
+    `Fractional Nanoseconds[15:0]` in `TMU_RTR_CS_1[15:0]`). - `Handshake Modes & Accuracy`: Gen 2 and
+    Gen 3 links support `Bi-Directional` (HiFi Mode only), `Uni-Directional` (`TMU_ADP_CS_3.UDM = 1b`,
+    HiFi or LowRes Mode), and `Enhanced Uni-Directional` (`TMU_ADP_CS_8.EUDM = 1b`, HiFi Mode only) handshakes;
+    Gen 4 links use `Enhanced Uni-Directional` handshakes (`24` Gen 4 `TSNOS` sent at the next RS-FEC
+    block boundary with `Symbols Delay <= 1000`). For Bi-Directional and Uni-Directional modes, `TMU_RTR_CS_3.TSPacketInterval`
+    (bits `31:16`) selects `0` (disabled, default), `16` (`16 us` `HiFi Mode`, `tHiAccuracy` max `2 ns`),
+    or `1000` (`1 ms` `LowRes Mode`, `tLowAccuracy` max `4 ns`), converging within `tConvergeTime` (max
+    `50 ms`) after enable and `tCLxConvergeTime` (max `100 us`) after resuming from pause. For Enhanced
+    Uni-Directional HiFi Mode, the CM programs `TMU_ADP_CS_8..9` with `Replenish Timeout = 3125`, `Replenish
+    Threshold = 0`, `ReplenishN = 30`, `DirSwitchN = 255`, and `AdapterTimeSyncInterval = 16`. - `Post
+    Time & Time Disruption`: To seed a Router's `LocalTime` (via `TMU_RTR_CS_22..25`), the CM sets `TMU_RTR_CS_0.Time
+    Disruption (TD)` (bit `27`) to `1b` (also required before changing TMU mode/filter parameters or enabling
+    Inter-Domain time sync), reads the Host Router's `LocalTime`, writes the 64-bit Nanoseconds value
+    to `Post Local Time Low/High` (`TMU_RTR_CS_22..23`), writes `1` across `Post Time Low/High` (`TMU_RTR_CS_24..25`,
+    where writing `TMU_RTR_CS_25` `Post Time High` activates posting), polls `Post Time` until the Router
+    clears it to `0`, and clears `TD` to `0b`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '355'
+      - '362'
+      section: '7'
+    - pages:
+      - '395'
+      - '397'
+      section: 7.5.4
+    - pages:
+      - '409'
+      - '415'
+      section: 8.2.1.2
+    - pages:
+      - '427'
+      - '430'
+      section: 8.2.2.2
+  todo:
+    check: document
+    text: >-
+      Check Section 7.3-7.4 (pp. 361-393) and Tables 8-4 and 8-11 (pp. 411-415, 427-430) for frequency/time
+      offset equations, IIR filter constants in TMU_RTR_CS_15/18, and TSNOS / Packet error counters in
+      TMU_ADP_CS_4..7.
+- id: usb4-host-interface-mmio-registers
+  section: programming-model
+  title: PCIe Host Interface Adapter Layer (Class Code 0C0340h) Memory BAR register map
+  claim: >-
+    A PCIe Host Router exposes its `Host Interface Adapter Layer` with PCI Configuration Space `Class
+    Code = 0C0340h` and a single PCIe Memory BAR supporting aligned 32-bit single-DW accesses across `N`
+    Transmit and `N` Receive Descriptor Rings (`3 <= N <= 21`, where `N` is `Total Paths` in `Host Interface
+    Capabilities` and ring index `n` in `0..N-1` equals the Path `HopID`): - `Host Interface Control Registers`:
+      - `39640h` `Host Interface Capabilities`: `Total Paths` (bits `10:0`, RO, `3..21`) and `Host Interface
+    Version` (bits `23:16`, RO, `40h` for USB4 v2.0 with `Major[23:21] = 010b, Minor[20:16] = 00000b`;
+    `00h` for USB4 v1.0 or TBT3)
+      - `39858h` `Host Interface Reset`: bit `0` `RST` (R/W SC, resets HI registers and E2E counters within
+    `tHIReset` max `10 ms`; a Ver. 2 CM is recommended to use `Host Router Reset` instead)
+      - `39864h` `Host Interface Control`: bit `17` `Disable ISR Auto-Clear` (R/W, default `0b`; bits
+    `16:0` and `31:18` are Vendor Defined)
+      - `39880h` `Host Interface CL1 Enable` and `39884h` `Host Interface CL2 Enable`: bit `n` (`1..Total
+    Paths - 1`, R/W; bit `0` reserved) enables the link associated with TX Ring `n` to enter `CL1` or
+    `CL2`
+      - `39898h` `Host Router Reset`: bit `0` `Host Router Reset (HRR)` (R/W SC)
+    - `Transmit Descriptor Ring n Registers` (`n = 0..N-1`):
+      - `00000h + n * 10h` `Base Address Low` (R/W, 16-byte aligned: bits `3:0 = 0h`) and `00004h + n
+    * 10h` `Base Address High` (R/W)
+      - `00008h + n * 10h` `Producer & Consumer Indexes`: `Consumer Index` (bits `15:0`, RO) and `Producer
+    Index` (bits `31:16`, R/W)
+      - `0000Ch + n * 10h` `Ring Size`: `Ring Size` (bits `15:0`, R/W, `1..4096` descriptors)
+      - `19800h + n * 20h` `Ring Control`: `E2E Flow Control Enable` (bit `28`, R/W), `No-snoop flag (NS)`
+    (bit `29`, R/W), `Raw Mode (RAW)` (bit `30`, R/W: `0b` Frame Mode, `1b` Raw Mode), and `Ring Valid`
+    (bit `31`, R/W; all fields must be written in a single DW write when enabling a TX ring)
+    - `Receive Descriptor Ring n Registers` (`n = 0..N-1`):
+      - `08000h + n * 10h` `Base Address Low` (R/W, bits `3:0 = 0h`) and `08004h + n * 10h` `Base Address
+    High` (R/W)
+      - `08008h + n * 10h` `Producer & Consumer Indexes`: `Consumer Index` (bits `15:0`, R/W) and `Producer
+    Index` (bits `31:16`, RO)
+      - `0800Ch + n * 10h` `Ring & Buffer Size`: `Ring Size` (bits `15:0`, R/W, `1..4096` descriptors)
+    and `Data Buffer Size` (bits `27:16`, R/W, `0` = `4096` bytes)
+      - `29800h + n * 20h` `Ring Control`: `Transmit E2E HopID` (bits `18:12`, R/W), `E2E Flow Control
+    Enable` (bit `28`, R/W), `NS` (bit `29`, R/W), `Raw Mode (RAW)` (bit `30`, R/W), and `Ring Valid`
+    (bit `31`, R/W)
+      - `29804h + n * 20h` `PDF Bit Masks`: `EOF PDF Bitmask` (bits `15:0`, R/W, bits `0` and `15` must
+    be `0b`) and `SOF PDF Bitmask` (bits `31:16`, R/W, bits `16` and `31` must be `0b`; overlapping SOF/EOF
+    PDF bits are forbidden)
+    - `Interrupt & Vacancy Registers` (supporting 1 MSI vector or up to 16 MSI-X vectors):
+      - `37800h..37800h + 4*ceil(3N/32) - 1` `Interrupt Status (ISR)`, `37808h..` `Interrupt Status Clear
+    (ISC)` (WO), and `37810h..` `Interrupt Status Set (ISS)` (WO), packing `3N` bits: bits `0..N-1` for
+    TX Data Buffer interrupts, bits `N..2N-1` for RX Data Buffer interrupts, and bits `2N..3N-1` for RX
+    Ring Vacancy interrupts
+      - `38200h..` `Interrupt Mask (IMR)` (R/W), `38208h..` `Interrupt Mask Clear (IMC)` (WO), and `38210h..`
+    `Interrupt Mask Set (IMS)` (WO)
+      - `38C00h..38C3Ch` `Interrupt Throttling Rate (ITR[0..15])`: `Interval` (bits `15:0`, R/W, in `256
+    ns` units; `0` disables moderation) and `Counter` (bits `31:16`, R/W)
+      - `38C40h..38C40h + 4*ceil(3N/8) - 1` `Interrupt Vector Allocation (IVAR)`: packed 4-bit MSI-X vector
+    numbers (`0..15`) per interrupt cause
+      - `18C00h..18C00h + 4*ceil(N/8) - 1` `Receive Ring Vacancy Control` (packed 4-bit `Threshold` per
+    RX ring: `0` = 0 descriptors, `j > 0` = `2^(j-1)` available descriptors) and `19400h..19400h + 4*ceil(N/32)
+    - 1` `Receive Ring Vacancy Status` (RO).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '731'
+      section: '12'
+    - pages:
+      - '746'
+      - '763'
+      section: '12.5'
+- id: usb4-host-interface-descriptors-and-modes
+  section: programming-model
+  title: Host Interface Raw and Frame Modes, E2E flow control, and 16-byte TX/RX Descriptor layouts
+  claim: >-
+    In the Host Interface Adapter Layer, `Transmit Ring 0` and `Receive Ring 0` (`HopID 0`) operate exclusively
+    in `Raw Mode` without End-to-End (`E2E`) flow control to carry Connection Manager Control Packets;
+    all other rings (`1..N-1`) support both `Raw Mode` (one Transport Layer Packet payload per Data Buffer)
+    and `Frame Mode` (frames of `1..4096` bytes segmented across `Start of Frame`, `Middle of Frame` `PDF
+    = 0h`, and `End of Frame` Tunneled Packets with a trailing hardware-generated/checked 32-bit CRC-32C
+    that is stripped before posting to RX Data Buffers). When `E2E Flow Control` (`Ring Control` bit `28`)
+    is enabled on non-zero rings, one credit equals one Receive Descriptor (up to `8192` advertised credits,
+    tracked modulo `8192`) exchanged via `E2E Credit Grant Packets` (`PDF = Fh, SuppID = 0b, Length =
+    04h, CS = 0b` sent every `tE2ERate` `1..1000 ms` and on descriptor replenishment using `Transmit E2E
+    HopID`) and `E2E Credit Sync Packets` (`PDF = Fh, SuppID = 0b, Length = 04h, CS = 1b` sent every `tE2ESync`
+    `10..20 s`). Each `Transmit Descriptor` and `Receive Descriptor` in host memory is `16 bytes` (`4
+    DWs`, with Data Buffer physical addresses 4-byte aligned so `Address Low[1:0] = 00b`): - `Transmit
+    Descriptor` (Table 12-6): `DW0` `Address Low[31:0]`, `DW1` `Address High[31:0]`, `DW2` `Data Length[11:0]`
+    (`0` = `4096` bytes), `EOF PDF[15:12]` (`0h..Eh` in Raw Mode; `1h..Eh` on last descriptor of a Frame
+    or `0h` otherwise in Frame Mode, never `Eh` if the lane carries a Path with `PMPS = 1b`), `SOF PDF[19:16]`
+    (ignored in Raw Mode; `1h..Eh` on first descriptor of a multi-packet Frame and different from `EOF
+    PDF`, or `0h` otherwise), `Rsvd[20]`, `Descriptor Done (DD)[21]` (cleared to `0b` by Host; set to
+    `1b` by hardware upon completion when `RS = 1b`), `Request Status (RS)[22]`, `Interrupt Enable (IE)[23]`,
+    `Offset[31:24]` (byte offset in Data Buffer), and `DW3` `Rsvd[31:0]`. - `Receive Descriptor Posted
+    by Host` (Table 12-7): `DW0` `Address Low[31:0]`, `DW1` `Address High[31:0]`, `DW2` `Reserved[20:0]`,
+    `DD[21] = 0b`, `RS[22] = 1b` (Host shall always set `RS = 1b`), `IE[23]`, `Offset[31:24]`, and `DW3`
+    `Reserved[31:0]`. - `Receive Descriptor Written Back by Hardware` (Table 12-8, written when `RS =
+    1b`): `DW0..1` `Address Low/High`, `DW2` `Data Length[11:0]` (`0` = `4096` bytes posted), `EOF PDF[15:12]`,
+    `SOF PDF[19:16]`, `CRC Error[20]` (`1b` if Frame Mode CRC-32C check failed), `DD[21] = 1b`, `Buffer
+    Overflow (BO)[22]`, `IE[23]`, `Offset[31:24]`, and `DW3` `Reserved[31:0]`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '732'
+      - '746'
+      section: '12.1'
+    - page: '763'
+      section: '12.7'
+  todo:
+    check: document
+    text: >-
+      Check Section 12.4.2.1 (pp. 744-745) for Frame Mode receiver error recovery rules when Start of
+      Frame or End of Frame packets are missing or duplicated.
+- id: usb4-gotcha-router-read-response-adapter-num
+  section: gotchas
+  title: Router CS Read Response overwrites Adapter Num with the Upstream Adapter number, and ROUTER_CS_1/4
+    write-back rules
+  claim: >-
+    Although a Connection Manager sets `Adapter Num = 0` (DW3 bits `24:19`) in `Read Request` and `Write
+    Request` packets targeting `Router Configuration Space` (`CS = 10b`), a Router populates the `Adapter
+    Num` field of a `Read Response` (`PDF = 1h`) for `Router Configuration Space` with the `Adapter Number`
+    on which the `Read Request` arrived (its Upstream Adapter), whereas in a `Write Response` (`PDF =
+    2h`) `Adapter Num` echoes the `Write Request`'s `Adapter Num` (`0`). Driver software parsing a `Read
+    Response` must not reject the response for having a non-zero `Adapter Num` when `CS = 10b`. Furthermore,
+    when writing to `ROUTER_CS_1` (`DW1`) or `ROUTER_CS_4` (`DW4`), the Connection Manager must first
+    read those registers and write back the exact read values for `Upstream Adapter` (`ROUTER_CS_1[13:8]`)
+    and `USB4 Version` (`ROUTER_CS_4[31:24]`), must never set `Notification Timeout` (`ROUTER_CS_4[7:0]`)
+    to `0`, and must not modify `ROUTER_CS_1..3` or `CMUV` (`ROUTER_CS_4[15:8]`) after setting `TopologyID
+    Valid (V)` to `1b`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '332'
+      - '336'
+      section: 6.4.2.3
+    - page: '348'
+      section: '6.7'
+    - pages:
+      - '401'
+      - '408'
+      section: 8.2.1.1
+- id: usb4-gotcha-control-and-lane1-adapter-cs-access
+  section: gotchas
+  title: Control Adapter 0 has no Configuration Spaces and Lane 1 Adapter CS access is restricted on Aggregated
+    Links
+  claim: >-
+    `Adapter 0` (`Control Adapter`) has no `Adapter Configuration Space`, `Path Configuration Space`,
+    or `Counters Configuration Space`. When an enumerated Router receives a `Read Request` or `Write Request`
+    (`PDF = 1h` or `2h`): if `CS` is `Path` (`00b`), `Adapter` (`01b`), or `Counters` (`11b`) and the
+    targeted `Adapter Num` does not exist or is unsupported (including `Adapter 0` when `CS != 10b`, or
+    an Adapter with `Adapter Type = Unsupported Adapter`), the Router sends a Notification Packet with
+    `Event Code = ERR_ADP` (`4` / `04h`); if `CS` is `Counters` (`11b`) on a valid Adapter that does not
+    implement Counters Configuration Space (`ADP_CS_1.CCS = 0b`), or if the requested `Address` and `Read/Write
+    Size` exceed the defined limits of the targeted Configuration Space, the Router sends a Notification
+    Packet with `Event Code = ERR_ADDR` (`2` / `02h`). Separately, if an enumerated Router receives any
+    Control Packet (`HopID = 0`) on a Lane Adapter other than its `Upstream Adapter`, it sends a Notification
+    Packet with `Event Code = ERR_NUA` (`9` / `09h`). On a USB4 Port operating as an `Aggregated Link`
+    (`Lane 0` and `Lane 1` bonded), the Connection Manager must not access the Capability linked list
+    in the `Lane 1` Adapter's `Adapter Configuration Space`, must not write to the basic configuration
+    registers `ADP_CS_0..8` of the `Lane 1` Adapter, and must not write to `LANE_ADP_CS_2` (`DW2`) of
+    the `Lane 1` Adapter. The Connection Manager may only write to `LANE_ADP_CS_1` (`DW1`) of the `Lane
+    1` Adapter to enable or disable the lane (`Lane Disable` bit `14`), and when doing so must write the
+    exact same values as written to the `Lane 0` Adapter for all other `R/W` fields in `LANE_ADP_CS_1`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '58'
+      section: 2.1.1.1
+    - page: '337'
+      section: 6.4.2.7
+    - pages:
+      - '342'
+      - '345'
+      section: 6.4.3.2
+    - page: '346'
+      section: '6.5'
+    - page: '398'
+      section: '8.2'
+    - pages:
+      - '418'
+      - '426'
+      section: 8.2.2
+    - pages:
+      - '430'
+      - '436'
+      section: 8.2.2.3
+- id: usb4-gotcha-path-cs-access-and-teardown-delay
+  section: gotchas
+  title: Path Configuration Space requires atomic 2-DW accesses and a tTeardown (2 us) wait after Pending
+    Packets clears
+  claim: >-
+    When reading or writing a Path entry in `Path Configuration Space` (`CS = 00b`), a Ver. 2 Connection
+    Manager must issue a single Read Request or Write Request covering both Doublewords (`PATH_CS_0` and
+    `PATH_CS_1`, `Address = 2 * HopID, Length = 2`), must read the entry before writing so that `Vendor
+    Defined (VD)` and `RsvdZ` bits are preserved unchanged, must set a non-zero `Weight` (`1..15`) and
+    a `Priority` in `1..7` whenever `Valid = 1b`, and must not modify any field other than `Weight` and
+    `Valid` while `Valid = 1b`. When tearing down a Path by clearing `Valid` from `1b` to `0b`, the Connection
+    Manager must poll `PATH_CS_1.Pending Packets (PP)` (bit `28`) until it reads `0b` and then wait at
+    least `tTeardown` (`2 us`) before setting `Valid` for that Path back to `1b`.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '324'
+      section: 5.4.1
+    - page: '325'
+      section: '5.5'
+    - pages:
+      - '472'
+      - '474'
+      section: 8.2.3.3
+- id: usb4-gotcha-tmu-register-locking-and-bidi-clx
+  section: gotchas
+  title: Multi-DW TMU registers and computation groups lock only when the Low DW is read first, and Bi-Directional
+    HiFi blocks CLx
+  claim: >-
+    In the `TMU Router Configuration Capability` (`ID = 03h`), multi-DW registers (`LocalTime {Low, Middle,
+    High}` at `TMU_RTR_CS_1..3`, `TimeOffsetFromHR {Low, High}` at `TMU_RTR_CS_4..5`, and `Inter-Domain
+    Time Stamp {Low, Middle, High}` at `TMU_RTR_CS_16..18`) and register groups (`Time Computation Group`
+    `TMU_RTR_CS_4..14` plus `Received Counter Low/High` when `ADP_CS_1.LBE = 1b`, triggered by reading
+    `TimeOffsetFromHR Low` at `TMU_RTR_CS_4`; and `Inter-Domain Computation Group` `TMU_RTR_CS_16..21`,
+    triggered by reading `Inter-Domain Time Stamp Low` at `TMU_RTR_CS_16`) latch their upper DWs and group
+    members when the `Low` (`Triggering`) DW is read and hold those latched values until the `Low` DW
+    is read again. Software must always read the `Low` DW first to capture a coherent snapshot. Additionally,
+    `Bi-Directional` Time Sync Handshakes (`TMU_ADP_CS_3.UDM = 0b, TMU_ADP_CS_8.EUDM = 0b`) only support
+    `HiFi Mode` (`TSPacketInterval = 16`) — never `LowRes Mode` — and prevent the USB4 Link from entering
+    any Low Power (`CLx`) state.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '361'
+      section: 7.3.1
+    - pages:
+      - '409'
+      - '416'
+      section: 8.2.1.2
+    - pages:
+      - '420'
+      - '422'
+      section: 8.2.2.1
+- id: usb4-gotcha-hi-endianness-ring-indices-and-4096-length
+  section: gotchas
+  title: Host Interface payload vs descriptor byte order, 0-equals-4096 length encoding, and inverted
+    TX/RX Producer/Consumer index ownership
+  claim: >-
+    The Host Interface Adapter Layer has four subtle ring-programming rules: 1. `Opposite Byte Ordering`:
+    Transmit and Receive Descriptors in host memory are mapped little-endian into Doublewords (lowest-addressed
+    byte at bits `7:0` of `DW0`), whereas Data Buffer bytes are mapped big-endian into Transport Layer
+    Packet payload Doublewords (lowest-addressed byte at bits `31:24` of the first payload DW). 2. `Zero
+    Encodes 4096 Bytes`: In `Transmit Descriptor.Data Length` (`DW2[11:0]`), `Receive Descriptor.Data
+    Length` (`DW2[11:0]`), and RX `Ring & Buffer Size.Data Buffer Size` (`0800Ch + n * 10h` bits `27:16`),
+    a value of `0` indicates `4096` bytes (`1000h`). When a written-back Receive Descriptor has `CRC Error`
+    (`DW2[20]`) set to `1b`, software must ignore the `Data Length` field. 3. `Inverted Producer/Consumer
+    Ownership`: For a `Transmit Descriptor Ring` (`00008h + n * 10h`), `Consumer Index` (bits `15:0`,
+    RO) is owned by hardware and `Producer Index` (bits `31:16`, R/W) is advanced by software; for a `Receive
+    Descriptor Ring` (`08008h + n * 10h`), `Consumer Index` (bits `15:0`, R/W) is advanced by software
+    to supply free descriptors and `Producer Index` (bits `31:16`, RO) is owned by hardware. In both rings,
+    software must never advance its index to equal the hardware-owned index (always leaving at least one
+    vacant descriptor slot in the ring), and writing to `Base Address Low`, `Base Address High`, or `Ring
+    Size` resets both `Producer Index` and `Consumer Index` to `0`. 4. `RX Request Status Mandatory`:
+    Software must always set `Request Status (RS)` (`DW2[22]`) to `1b` in every Receive Descriptor posted
+    to a Receive Descriptor Ring, and after disabling an RX ring (`Ring Valid = 0b`), software must write
+    `0` to `Consumer Index` and reset all fields in RX `Ring Control` (`29800h + n * 20h`) to their default
+    values.
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - page: '732'
+      section: 12.1.1
+    - page: '739'
+      section: 12.3.1
+    - pages:
+      - '742'
+      - '745'
+      section: 12.4.1
+    - pages:
+      - '752'
+      - '757'
+      section: 12.6.3.2
+- id: usb4-gotcha-host-router-reset-and-isr-autoclear
+  section: gotchas
+  title: Host Router Reset 1 ms TX ring drain and 50 ms quiet window, single-DW BAR access limit, and
+    ISR read auto-clear
+  claim: >-
+    When initiating a `Host Router Reset` on a PCIe Host Router via `39898h` bit `0` (`HRR`), the Connection
+    Manager must first disable all Transmit Descriptor Rings (`Ring Valid = 0b`) and wait at least `1
+    ms` before setting `HRR = 1b`. After setting `HRR = 1b`, the Connection Manager must not read or write
+    the `Host Router Reset` register (`39898h`) for `50 ms`, and must not write to any register in the
+    Host Interface Memory BAR space or access any Receive Descriptor Ring until `HRR` reads back `0b`
+    (within `tHRReset` max `500 ms`; reading any other BAR register while `HRR = 1b` returns undefined
+    values). In normal operation, the Connection Manager must restrict all PCIe Memory BAR reads and writes
+    to aligned single-DW (`32-bit`, all Byte Enables `1b`) accesses, and when `Disable ISR Auto-Clear`
+    (`Host Interface Control` `39864h` bit `17`) is at its default value of `0b`, reading any `Interrupt
+    Status Register` (`37800h + 4*k`) automatically clears all 32 status bits in that DW to `0` (use `Disable
+    ISR Auto-Clear = 1b` together with `Interrupt Status Clear` at `37808h + 4*k` if write-1-to-clear
+    semantics are desired).
+  support:
+  - class: standard
+    doc: usb4-2.0.pdf
+    at:
+    - pages:
+      - '353'
+      - '354'
+      section: '6.10'
+    - pages:
+      - '747'
+      - '751'
+      section: '12.6'
+    - pages:
+      - '758'
+      - '759'
+      section: 12.6.3.4
