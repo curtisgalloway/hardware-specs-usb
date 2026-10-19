@@ -44,11 +44,17 @@ documents:
   access: public
   subsystem: type-c
   disposition: "planned: after the Type-C and PD specs it depends on"
-- name: usb-2.0
-  title: Universal Serial Bus Specification Revision 2.0 (with ECNs and errata)
+- name: usb-2.0.pdf
+  title: Universal Serial Bus Specification Revision 2.0 (base specification, April 2000)
+  sha256: d39698a33486c399124af92bd02e4f978fd9a836b5cf4e52e6e4633eb1d89f61
   access: public
   subsystem: protocol
-  disposition: "planned: protocol facts the host controller specs refer to"
+  disposition: spec:usb2
+- name: usb-2.0-ecns
+  title: USB 2.0 errata and engineering change notices (Connect Timing, LPM, IAD and others)
+  access: public
+  subsystem: protocol
+  disposition: "planned: the ECNs in the USB 2.0 package, starting with Connect Timing and Link Power Management"
 - name: usb-3.2
   title: Universal Serial Bus 3.2 Specification
   access: public
@@ -95,6 +101,18 @@ blocks:
   title: xHCI I/O Virtualization and VTIO
   subsystem: host-controller
   disposition: "excluded: virtualization is out of scope for bring-up and driver porting work so far"
+- name: usb2-device-framework
+  title: USB 2.0 device framework (states, standard requests, descriptors)
+  subsystem: protocol
+  disposition: spec:usb2
+- name: usb2-hub-class
+  title: USB 2.0 hub class requests and port status
+  subsystem: protocol
+  disposition: spec:usb2#hub-port-status-bits
+- name: usb2-split-transactions
+  title: USB 2.0 split transactions and transaction translator
+  subsystem: protocol
+  disposition: "planned: sections 8.4.2 and 11.14 to 11.22 of the USB 2.0 specification"
 - name: ehci
   title: EHCI host controller interface
   subsystem: host-controller

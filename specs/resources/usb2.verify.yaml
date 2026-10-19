@@ -1,0 +1,435 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb2
+spec_file: usb2.spec.yaml
+spec_sha256: 744bb85300c800c8adb4cfd16714b46ced7f64243737c2f634f364488d11081a
+canonical: fact-v1
+sources:
+- name: usb-2.0.pdf
+  url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+  sha256: d39698a33486c399124af92bd02e4f978fd9a836b5cf4e52e6e4633eb1d89f61
+  fetch: ok
+  note: The PDF inside the USB-IF zip download; each reader checked the SHA-256 and extracted page
+    text itself with pdftotext.
+summary:
+  pass: 25
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  device-states:
+    basis: 59f42f86816401183ee20830bbbc3f8ca22533bbd981bd1791b2913b1dbfd7fe
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with Figure 9-1 (p. 268), Table 9-1 (p. 269) and 9.1.1.1-9.1.1.6 (pp. 270-271).
+      The six states, "must not respond to any bus transactions until it has received a reset" (9.1.1.3),
+      the default address after reset, SetConfiguration() with a non-zero value (9.1.1.5), Configured
+      as the state in which "the host may now use the function" (Table 9-1), suspend after 3 ms with
+      address and configuration kept, and selective suspend when the hub port is disabled (9.1.1.6)
+      all match. Searched the document for "3 ms" and the suspend rules: 7.1.7.6 (p. 182) says a device
+      begins the transition to Suspend after more than 3.0 ms of Idle and "must actually be suspended
+      ... after no more than 10 ms of bus inactivity". The claim follows Table 9-1 and is not wrong,
+      but omits that bound; suggest adding "and must be fully suspended within 10 ms (7.1.7.6, p.
+      182)". Also omitted: a power-source change can return the device to Powered or Address (9.1.1.2,
+      p. 270), which is covered by the power-budget fact.'
+    contrary_evidence: found
+    citation_precision: exact
+  enumeration-sequence:
+    basis: 921a187dcd814f4657035fdf1b973e1a5c4e18791a6e9c7e3db980ba8d873bee
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.1.2 steps 1-8 (pp. 271-272): hub reports the attach via its status change
+      pipe with the port disabled; host waits at least 100 ms, then issues port enable and reset;
+      Default state, "no more than 100 mA from VBUS", default address; unique address; device descriptor
+      read for the default pipe''s maximum payload; each configuration 0..n-1 read; configuration
+      assigned; then the configured VBUS power may be drawn. All match. Read the rest of 9.1.2 and
+      9.2.1-9.2.2 and searched for the 100 ms and 100 mA values. Qualification found: step 6 notes
+      the Default Control Pipe is still reachable at the default address before a unique address is
+      assigned, i.e. the descriptor read may precede SetAddress; the claim''s order follows the numbered
+      list and does not deny this. Suggest noting that the device-descriptor read can occur at the
+      default address before SetAddress (9.1.2 step 6, p. 271).'
+    contrary_evidence: found
+    citation_precision: exact
+  setup-packet-format:
+    basis: 66c415036125ef32b22bb398c28057b9b2265f02c3cd26c437f8d7c0c71e367a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.3 Table 9-2 and 9.3.1 (PDF p. 276), 9.3.2-9.3.5 (p. 277) and 8.1 (p. 223). Eight
+      bytes, offsets and sizes, D7 direction ignored when wLength is zero, D6..5 type 0-3, D4..0 recipient
+      0-3 and 4..31 reserved, wLength zero means no Data stage, input requests never return more than
+      wLength and may return fewer, little-endian multi-byte fields (8.1). All match. Omitted sibling:
+      on an output request wLength is the exact amount the host sends and device behavior is undefined
+      if the host sends more (9.3.5, p. 277); bRequest values are defined by this spec only for type
+      0 (9.3.2). Suggest adding the output-request rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  windex-endpoint-interface:
+    basis: 511841b70dde057bfb356a3dafdda0eb8a66fb027335ae0c2d2adb6732eeba9f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.3.4, Figure 9-2 and Figure 9-3 (p. 277): endpoint number D3..0, direction
+      D7 (0 OUT, 1 IN), D6..4 and D15..8 "Reserved (Reset to zero)"; for a control pipe the direction
+      bit should be zero "but the device may accept either value"; interface number D7..0 with D15..8
+      reserved and zero. All match. Read the rest of 9.3 and the wIndex uses in 9.4.1-9.4.11 (e.g.
+      SetFeature(TEST_MODE) uses the high byte as test selector, a different recipient case the claim
+      does not cover); nothing contrary found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  standard-request-codes:
+    basis: 837f48ae4b087e8ef6cf0b2365ae3f622408fe04ec6923fcd518dc9c222c68aa
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.4 text and Table 9-3 (p. 278), Tables 9-4 and 9-5 (p. 279) and Table 9-6
+      (p. 280). Every bRequest code (0,1,3,5-12, with 2 and 4 reserved), descriptor type 1-8, and
+      feature selector (ENDPOINT_HALT 0 endpoint, DEVICE_REMOTE_WAKEUP 1 device, TEST_MODE 2 device)
+      matches, as does "USB devices must respond to standard device requests, even if the device has
+      not yet been assigned an address or has not been configured". Read 9.4.1-9.4.11 (pp. 280-288).
+      The TODO accurately names Table 9-3''s other columns (p. 278), the per-state rules of 9.4.1-9.4.11
+      (pp. 280-288; these say Default-state behavior is "not specified" for most requests, which qualifies
+      "must respond") and Table 9-7 (p. 287). Not named in the TODO: Table 9-5''s footnote that INTERFACE_POWER
+      is defined in the USB Interface Power Management Specification (p. 279), and that TEST_MODE
+      cannot be cleared by ClearFeature (9.4.1, p. 280); suggest adding both to the TODO text.'
+    contrary_evidence: found
+    citation_precision: exact
+  request-errors:
+    basis: 028e32777e62b74fd98bdde3354b3e186ef5c27f06367a630a04029a92ecf5d1
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.2.7 (p. 275): not defined, inappropriate for current setting, or incompatible
+      values is a Request Error; STALL "in response to the next Data stage transaction or in the Status
+      stage", the Data stage preferred. And with the paragraph after Table 9-6 in 9.4 (p. 280): unsupported
+      or invalid request does "NOT cause the optional Halt feature on the control pipe to be set";
+      a device unable to communicate via its Default Control Pipe "must be reset". All match. Searched
+      9.4.1-9.4.11 for Request Error and STALL: individual requests make many bad-field cases (e.g.
+      non-zero wLength, wIndex) "not specified" rather than Request Errors, and SetFeature of a nonexistent
+      feature returns STALL in the Status stage (9.4.9, p. 286); a halted Default Control Pipe STALLs
+      standard requests other than GetStatus/SetFeature/ClearFeature (9.4.5, p. 284). These are sibling
+      rules the claim does not deny; suggest noting that per-request sections override with "behavior
+      not specified" for some malformed fields. Precision: the second locator names Table 9-6, but
+      the cited text is the paragraph below that table in section 9.4; cite page 280, section 9.4
+      instead of table 9-6.'
+    contrary_evidence: found
+    citation_precision: imprecise
+  get-status-data:
+    basis: ba7c5fd57435c0adce35e132e6ff3bdf3e94c916c7b54ed30939d614e6a20489
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Document hash matched the registry. Read 9.4.5 on PDF pp. 282-284 (Figures 9-4, 9-5, 9-6
+      and the text after each). Two bytes (wLength Two); device D0 Self Powered "may not be changed
+      by the SetFeature() or ClearFeature() requests"; D1 Remote Wakeup modified with DEVICE_REMOTE_WAKEUP
+      and "reset to zero when the device is reset"; interface all reserved; endpoint D0 Halt, "required
+      to be implemented for all interrupt and bulk endpoint types"; ClearFeature(ENDPOINT_HALT) reinitializes
+      the toggle to DATA0 regardless of Halt; Halt reset by SetConfiguration()/SetInterface() even
+      when unchanged. All match. Read the rest of 9.4.5 and 9.1.1.6 for qualifications. Sibling rules
+      left out, none contradicting the claim: the Halt feature is neither required nor recommended
+      for the Default Control Pipe, and a device that sets it there STALLs every standard request
+      except GetStatus/SetFeature/ClearFeature (p. 284); SetFeature(ENDPOINT_HALT) is optional; GetStatus
+      with wIndex non-zero to the device, or in the Default state, is unspecified, and a nonexistent
+      interface/endpoint gives Request Error (p. 283). Suggest adding the Default Control Pipe Halt
+      rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  configuration-resets-endpoint-state:
+    basis: 644eb870347fe57a3cb506fe7249540c9a00c44da420cb6c3a7eb47365a66abd
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.1.1.5 (p. 271): configuring or changing an alternate setting sets "all
+      of the status and configuration values associated with endpoints in the affected interfaces"
+      to defaults, including "setting the data toggle of any endpoint using data toggles to the value
+      DATA0"; and 9.2.3 (pp. 272-273): "The default setting when a device is initially configured
+      is alternate setting zero". Both match. Searched for alternate setting zero and data toggle
+      reinitialization: 9.6.5 (p. 295) repeats that the default setting is always zero and 9.4.5 (p.
+      284) adds Halt clearing on SetConfiguration/SetInterface, consistent with the claim. Nothing
+      contrary found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  device-descriptor:
+    basis: c024767c673876409d6ede9169323e8d6c7be912a9a23134e3b53be6394a5818
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.6.1 and Table 9-8 on PDF pp. 289-291 and 5.5.3 on p. 67. Offsets, sizes and fields
+      match Table 9-8 (18 bytes, offsets 0-17); bcdUSB "2.10 is 210H"; bMaxPacketSize0 "only 8, 16,
+      32, or 64 are valid", must be 64 at high speed (9.6.1), low-speed control 8 bytes (5.5.3); bDeviceClass
+      0 means each interface specifies its own class, FFH vendor-specific. Searched the document for
+      bMaxPacketSize0 and bcdUSB and read 9.6.2''s notes. Omitted sibling rules, not named by the
+      TODO: bDeviceClass 1..FEH means the device supports class specifications on different interfaces
+      that may not operate independently (Table 9-8, p. 290); bNumConfigurations counts only configurations
+      at the current operating speed (9.6.1, p. 289); bcdUSB is 0xJJMN for version JJ.M.N (p. 289).
+      Suggest adding the 1..FEH meaning or widening the TODO to name it. The TODO''s subclass/protocol
+      omission is accurate.'
+    contrary_evidence: found
+    citation_precision: exact
+  configuration-descriptor:
+    basis: ee046385a5e2e9bf86942dffe92bdd48eb440b5da9bf9c082386fae2c52d873d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.6.3 and Table 9-10 (PDF pp. 292-294) and 9.4.3 (pp. 281-282). Nine bytes; offsets
+      and fields match; wTotalLength covers configuration, interface, endpoint and class/vendor descriptors;
+      bConfigurationValue is the SetConfiguration() argument; bmAttributes D7 reserved set to one,
+      D6 self-powered, D5 remote wakeup, D4..0 reserved zero; bMaxPower in 2 mA units, "50 = 100 mA",
+      "when the device is fully operational"; the order returned by GetDescriptor(Configuration) matches
+      9.4.3. Omitted siblings: a configuration using both bus and local power sets D6 and reports
+      non-zero bMaxPower, and the actual power source is read with GetStatus(DEVICE) (Table 9-10,
+      p. 294); a wLength shorter than the descriptor returns only the initial bytes (9.4.3, p. 281);
+      the descriptor index runs from 0 to one less than the number of configurations (9.4.3).'
+    contrary_evidence: found
+    citation_precision: exact
+  interface-descriptor:
+    basis: db83a5852ebf39e238c6196789beddf4b95587f4d48ca679340db103d53d3d07
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.6.5 (p. 295) and Table 9-12 (pp. 296-297): offsets 0-8 and fields match;
+      bInterfaceNumber zero-based; bNumEndpoints excludes endpoint zero; bInterfaceClass 0 "reserved
+      for future standardization", FFH vendor-specific; "always returned as part of a configuration
+      descriptor" and not accessible by GetDescriptor() or SetDescriptor(); each alternate setting
+      gets its own interface descriptor with the same bInterfaceNumber, followed by its endpoints.
+      9 bytes follows from offset 8 size 1. Searched 9.2.3, 9.4.3 and 9.6.3 for interface ordering
+      and numbering rules; consistent, nothing contrary.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  endpoint-descriptor:
+    basis: c53d1daa0c700cb1bd8b5c2f41e567b098146b630f3c3e5334b4f139d86ebcae
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader A
+    note: 'Compared with 9.6.6 and Table 9-13 (pp. 297-299): offsets 0-6; bEndpointAddress bits 3..0
+      number, bit 7 direction "ignored for control endpoints"; bmAttributes transfer types 00/01/10/11,
+      bits 3..2 sync and 5..4 usage for isochronous, reserved otherwise; wMaxPacketSize bits 10..0
+      size and bits 12..11 additional transactions (00, 01, 10; 11 reserved) for high-speed isochronous
+      and interrupt; "There is never an endpoint descriptor for endpoint zero". 7 bytes follows from
+      offset 6 size 1. All match. The TODO accurately names the sync/usage encodings (Table 9-13,
+      p. 298) and Table 9-14 (p. 301), which limits bits 10..0 when bits 12..11 are non-zero. Also
+      found and not named: bits 6..4 of bEndpointAddress and 15..13 of wMaxPacketSize reserved zero,
+      and the explicit-feedback constraints (p. 300); suggest adding those to the TODO.'
+    contrary_evidence: found
+    citation_precision: exact
+  binterval-encoding:
+    basis: 887f63633f13e510632a6e4a05a2d0af7863a269d34c111f3dc28b65f2cc834a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read Table 9-13 bInterval row (PDF p. 299), p. 301 and 5.7.4 (pp. 77-79). Units frames
+      or microframes by speed; FS/HS isochronous and HS interrupt 1-16 as exponent 2^(bInterval-1),
+      4 means 8; FS/LS interrupt 1-255, low-speed limited to 10-255 ms and FS period 1-255 ms (5.7.4:
+      "desired bus access period"); HS bulk/control OUT maximum NAK rate 0-255, 0 never NAKs, "only
+      used for compliance purposes" (p. 301). All match. Searched the whole document for bInterval.
+      Found: (1) an internal inconsistency in the base spec: the hub chapter''s example descriptors
+      give bInterval FFH for the hub status-change endpoint in the high-speed-information other_speed_configuration
+      (printed p. 410, PDF p. 438), outside the 1-16 range Table 9-13 gives for high-speed interrupt
+      endpoints; it does not limit the claim but a hub driver reading those tables meets it. (2) Omitted
+      siblings: a non-zero NAK value means at most one NAK per bInterval microframes (p. 299; 8.5.1,
+      p. 246); the period the host provides may be shorter than requested, and only the maximum spacing
+      is guaranteed (5.7.4, p. 79); an isochronous endpoint must handle faster polls (5.6.4, p. 72).
+      Suggest adding that bInterval is an upper bound on the period.'
+    contrary_evidence: found
+    citation_precision: exact
+  string-descriptors:
+    basis: a010ce5f2780f4f4f58568edbb1612a0659689a06eb54eef3c58cd367e74ad39
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader B
+    note: 'Document bytes hash-checked against the declared SHA-256. Section 9.6.7 (p. 301) says string
+      descriptors are optional, string references in device, configuration and interface descriptors
+      "must be reset to zero" when unsupported, index zero returns an array of two-byte LANGID codes,
+      devices omitting all strings "must not return an array of LANGID codes", the array is not NULL-terminated
+      and its size is the first byte minus two. Table 9-16 (p. 302) gives the UNICODE string, not
+      NULL-terminated, length bLength minus two. Table 9-3 (p. 278) gives wIndex "Zero or Language
+      ID" for GET_DESCRIPTOR. Searched the whole document for LANGID, "language ID" and "string descriptor":
+      9.4.3 (p. 281) and 9.4.8 (p. 285) repeat that wIndex holds the Language ID for strings; 9.5
+      restates the zero-reference rule. No qualification contradicts the claim. 9.4.3 (p. 281) states
+      the wIndex rule in words and could be added, but Table 9-3 suffices.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  speed-dependent-descriptors:
+    basis: 4dd132128b1e3548923809244c516e4e54d86dffa5b66c83a9b6dc07110f18d2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.2.6.6 (PDF p. 275), 9.6.2 and Table 9-9 (p. 292), 9.6.4 and Table 9-11 (pp. 294-295)
+      and Table 9-5 (p. 279). Type 6 and 7 codes, device_qualifier offsets 0-9 (10 bytes), other_speed_configuration
+      identical in structure to a configuration descriptor, high-speed capable devices set bcdUSB
+      to 0200H, a full-speed-only 0200H device answers device_qualifier with a request error, the
+      host must not request other_speed_configuration before a successful device_qualifier, and a
+      pre-0200H device should not be issued the requests: all match. Omitted siblings: the request-error
+      rule also covers low-speed-only 0200H devices (9.6.1, p. 289); a device with bcdUSB below 0200H
+      that receives these requests should answer with a Request Error (9.2.6.6); configuration descriptor
+      requests return only the current speed''s configurations (9.2.6.6).'
+    contrary_evidence: found
+    citation_precision: exact
+  request-timing:
+    basis: e3f0d14b7389e8d8bdb7c38c1815b4aee17305fe3d51a8083f96ef5002029776
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.2.6 to 9.2.6.5 on PDF pp. 273-275. 10 ms reset/resume recovery measured from the
+      end of reset or "the end of the EOP at the end of the resume signaling"; SetAddress within 50
+      ms through Status stage, then 2 ms recovery, new address accepted and old ignored; no-Data-stage
+      requests 50 ms; Data-to-host 500 ms first and between packets, Status 50 ms after last; Data-to-device
+      5-second limit with host delays adding time; class-specific requests follow unless exempted
+      request by request. All match. Cross-checked 7.1.7.5/7.1.7.7 (TRSTRCY, TRSMRCY 10 ms) for consistency;
+      none conflicting. Omitted siblings: the device may ignore transfers during the recovery interval
+      (9.2.6.2); the old address is not ignored when old and new addresses are the same (9.2.6.3,
+      "unless, of course..."); 5 s is the general upper limit for any command (9.2.6.1); a class document
+      may require faster responses (9.2.6.5). The same-address exception is worth adding to make "ignores
+      the old one" exact.'
+    contrary_evidence: found
+    citation_precision: exact
+  reset-and-resume-timing:
+    basis: 66e8c0d9a0a734a09f0617357b36d9dfac48eb5c1db21b1e108a871b3436a193
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read Table 7-13 (PDF p. 214), Table 7-14 (p. 216), 7.1.7.3 with Figure 7-29 (pp. 177-179),
+      7.1.7.5 (p. 181) and 7.1.7.7 (p. 184). TDRST 10-20 ms only for SetPortFeature(PORT_RESET); TDRSTR
+      at least 50 ms for root ports from segments of at least TDRST separated by less than TRHRSI
+      3 ms; TATTDB minimum 100 ms, restarted by a disconnect; TRSTRCY 10 ms before SetAddress must
+      be accepted; TRSMRCY 10 ms; TDRSMDN at least 20 ms from host or controlling hub. All match,
+      with min/max sense as the text gives it. Searched the document for each symbol; no conflicting
+      value. The TODO accurately names TSIGATT as omitted; the Connect Timing ECN it mentions is outside
+      the cited document and was not checked. Omitted siblings the TODO does not name: TDETRST (2.5
+      us, reset detection by a non-high-speed device), the high-speed reset handshake timings of Table
+      7-13 and 7.1.7.5, TDRSMUP 1-15 ms, TWTRSM 5 ms and TURSM 1 ms, and the host''s requirement to
+      send SOF within 3 ms after resume (7.1.7.7). Suggest widening the TODO to name them.'
+    contrary_evidence: found
+    citation_precision: exact
+  control-packet-sizes:
+    basis: ca64602ee8db7e222d29bf7a6d270682aab35d9d244e0ee115c1a9409223c133
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader B
+    note: '5.5.3 (p. 67): control payload 8/16/32/64 full speed, 64 high speed, 8 low speed; Setup
+      always eight bytes; host reads first eight bytes of the device descriptor, device responds with
+      at least these in a single packet, bMaxPacketSize0 is byte 7. 5.8.3 (p. 81): bulk only 8/16/32/64
+      full speed and 512 high speed; low-speed devices must not have bulk endpoints. 5.7.3 (p. 76):
+      interrupt 64 or less full speed, up to 1024 high speed, eight or less low speed. 5.6.3 (p. 72):
+      1,023 bytes for full-speed isochronous. All match. Omitted sibling rules found reading the rest
+      of each section: high-speed default interface settings must not include interrupt endpoints
+      larger than 64 bytes (5.7.3, p. 77), and a full-speed isochronous endpoint with non-zero wMaxPacketSize
+      must not be part of a default interface setting (5.6.3, p. 72); proposed text: "Default interface
+      settings may not hold high-speed interrupt endpoints above 64 bytes or full-speed isochronous
+      endpoints with a non-zero maximum packet size." The TODO accurately names the high-speed isochronous
+      and high-bandwidth limits (5.6.3, 5.9 p. 84) and host-controller support rules; it does not
+      name the default-setting rules above.'
+    contrary_evidence: found
+    citation_precision: exact
+  pid-codes:
+    basis: fbae77a27c2d9dd4f24eee3cc22447b5deab90d23c6991da46e96cb91170b9ab
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 8.3.1, Figure 8-1 and Table 8-1 on PDF pp. 223-224. All sixteen PID<3:0> codes, the
+      PRE/ERR shared value 1100B, reserved 0000B, MSb-order note with bit 0 sent first, and the rule
+      that a function must not respond to a valid PID for an unsupported transaction type or direction
+      match. Omitted siblings: the PID byte carries a four-bit check field that is the one''s complement
+      of the type field, and any PID with a failed check or undefined value is ignored with the rest
+      of the packet (8.3.1, pp. 223-224); DATA2, MDATA, NYET, SPLIT and PING are high-speed (Table
+      8-1 descriptions). Suggest adding the check-field rule.'
+    contrary_evidence: found
+    citation_precision: exact
+  hub-class-requests:
+    basis: c8bda39dca88a48153ecf43219eb9046f06490f0a6c54697dc1effdbc50de9f6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 11.24.2 with Tables 11-15 and 11-16 (PDF pp. 448-449), Table 11-17 (pp. 449-450) and
+      11.24.2.7 (p. 454). bmRequestType values, bRequest codes, port and hub feature selectors, GetPortStatus
+      four bytes with wPortStatus first then wPortChange, and "All requests ... except SetHubDescriptor()
+      are mandatory" match. Searched 11.24.2.8-11.24.2.13 (pp. 460-462) for limits on the mandatory
+      rule; SetHubDescriptor is the only optional one stated. Omitted siblings: bRequest 2 (formerly
+      GET_STATE) and 4-5 are reserved (Table 11-16); the TT requests use the port-recipient bmRequestType
+      with a TT port in wIndex, and GetTTState requires the TT to be stopped first with StopTT (11.24.2.8,
+      p. 460); the port number is in wIndex bits 7..0 and must be greater than zero (11.24.2.2, p.
+      450).'
+    contrary_evidence: found
+    citation_precision: exact
+  hub-port-status-bits:
+    basis: de6d82ecf6008316f32e71f6fc58f4e7c41d553ebc6f984b63a724784ef038ec
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read Table 11-21 (PDF p. 455), 11.24.2.7.1.1-11.24.2.7.1.10 (pp. 456-458), and Table 11-22
+      with 11.24.2.7.2.x (pp. 459-460). Every bit number and meaning matches; reserved 5-7, 13-15
+      and 5-15 match. Bit 9 meaningful only with PORT_ENABLE set (11.24.2.7.1.7), bit 10 only with
+      PORT_ENABLE set and bit 9 zero (11.24.2.7.1.8), consistent with the claim''s wording. Enabled
+      only by software, disabled by fault or software, per Table 11-21 bit 1. Omitted siblings: C_PORT_ENABLE
+      is set only when a Port_Error disables the port, not on other enable changes (11.24.2.7.2.2,
+      p. 459); C_PORT_OVER_CURRENT and PORT_OVER_CURRENT apply only to hubs that report over-current
+      per port (p. 455, p. 459); PORT_ENABLE is also cleared in Powered-off and on entering Resetting
+      (11.24.2.7.1.2, p. 456). The TODO accurately names the per-bit set/clear conditions and the
+      hub status tables as omitted. Note 11.24.2.7 (p. 454) refers to wPortChange as "Table 11-20",
+      a typo in the source; Table 11-22 is right.'
+    contrary_evidence: found
+    citation_precision: exact
+  power-budget:
+    basis: 6028b986b57947ec87627dc1e31ae22749d94ab4d004eee5eb89f8111205a1b9
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader C
+    note: 'Read 9.2.5.1 (PDF p. 273), 9.1.2 (pp. 271-272) and 9.1.1.2 (p. 270); searched the document
+      for "unit load" and read 7.2.1''s definition (unit load is 100 mA). One unit load until configured,
+      100 mA after reset (9.1.2 step 4), up to five unit loads after configuration depending on the
+      port, host does not select a configuration exceeding available power, and a self-powered device
+      in a configuration over 100 mA returns to Address on switching to bus power all match. Omitted
+      siblings in the cited paragraphs: suspended devices, configured or not, limit bus power per
+      Chapter 7 (9.2.5.1); a configuration supporting both power modes reports the maximum VBUS draw
+      in either mode, and a single-mode configuration whose power source changes loses configuration
+      and address and returns to Powered (9.1.1.2). Precision: the claim names bMaxPower, which none
+      of the cited passages mentions (9.1.2 says "described in its descriptor"); add Table 9-10 (p.
+      294) to the locators.'
+    contrary_evidence: found
+    citation_precision: imprecise
+  debounce-and-recovery-table-columns:
+    basis: d385102b342e7fd21983a467a7a08c7a0434f7a2044958b84f63c5eb8d256db7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader B
+    note: 'Table 7-14 (p. 216) puts 100 ms for TATTDB and 10 ms for TRSTRCY in the Max column (while
+      TRSMRCY''s 10 ms is in Min). 7.1.7.3 (p. 178-179) defines TATTDB as "a debounce interval with
+      a minimum duration of 100 ms that is provided by the USB System Software" and TRSTRCY as "guarantees
+      a minimum of 10 ms for reset recovery". 7.1.7.5 (p. 181) refers to "the reset recovery time
+      10 ms (TRSTRCY)" without contradicting the minimum. Searched every occurrence of TATTDB, TRSTRCY,
+      "100 ms" and "10 ms": 9.1.2 step 3 ("waits for at least 100 ms") and 9.2.6.2 agree with the
+      minimum reading; nothing treats either as a maximum.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  max-packet-size-from-first-read:
+    basis: 4766fdbdc581ae1d1abdc74d6a4b50e1e8d10ca9ca3dd7367efa3784880f66d2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader B
+    note: '5.5.3 (p. 67): "The host will read the first eight bytes of the device descriptor. The
+      device always responds with at least these initial bytes in a single packet", then byte 7 gives
+      the default pipe''s wMaxPacketSize and the host "will then allow the correct size for all subsequent
+      transactions"; full-speed sizes 8/16/32/64, low speed 8. Table 9-8 (p. 291) places bMaxPacketSize0
+      at offset 7, "only 8, 16, 32, or 64 are valid". Read the rest of 5.5.3, 9.1.2 step 6 and Table
+      9-9; no contrary rule. "Only" in the claim slightly sharpens "will read the first eight bytes"
+      but does not change the meaning.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  halt-clear-resets-toggle:
+    basis: bed842def8644a8a0cdcbac5b747ad20ad80e9f71234565af524f8a26a190f11
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), OpenCode subagent, USB 2.0 reader B
+    note: '9.4.5 (p. 284): "For endpoints using data toggle, regardless of whether an endpoint has
+      the Halt feature set, a ClearFeature(ENDPOINT_HALT) request always results in the data toggle
+      being reinitialized to DATA0", and the Halt feature is reset by SetConfiguration() or SetInterface()
+      "even if the requested configuration or interface is the same". 9.1.1.5 (p. 271): configuring
+      or changing an alternate setting resets endpoint values to defaults including data toggle DATA0.
+      Read the rest of 9.4.5 (pp. 282-284), 9.4.1 and 9.4.7 for qualifications; none restricts these
+      statements. 9.4.10 (SetInterface) was not read.'
+    contrary_evidence: none-found
+    citation_precision: exact
