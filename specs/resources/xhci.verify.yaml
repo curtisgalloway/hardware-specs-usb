@@ -3,7 +3,7 @@
 format: 2
 spec: xhci
 spec_file: xhci.spec.yaml
-spec_sha256: a893ec9eb023dfc6d80648b0bbb8dc08c2e51f147664d7294a2bd7da469faeb0
+spec_sha256: 33af34a103a2dc5f56c29fc140d2abb76193bd5c841d53d131d56ac67a086b3f
 canonical: fact-v1
 sources:
 - name: xhci-1.2c.pdf
@@ -13,7 +13,7 @@ sources:
   note: Fetched from Intel's public document server; each reader checked the SHA-256 and extracted
     page text itself with pdftotext.
 summary:
-  pass: 38
+  pass: 49
   fail: 0
   unverifiable: 0
   gap: 0
@@ -711,4 +711,257 @@ verdicts:
       rate "should never exceed 8000 interrupts/sec". Proposed addition: "The counter restarts when
       IP is cleared, so the interval runs from interrupt acknowledgement."'
     contrary_evidence: found
+    citation_precision: exact
+  dbc-capability-structure:
+    basis: de0277e951eae18babc9ddc259a44ccd28fe79b9b224402c19b057db5998f6b9
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Table 7-2 (pp. 476-477) assigns Capability ID 10 to the optional-normative USB Debug
+      Capability (section 7.6). Section 7.6 and 7.6.1-7.6.2.1 (pp. 490-493) state that it is
+      chained via xECP in MMIO space, presents an upstream-facing Enhanced SuperSpeed Debug
+      Device on the first Root Hub port that detects an attach of a downstream-facing Enhanced
+      SuperSpeed Root Hub or external hub port, can be exposed only through a Debug Target Root
+      Hub port (never through a hub controlled by the target), operates independently of the OS
+      xHCI interface (USBCMD R/S has no effect, also p. 362 note) whenever the port is not
+      suspended and the xHC is in D0, and makes the assigned Root Hub port appear to the xHCI
+      driver as never seeing an attach and reporting 0 available bandwidth to Get Port Bandwidth
+      (also p. 137 section 4.6.15). Section 5.4.8 Note (p. 371) confirms PORTSC CCS = 0 when PP =
+      1 on a DbC-assigned port; section 7.6.3.2 Note (p. 495) states software should shut down
+      DbC activity before transitioning to D3; section 7.6.4.1 Note (p. 497) states DbC registers
+      should not be accessed while CNR = 1. Figure 7-9 and Table 7-16 (pp. 507-508) and section
+      7.6.8.1 Table 7-17 (p. 508, with Table 7-1 on p. 476 for Next Capability Pointer Dword
+      units) match all register offsets, sizes, and DCID bit ranges/attributes (note that Table
+      7-2 p. 477 lists the capability size as 56B, the sum of the ten named registers in Table
+      7-16 excluding the two 4-byte reserved Dwords at 0Ch and 2Ch in Figure 7-9). Searched
+      section 7.6 and cross-referenced sections 4.6.15, 4.19.1.2.4, 5.4.1, and 5.4.8 for
+      contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-doorbell-and-rings:
+    basis: f5841e540763441f6c8c8ade2e756ed6bb800cc6e60b344c0ba6d296cb71e28f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader I
+    note: >-
+      Confirmed SHA-256 of xhci-1.2c.pdf. Verified DCDB at DbC base + 04h (32-bit, RW, default
+      0000 0000) in section 7.6.8.2 (pp. 508-509) and Table 7-18 (p. 509): bits 15:8 DB Target
+      with encodings 0 (Data EP 1 OUT Enqueue Pointer Update), 1 (Data EP 1 IN Enqueue Pointer
+      Update) and 2:255 Reserved, returning 0 on read (treated as undefined by software), and
+      bits 7:0 and 23:16 marked RsvdP in Table 7-18 while Figure 7-9 (p. 507) marks bits 7:0 and
+      31:16 RsvdZ. Section 7.6.7.2 (p. 505) confirms the OUT and IN Transfer Ring notification
+      semantics, and Table 7-22 bit 4 (p. 511) confirms DCDB is disabled while DCCTRL DRC = 1
+      until software clears DRC. Verified the dedicated Event Ring references to sections 6.5
+      and 4.9.4 in sections 7.6.3.1 (p. 494) and 7.6.4.2 Note (p. 497), DCERST Max in Table 7-17
+      bits 20:16 (p. 508, max entries = 2^(DCERST Max)), and the three registers initialized
+      before setting DCCTRL DCE = 1 in section 7.6.8.3 (pp. 509-510): DCERSTSZ at 08h (Table
+      7-19, 32-bit, RW, default 0, bits 15:0 size, bits 31:16 RsvdP), DCERSTBA at 10h (Table
+      7-20, 64-bit, RW, default 0, bits 63:4 base address, bits 3:0 RsvdP) and DCERDP at 18h
+      (Table 7-21, 64-bit, RW, default 0, bits 63:4 dequeue pointer, bit 3 RsvdP, bits 2:0 DESI).
+      Read all of section 7.6 (pp. 490-525) and sections 4.9.4, 5.5.2.3 and 6.5 for governing
+      notes and contrary evidence; none contradicted the claim.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-control-and-status:
+    basis: a36b16f6f91ba2a545b1c4afc4c1849497a1b88c17a27dc54cb899fe5274e149
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.8.4 Table 7-22 (pp. 510-511), section 7.6.8.5 Table 7-23 (pp. 511-512), and
+      section 7.6 (p. 490) match every offset, size, attribute, default, bit range, and reset
+      condition for DCCTRL (20h: bit 0 DCR, bit 1 LSE, bit 2 HOT, bit 3 HIT, bit 4 DRC, bits 15:5
+      RsvdP, bits 23:16 Debug Max Burst Size, bits 30:24 Device Address, bit 31 DCE) and DCST
+      (24h: bit 0 ER, bit 1 SBR, bits 23:2 RsvdP, bits 31:24 Debug Port Number). The internal
+      wording discrepancy in Table 7-23 for DCST.ER ("has a Transfer Event on it" vs section
+      7.6.4.1 p. 496 polling ER for Port Status Change Events and any DbC event) is explicitly
+      recorded in sibling fact dbc-spec-disagreements. Searched section 7.6 for contrary
+      evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-port-status-and-control:
+    basis: 023a845fecf2d3a711f48f0e41292422967309600bd275250bbb88185ca43294
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.8.6 Table 7-24 (pp. 512-514), section 7.6.4.2 (p. 497), section 7.6.6.5
+      (p. 503), section 7.6.6.6 (p. 504), and section 7.6.7.4 (p. 506) support all field
+      offsets, attributes, defaults (0 except PLS = undefined), PLS encodings (0..9 and 15:10
+      Reserved), Port Speed PSI encodings (0 Undefined Speed, 1..15 PSI, no LS/FS/HS), PR reset
+      behavior, RW1C change bits (CSC, PRC, PLC, CEC), and DCPSCEG event generation with Port ID
+      = 0 and full-ring retention. Governing-notes check found two sibling qualifications in
+      section 7.6 that the claim leaves out without denying: (1) Table 7-22 bit 1 LSE (p. 511,
+      cross-referencing section 4.19.2 p. 297) gates whether a 0-to-1 transition of DCPORTSC.PLC
+      asserts DCPSCEG to generate a Port Status Change Event (LSE defaults to 0; documented in
+      sibling fact dbc-control-and-status); and (2) while Table 7-24 bit 4 PR (p. 513) says PR
+      clears when reset completes "and the DbC shall transition to the USB Default state",
+      sections 7.6.6.3 and 7.6.6.5 (pp. 502-503) state that the DbC USB Device State is Powered
+      in DbC-Resetting and upon entering DbC-Enabled "attempts to advance from the Powered state,
+      through the Default and Address states, to the Configured state." Proposed addition if
+      desired: note that PLC contributes to DCPSCEG only when DCCTRL LSE = 1 (Table 7-22, p. 511).
+    contrary_evidence: found
+    citation_precision: exact
+  dbc-context-and-ep-contexts:
+    basis: f228b76a1f3cca8fb0c16d53ddfbd6d42d1bece66b07213e1492d3191016167a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.8.7 Table 7-25 (pp. 514-515), section 7.6.9 Figure 7-10 and 7.6.9.1-7.6.9.2
+      Figure 7-11 and Tables 7-28..7-32 (pp. 516-519), section 7.6.3.2 (pp. 494-495), section
+      7.6.7.2.1 (pp. 505-506), and section 7.6.10.9 (p. 525) support all claims for DCCP, the
+      three 64-byte context structures (DbCIC at 000h, OUT EP Context at 040h, IN EP Context at
+      080h, independent of HCCPARAMS1 CSZ), DbCIC string descriptor pointers (bits 63:1, bit 0
+      RsvdZ, single LANGID in String 0) and byte lengths (zero length causes xHC to ignore
+      Manufacturer, Product, or Serial Number address), Endpoint Context initialization, Normal
+      TRBs, and IDT = 0. Governing-notes check of cross-referenced section 6.2.3 (pp. 413-416)
+      found three sibling rules omitted by section 7.6.3.2/7.6.9.2 and this claim without
+      contradiction: (1) Table 6-10 (p. 416) defines bit 0 of offset 08h (the TR Dequeue Pointer
+      Dword) as Dequeue Cycle State (DCS), which identifies the xHC Consumer Cycle State for the
+      TRB referenced by TR Dequeue Pointer; (2) Table 6-11 (p. 416) requires Average TRB Length
+      to be greater than 0; and (3) the second note under Table 6-11 (p. 416) states that in a
+      64-byte Endpoint Context bytes 32 to 63 (20h..3Fh) are also xHCI Reserved (RsvdO) in
+      addition to bytes 14h..1Fh. Proposed addition if desired: mention that TR Dequeue Pointer
+      bit 0 holds DCS (Table 6-10, p. 416), Average TRB Length must be > 0 (Table 6-11, p. 416),
+      and bytes 20h..3Fh of the 64-byte Endpoint Context are also RsvdO (p. 416).
+    contrary_evidence: found
+    citation_precision: exact
+  dbc-device-descriptor-and-strings:
+    basis: 3c79e423dde390a3be6733bb611de287a9b091bbd6b9502d3d91da74df998104
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.8.8 Table 7-26 (p. 515), section 7.6.8.9 Table 7-27 (pp. 515-516), and section
+      7.6.10 Tables 7-33 through 7-41 (pp. 519-525) match every register offset, attribute,
+      default, bit range, protocol encoding (0 vendor defined, 1 GNU Remote Debug Command Set,
+      2-255 Reserved), pre-DCE initialization requirement, and synthesized USB descriptor field
+      value. Note that section 7.6.8.8 prose (p. 515) loosely says DCDDI1 identifies "the Device
+      Protocol and Vendor ID values that shall be reported by DbC in its Device Descriptor",
+      whereas Table 7-26 (p. 515), Table 7-33 footnote 124 (p. 520), and Table 7-35 (p. 522)
+      confirm DbC Protocol is reported in the Interface Descriptor bInterfaceProtocol field while
+      Device Descriptor bDeviceProtocol is 00h, matching the claim. The todo accurately accounts
+      for the omitted fixed header/index fields (bLength, bDescriptorType, iConfiguration,
+      iInterface) in Tables 7-33..7-41. Searched section 7.6 for contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-initialization-and-enumeration:
+    basis: 1d8b82cc82d5249ba7b1e09a628262139fe7d803099d6e52d96a1086cb60af2e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader I
+    note: >-
+      Confirmed SHA-256 of xhci-1.2c.pdf. Verified initialization sequence in section 7.6.4.1
+      (pp. 496-497, including the p. 497 note not to access DbC registers while CNR is set),
+      read/write memory requirement in section 7.8 Note (p. 531), DbCIC string descriptor fields
+      in section 7.6.9.1 (pp. 517-519), and pre-DCE = 1 initialization of DCDDI1/DCDDI2 in
+      sections 7.6.8.8-7.6.8.9 (pp. 515-516). Verified state transitions and port signals in
+      section 7.6.6 and Figure 7-8 (pp. 500-504): DCE = 1 moves DbC-Off to DbC-Disconnected;
+      successful USB3 Port Capability LMP exchange enters DbC-Enabled (Debug Port Number > 0,
+      CCS = 1, PED = 1, CSC = 1) and queues a Port Status Change Event; SET_CONFIGURATION enters
+      DbC-Configured (DCR = 1). Verified Enumeration Mode and Run Mode behavior (NRDY until DCDB
+      is rung, ERDY on doorbell after NRDY) in section 7.6.7 (pp. 504-507), polling of DCST ER
+      or Event Ring Cycle bit and software-imposed timeout between connection detection and
+      DCR = 1 (with DCE toggle retry and no numeric bound in the spec, covered by the fact's
+      todo) in section 7.6.4.1 (pp. 496-497), and DbC-Configured exit causes and actions (DCR =
+      0, DRC = 1, Transfer Event with USB Transaction Error regardless of IOC, advancing TR
+      Dequeue Pointer to next TRB without requiring a TD boundary, updating Endpoint Context, and
+      clearing DRC before ringing DCDB) in section 7.6.4.4 (pp. 499-500). Read section 7.6 and
+      section 4.19.1.2.4 (pp. 281-284) for governing notes and contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-endpoint-halt-recovery:
+    basis: 84b2c4ed12bdfbc34539e8d7762e994d7127bb347ec30c3e0665ed9c128ab415
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.4.3 (pp. 498-499), section 7.6.4.4 (p. 500), section 7.6.8.4 Table 7-22
+      (pp. 510-511), and Appendix I.4.13 (p. 598) support every detail of the claim: setting HOT
+      or HIT in Run Mode (DCR = 1) by software or hardware on the five listed error conditions
+      transitions the endpoint to Halted; under section 7.6.4.3, halting while transferring data
+      writes the current TR Dequeue Pointer to the Endpoint Context (without requiring advancement
+      to a TD boundary or equality with the last Transfer Event TRB Pointer) and generates a
+      Transfer Event with Completion Code Stall Error regardless of IOC; ClearFeature(ENDPOINT_HALT)
+      clears HIT/HOT and internal state and transitions the endpoint to Stopped, and the next
+      DCDB ring transitions it to Running and resumes at the Endpoint Context TR Dequeue Pointer
+      (no Soft Retry, I.4.13 p. 598); and SetFeature(ENDPOINT_HALT) Set Halt Feature option is
+      not supported, with an ACK TP recommended for compliance tests. The conflicting clause in
+      section 7.6.4.4 (p. 499) on HOT/HIT generating USB Transaction Error and advancing TR
+      Dequeue Pointer is scoped out by "Under section 7.6.4.3" and documented in sibling fact
+      dbc-spec-disagreements; Footnote 123 (p. 498) on TD Babble STALL behavior and the Transfer
+      Event completion code list are covered by the todo.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-transfer-ring-direction-inverted:
+    basis: ae79fbe0a695211b491281b03e5bb1fbabade6da63d622cf2b74558226ed125d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Section 7.6.3.2 (pp. 494-495), section 7.6.7.2 and 7.6.7.2.1 (pp. 505-506), section 7.6.8.2
+      Table 7-18 (pp. 508-509), section 7.6.9 Figure 7-10 (p. 516), section 7.6.10.4 Table 7-36
+      (p. 522), and section 7.6.10.6 Table 7-38 (pp. 523-524) confirm the cross-coupling of the
+      OUT Transfer Ring (Endpoint Context 0 at 040h, EP Type = 2 Bulk OUT, DCDB DB Target = 0,
+      sending data in response to host IN TPs on endpoint 81h) and the IN Transfer Ring (Endpoint
+      Context 1 at 080h, EP Type = 6 Bulk IN, DCDB DB Target = 1, receiving data from host OUT
+      DPs on endpoint 01h). Searched section 7.6 for contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  dbc-registers-and-structures-before-dce:
+    basis: e0a40d87e29099f6579c78205fcce674b37e3f5455bbdde59a0ac0d11f513371
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader H
+    note: >-
+      Tables 7-19, 7-20, 7-21, 7-25, 7-26, and 7-27 (pp. 509-510, 514-516) confirm that DCERSTSZ,
+      DCERSTBA, DCERDP, DCCP, DCDDI1, and DCDDI2 must all be initialized before setting DCCTRL
+      DCE to 1; section 7.6.9 (pp. 516-517) states that while DCE = 1 the xHC normally maintains
+      ownership of the DbC data structures except while an endpoint is in the Stopped state (when
+      Transfer Ring ownership is relinquished); section 7.6 (p. 490), section 7.6.4.1 Note
+      (p. 497), and Table 7-23 (p. 512) confirm SBR = 0 reset behavior on HCRST/LHCRST and
+      detection via DCE = 0; and section 4.19.1.2.4.2 Note (p. 282) and section 7.6.4.1 Note
+      (p. 497) confirm that cabling a Debug Host and Debug Target together before DCE = 1 causes
+      both downstream-only ports to enter Error / SS.Inactive. Governing-notes check found two
+      sibling qualifications in the cited sections: (1) in addition to the Stopped-endpoint
+      exception in section 7.6.9 (pp. 516-517), section 7.6.4.4 (p. 499) allows software to
+      update the Endpoint Context TR Dequeue Pointer when DRC = 1 and Endpoint State is Disabled,
+      and section 7.6.7.4 (p. 506) allows software to remove pending TDs and reinitialize Transfer
+      Rings while Transfer Rings are disabled following a Debug Host port reset; and (2) section
+      4.19.1.2.4.2 Note (p. 282) states that resetting the port while DCE is still 0 repeats the
+      Config Error / Inactive transition until the cable is disconnected or DbC is enabled, while
+      section 7.6.4.1 Note (p. 497) states that after DCE is enabled on a link that already
+      entered Inactive, the Debug Host must issue a Warm Reset to exit Inactive and connect to
+      the DbC. Proposed addition if desired: note the DRC = 1 / port-reset Transfer Ring update
+      exceptions (pp. 499, 506) and that a Warm Reset recovers the pre-cabled Inactive link only
+      after DCE is enabled (pp. 282, 497).
+    contrary_evidence: found
+    citation_precision: exact
+  dbc-spec-disagreements:
+    basis: 60f0d670e644adac8b2ef99ec6e32d560320f374039eb51ef51849e19bc28152
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader I
+    note: >-
+      Confirmed SHA-256 of xhci-1.2c.pdf. Verified all three internal discrepancies directly
+      against the cited passages: (1) Table 7-20 (p. 510, DCERSTBA) and Table 7-25 (p. 515, DCCP)
+      define bits 3:0 as RsvdP and bits 63:4 as the pointer, whereas Figure 7-9 (p. 507) labels
+      bits 3:0 of both registers RsvdZ, section 7.6 (p. 491) says the DbC Event Ring Management
+      register block is identical to section 5.5.2.3 where Table 5-41 (p. 394) defines ERSTBA
+      bits 5:0 as RsvdP and bits 63:6 as the 64-byte-aligned address, sections 7.6.3.1 (p. 494)
+      and 7.6.9 (p. 516) say the DbC ERST is identical to section 6.5 where Table 6-94 (p. 474)
+      defines bits 5:0 as RsvdZ and 64-byte alignment, and Figure 7-10 (p. 516) labels the end of
+      the three 64-byte contexts at 000h, 040h and 080h as 0CFh instead of 0BFh; (2) Table 7-23
+      (p. 512) states DCST bit 0 ER = 1 indicates the DbC Event Ring "has a Transfer Event on
+      it", whereas section 7.6.4.1 (p. 496) instructs software to poll ER to detect the Debug
+      Host connection (Port Status Change Event) or any event generated by the DbC; and (3)
+      section 7.6.4.3 (pp. 498-499) states that setting HOT or HIT to 1 while transferring data
+      writes the current TR Dequeue Pointer to the Endpoint Context and generates a Transfer
+      Event with Completion Code Stall Error, whereas section 7.6.4.4 (p. 499) states that when
+      exiting DbC-Configured "or if the HIT or HOT flags are set to '1'" the Transfer Event has
+      Completion Code USB Transaction Error and the DbC advances TR Dequeue Pointer to the next
+      TRB. Checked all of section 7.6 and Appendix I (p. 598) for contrary evidence; none found.
+    contrary_evidence: none-found
     citation_precision: exact
