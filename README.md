@@ -36,12 +36,13 @@ disposition: specified, planned or excluded. Full definitions: driver-lab's
 | [`usb-bc`](specs/usb-bc.spec.yaml): USB Battery Charging (BC 1.2) port detection | BC 1.2 (March 2012, with errata) | `public` | none yet |
 | [`usb2-ecns`](specs/usb2-ecns.spec.yaml): USB 2.0 ECNs (Connect Timing, LPM, IAD) | USB 2.0 ECNs (Connect Timing, Link Power Management, Interface Association Descriptor) | `public` | none yet |
 | [`eusb2`](specs/eusb2.spec.yaml): Embedded USB2 (eUSB2V2) physical and link layer supplement | eUSB2 Version 2.0 Supplement, Version 1.0 (August 2024) | `public` | none yet |
+| [`ucsi`](specs/ucsi.spec.yaml): USB Type-C Connector System Software Interface | UCSI Revision 3.1 (June 2026) | `public` | none yet |
 
 The views (a Markdown copy and an HTML viewer of each spec) are built by CI and published to
 https://curtisgalloway.github.io/hardware-specs-usb/ from `main`; nothing generated is
 committed here. A pull request's views are in its `spec-views` artifact.
 
-`specs/corpus.yaml` lists what is planned next: the USB PD, TCPCI and UCSI specifications, the
+`specs/corpus.yaml` lists what is planned next: the USB PD and TCPCI specifications, the
 rest of the Type-C specification (accessory modes, VCONN-powered devices, cable eMarkers), the
 USB 3.2 and USB4 protocol specifications, and EHCI.
 Protocol data structures (descriptor layouts, request tables) are written as prose claims for

@@ -1,0 +1,965 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: ucsi
+name: USB Type-C Connector System Software Interface (UCSI)
+triggers:
+- ucsi
+- UCSI
+- USB Type-C Connector System Software Interface
+- Platform Policy Manager
+- OS Policy Manager
+resources:
+  documents:
+  - name: usb-ucsi-3.1.pdf
+    class: standard
+    title: USB Type-C Connector System Software Interface (UCSI) Specification
+    revision: Revision 3.1, June 2026
+    url: https://www.usb.org/document-library/usb-type-cr-connector-system-software-interface-ucsi-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/USB%20Type-C%20Connector%20System%20Software%20Interface%20UCSI%20Revision_3.1.zip
+    sha256: 670e3563861824da9f86007fead68a411e620a23aca80b344ece08e27a7dc0a6
+    pages: 117
+    page_numbering: pdf
+    access: public
+    verified: '2026-10-19'
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the release package as a public zip download without an
+      account; the cited bytes are the file "USB Type-C Connector System Software Interface UCSI
+      Revision_3.1.pdf" inside it. No page carries a confidentiality marking. The USB Promoter
+      Group's copyright and limited license terms remain applicable; the bytes are not
+      redistributed. Printed page numbers equal PDF page numbers.
+orientation: >-
+  Terms: the OPM (OS Policy Manager) is the operating system software driver that interfaces with
+  the PPM (Platform Policy Manager), the combination of hardware, firmware and any vendor-provided
+  OS software that manages all USB Type-C connectors on the platform. An LPM (Local Policy Manager)
+  manages an individual USB Type-C connector. CCI is the 32-bit USB Type-C Command Status and
+  Connector Change Indication structure; CONTROL is the 64-bit command structure written by the
+  OPM; MESSAGE IN and MESSAGE OUT are the 255-byte payload buffers. This spec records the generic
+  UCSI register layout, operational state machine and command model; how a platform exposes the PPM
+  (ACPI, I2C, SMBus, PCIe or shared memory) belongs in the board or SoC spec.
+facts:
+- id: interface-scope
+  section: standards
+  title: OPM, PPM and LPM roles and specification precedence
+  claim: >-
+    UCSI defines the registers and data structures used by the OS Policy Manager (OPM, the
+    operating software component) to send commands to and retrieve capabilities and status from the
+    Platform Policy Manager (PPM, the hardware, firmware and any vendor-provided OS software that
+    manages all USB Type-C connectors on the platform), together with the physical layer and
+    interface protocol between an OPM/PPM and each individual connector's Local Policy Manager
+    (LPM). The specification does not define the bus or transport (such as PCIe, ACPI or I2C) a
+    system manufacturer uses to expose the PPM (apart from the PCIe Add-In-Card DVSEC in Chapter
+    8), nor the policy the OPM must implement, nor OPM/PPM behavior during system suspend and
+    resume. Where UCSI conflicts with the USB Type-C or USB Power Delivery specifications, those
+    specifications take precedence; within UCSI itself, tables take precedence over figures, and
+    figures over text. Multi-byte fields are transferred and interpreted in little-endian order
+    (LSB to MSB) unless otherwise specified, and reserved bits, bytes, words, fields and code
+    values must be set to zero (or not sent) by the sender and ignored by the receiver.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - page: '11'
+      section: '1.1'
+    - page: '11'
+      section: '1.2'
+    - page: '12'
+      section: '1.4'
+      table: '1-1'
+    - pages: ['12', '13']
+      section: '1.5'
+    - page: '14'
+      section: '2'
+    - page: '28'
+      section: '6.4'
+
+- id: opm-ppm-data-structures
+  section: standards
+  title: Shared memory data structures between OPM and PPM
+  claim: >-
+    Information passes between the OPM and PPM through a 528-byte data structure layout (Table
+    4-1): VERSION at byte offset 0 (24 bits, PPM/LPM->OPM, read-only to the OPM), RESERVED at
+    offset 3 (8 bits), CCI at offset 4 (32 bits, PPM->OPM, read-only to the OPM), CONTROL at
+    offset 8 (64 bits, OPM->PPM, written only by the OPM and read-only to the PPM), MESSAGE IN at
+    offset 16 (2040 bits / 255 bytes, PPM->OPM, read-only to the OPM), RESERVED at offset 271 (8
+    bits), MESSAGE OUT at offset 272 (2040 bits / 255 bytes, OPM->PPM), and RESERVED at offset 527
+    (8 bits). In VERSION (Table 4-2), bits 15:0 hold the BCD UCSI specification version 0xJJMN for
+    version JJ.M.N (JJ major, M minor, N sub-minor, updated by the PPM right after power-on or
+    reset; for example 0x0213 for 2.1.3 and 0x0300 for 3.0.0), and bits 23:16 hold the 8-bit
+    register address on the LPM for the other UCSI data structures. In CONTROL (Table 4-4), bits
+    7:0 hold the Command code, bits 15:8 hold Data Length (bytes of valid data in MESSAGE OUT, at
+    most MAX_DATA_LENGTH = 0xFF), and bits 63:16 hold 48 bits of command-specific parameters. The
+    PPM writes MESSAGE IN before notifying the OPM of command completion, and the OPM reads MESSAGE
+    IN only when notified that a command completed with CCI Data Length greater than zero; the OPM
+    writes MESSAGE OUT only when no command is currently active at the PPM.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '20']
+      section: '4'
+    - page: '17'
+      table: '4-1'
+    - page: '17'
+      section: '4.1'
+      table: '4-2'
+    - pages: ['19', '20']
+      section: '4.3'
+      table: '4-4'
+    - pages: ['19', '20']
+      section: '4.4'
+    - page: '20'
+      section: '4.5'
+    - page: '110'
+      table: 'A-2'
+
+- id: lpm-interface-and-pcie-aic
+  section: standards
+  title: PPM-LPM register protocol, address retries and PCIe Add-In-Card DVSEC
+  claim: >-
+    Between an OPM/PPM and an LPM over an addressed bus such as I2C or SMBus, the UCSI data
+    structures are accessed by LPM target address, UCSI register address and byte count: VERSION is
+    at fixed UCSI register address 0x99, and the address byte 0xYY returned in VERSION bits 23:16
+    sets the register addresses of CCI (0xYY), CONTROL (0xYY + 1), MESSAGE IN (0xYY + 2) and
+    MESSAGE OUT (0xYY + 3). Because an LPM without clock stretching may not acknowledge its address
+    byte while busy with a high-priority task or in a power-gated/low-power state, a PPM/OPM must
+    implement 3 retries for the address byte when ACK is not received within the required time
+    interval, waiting at least 10 ms from the Stop condition of one retry to the first bit of the
+    next. On a PCIe Add-In-Card (AIC), LPMs may be exposed via a PCIe Designated Vendor-Specific
+    Extended Capability (DVSEC, PCIe Extended Capability ID 0023h, DVSEC Vendor ID 8087h) that
+    carries a Topology/Version header, N 16-byte per-port Resource blocks at offsets 10h to
+    N*10h+10h, and the UCSI registers at N*10h+20h (UCSI Version), N*10h+24h (CCI), N*10h+28h
+    (CONTROL), N*10h+30h (MSG IN), N*10h+130h (MSG OUT) and N*10h+230h (VIRTUAL ALERT).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['15', '16']
+      section: '3'
+    - pages: ['21', '22']
+      section: '5'
+      table: '5-1'
+    - pages: ['105', '108']
+      section: '8'
+      table: '8-1'
+  todo:
+    check: document
+    text: >-
+      Figure 3-1's bit/byte wire transmission example (pp. 15-16), Figures 5-1 to 5-4's message
+      framing diagrams (pp. 21-22), Table 8-1's AIC Topology bit encodings and Figure 8-2's
+      Resource register fields (pp. 107-108) are not extracted in full.
+
+- id: cci-layout
+  section: programming-model
+  title: CCI (Command Status and Connector Change Indication) 32-bit field layout
+  claim: >-
+    When notified, the OPM reads the 32-bit CCI data structure at byte offset 4 (Table 4-3): bit 0
+    is End of Message Indicator (used in multi-chunk LPM_FW_UPDATE_REQUEST and SECURITY_REQUEST
+    commands; reserved and 0 for all other commands); bits 7:1 are Connector Change Indicator (0
+    when no connector change occurred, or 1 to the maximum number of supported connectors to name
+    the changed connector); bits 15:8 are Data Length (bytes of valid data in MESSAGE IN, at most
+    MAX_DATA_LENGTH = 0xFF); bit 16 is Vendor Defined Message Indicator (1 when a custom defined
+    message is ready, mutually exclusive with any other indicator, and repurposed on some commands);
+    bits 22:17 are Reserved (0 in Table 4-3, while the command-specific status tables for
+    LPM_FW_UPDATE_REQUEST, SECURITY_REQUEST, SET_RETIMER_MODE, SET_PDOS and SET_CAM_PRIORITY define
+    bits 22:16 as a 7-bit Data Index); bit 23 is Security Request Indicator (1 for an asynchronous
+    Security Request from the port partner); bit 24 is FW Update Request Indicator (1 for an
+    asynchronous LPM FW Update Request from the port partner); bit 25 is Not Supported Indicator (1
+    when the PPM does not currently support the command; valid only when Command Completed
+    Indicator is 1); bit 26 is Cancel Completed Indicator (1 when CANCEL completed; valid only when
+    Command Completed Indicator is 1); bit 27 is Reset Completed Indicator (1 when PPM_RESET
+    completed; when 1, no other bits in CCI may be set by the PPM, and the PPM clears it on
+    receiving the next non-PPM_RESET command from the OPM); bit 28 is Busy Indicator (1 when the
+    PPM is busy and will complete the command later; when 1, no other bits in CCI may be set by the
+    PPM, and on completion the PPM clears it and updates the other CCI fields before notifying the
+    OPM); bit 29 is Acknowledge Command Indicator (1 when ACK_CC_CI completes, automatically reset
+    on receiving the next command from the OPM; when 1, the only other field that may be set is
+    Connector Change Indicator); bit 30 is Error Indicator (1 when command execution encountered an
+    error; valid only when Command Completed Indicator is 1); and bit 31 is Command Completed
+    Indicator (1 when the PPM completed the command sent by the OPM).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '19']
+      section: '4.2'
+      table: '4-3'
+    - pages: ['77', '78']
+      table: '6-62'
+    - page: '80'
+      table: '6-66'
+    - page: '83'
+      table: '6-69'
+    - page: '88'
+      table: '6-77'
+    - pages: ['96', '97']
+      table: '6-89'
+    - page: '110'
+      table: 'A-2'
+
+- id: command-codes-and-applicability
+  section: programming-model
+  title: Command codes and OPM/PPM/LPM applicability
+  claim: >-
+    CONTROL bits 7:0 encode the command (Table A-1): 0x00 RESERVED, 0x01 PPM_RESET, 0x02 CANCEL,
+    0x03 CONNECTOR_RESET, 0x04 ACK_CC_CI, 0x05 SET_NOTIFICATION_ENABLE, 0x06 GET_CAPABILITY, 0x07
+    GET_CONNECTOR_CAPABILITY, 0x08 SET_CCOM, 0x09 SET_UOR, 0x0A SET_PDM (obsolete), 0x0B SET_PDR,
+    0x0C GET_ALTERNATE_MODES, 0x0D GET_CAM_SUPPORTED, 0x0E GET_CURRENT_CAM, 0x0F SET_NEW_CAM, 0x10
+    GET_PDOS, 0x11 GET_CABLE_PROPERTY, 0x12 GET_CONNECTOR_STATUS, 0x13 GET_ERROR_STATUS, 0x14
+    SET_POWER_LEVEL, 0x15 GET_PD_MESSAGE, 0x16 GET_ATTENTION_VDO, 0x17 Reserved, 0x18 GET_CAM_CS,
+    0x19 LPM_FW_UPDATE_REQUEST, 0x1A SECURITY_REQUEST, 0x1B SET_RETIMER_MODE, 0x1C SET_SINK_PATH,
+    0x1D SET_PDOS, 0x1E READ_POWER_LEVEL, 0x1F CHUNKING_SUPPORT, 0x20 VENDOR DEFINED COMMANDs, 0x21
+    SET_USB, 0x22 GET_LPM_PPM_INFO and 0x23 SET_CAM_PRIORITY. In the Command Applicability Table
+    (Table 6-90), CANCEL, GET_CONNECTOR_STATUS, GET_ERROR_STATUS, SET_POWER_LEVEL and
+    GET_LPM_PPM_INFO are normative (N) across OPM, PPM and LPM; PPM_RESET is normative for the PPM,
+    conditional normative for the OPM (not applicable if the system has no PPM or the PPM works in
+    pass-through mode) and not supported (NS) by an LPM (even if the LPM controls two connectors
+    and performs the PPM role); ACK_CC_CI, SET_NOTIFICATION_ENABLE and GET_CAPABILITY are normative
+    for the PPM (with ACK_CC_CI and GET_CAPABILITY conditional normative on the LPM in pass-through
+    or OPM-LPM configurations, and SET_NOTIFICATION_ENABLE normative on the LPM and optional on the
+    OPM); and CONNECTOR_RESET, GET_CONNECTOR_CAPABILITY, SET_UOR, SET_PDR, GET_PDOS, SET_PDOS and
+    READ_POWER_LEVEL are normative for the OPM and LPM (NA for the PPM).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['97', '99']
+      section: '6.6'
+      table: '6-90'
+    - page: '109'
+      table: 'A-1'
+  todo:
+    check: document
+    text: >-
+      Per-column OPM/PPM/LPM applicability entries and footnote rules for the remaining commands
+      (SET_CCOM, the Alternate Mode commands, SET_USB, GET_CABLE_PROPERTY, GET_PD_MESSAGE,
+      GET_ATTENTION_VDO, LPM_FW_UPDATE_REQUEST, SECURITY_REQUEST, SET_RETIMER_MODE, SET_SINK_PATH,
+      CHUNKING_SUPPORT and VENDOR DEFINED COMMANDs) in Table 6-90 (pp. 98-99) are not extracted in
+      full.
+
+- id: ppm-initialization-flow
+  section: programming-model
+  title: PPM initialization state and startup command sequence
+  claim: >-
+    The PPM functions without OS interaction and, upon completing internal initialization or a
+    PPM_RESET, enters the "PPM Idle (Notifications Disabled)" state. In this state the PPM does not
+    notify the OPM, and the only commands the PPM is required to process are
+    SET_NOTIFICATION_ENABLE and PPM_RESET; successful completion of SET_NOTIFICATION_ENABLE
+    transitions the PPM to "PPM Idle (Notifications Enabled)". Because not all notifications are
+    required to be supported by the PPM, the OPM first enables only the Command Completed
+    notification (or chooses to enable only the notifications UCSI requires the PPM to support),
+    sends GET_CAPABILITY to discover the number of connectors (bNumConnectors) and the
+    notifications/features supported by the PPM, and then sends SET_NOTIFICATION_ENABLE to enable
+    the desired supported notifications, followed by GET_CONNECTOR_CAPABILITY (and, when Alternate
+    Modes or cable details are supported, GET_ALTERNATE_MODES, GET_CAM_SUPPORTED,
+    GET_CABLE_PROPERTY, GET_CURRENT_CAM and SET_NEW_CAM as needed) for each connector.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['23', '24']
+      section: '6'
+    - page: '25'
+      section: '6.1'
+      figure: '6-1'
+    - page: '28'
+      section: '6.3'
+
+- id: command-serialization-and-busy-cancel
+  section: programming-model
+  title: One-command-at-a-time rule, Busy responses and CANCEL
+  claim: >-
+    The OPM sends no more than one command at a time to the PPM and waits until the PPM completes
+    the current command before sending the next; the only exceptions are PPM_RESET (which may be
+    sent at any time) and CANCEL (which may be sent only to cancel an outstanding command for which
+    the OPM previously received a CCI Busy Indicator response). If a command (neither CANCEL nor
+    PPM_RESET) takes longer than Tlpm max to complete, or the LPM/PPM is busy, the LPM/PPM sets the
+    CCI Busy Indicator (bit 28) to 1 with all other CCI bits 0 and notifies the OPM (if Command
+    Completed notification is enabled) between MIN_TIME_TO_RESPOND_WITH_BUSY (0xBE = 190 ms) and
+    Tlpm max. Upon receiving Busy Indicator = 1, the OPM may reset its timer and continue waiting
+    (the OPM resets its timer when it sends ACK_CC_CI + Tppm_ack, while the PPM/LPM resets its
+    timer upon receiving the last bit of ACK_CC_CI), send CANCEL (0x02, Data Length = 0x00, bits
+    63:16 reserved 0; Table 6-3), or reset the PPM/LPM. On receiving CANCEL, if the LPM/PPM is not
+    currently processing a command (or has already completed it) it drops the CANCEL request;
+    otherwise it cancels the current operation, completes CANCEL by setting both Cancel Completed
+    Indicator (bit 26) and Command Completed Indicator (bit 31) to 1 in CCI (with Connector Change
+    Indicator set if an asynchronous connector event occurred; Table 6-4), and notifies the OPM if
+    Command Completed notification is enabled.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['23', '24']
+      section: '6'
+    - pages: ['30', '31']
+      section: '6.5.2'
+      table: '6-3'
+    - pages: ['30', '31']
+      section: '6.5.2'
+      table: '6-4'
+    - page: '109'
+      table: 'A-1'
+    - page: '110'
+      table: 'A-2'
+
+- id: ack-cc-ci-and-notifications
+  section: programming-model
+  title: ACK_CC_CI synchronization and Connector Change notification rules
+  claim: >-
+    ACK_CC_CI (0x04, Data Length = 0x00, bits 63:18 reserved 0; Table 6-7) acknowledges to the
+    PPM/LPM that the OPM received and processed a Command Completion, a Connector Change
+    Indication, or both: bit 16 is Connector Change Acknowledge (set to 1 to acknowledge the
+    connector change reported in CCI), and bit 17 is Command Completed Acknowledge (set to 1 to
+    acknowledge that a command completed). On completing ACK_CC_CI, the PPM/LPM sets CCI
+    Acknowledge Command Indicator (bit 29) to 1 and Command Completed Indicator (bit 31) to 0
+    (Table 6-8), and automatically resets bit 29 on receiving the next command from the OPM. The
+    LPM/PPM sends no more than one Connection Change notification at a time to the OPM and waits
+    until the OPM acknowledges the asynchronous notification before sending the next. The LPM/PPM
+    does not set Connector Change Indicator if the change on the connector occurred as a direct
+    result of a command sent to that connector, unless the LPM/PPM requires more time to process
+    the command. In Section 6, notifications are not acknowledged by the OPM in two cases: the
+    command completion notification for ACK_CC_CI or PPM_RESET, and when a Control command is
+    followed by MESSAGE IN (Section 6.5.4 also notes that setting Command Completed Acknowledge is
+    not required for connector changes that require reading MESSAGE IN, such as port-partner LPM FW
+    Update Request and Security Request commands).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '19']
+      section: '4.2'
+      table: '4-3'
+    - pages: ['23', '24']
+      section: '6'
+    - pages: ['33', '34']
+      section: '6.5.4'
+      table: '6-7'
+    - pages: ['33', '34']
+      section: '6.5.4'
+      table: '6-8'
+    - page: '109'
+      table: 'A-1'
+
+- id: ppm-reset
+  section: programming-model
+  title: PPM_RESET execution and polling completion
+  claim: >-
+    PPM_RESET (0x01, Data Length = 0x00, bits 63:16 reserved 0; Table 6-1) resets the PPM and may
+    be sent by the OPM at any time; if the OPM wants to reset the connectors on the PPM, it must
+    perform a CONNECTOR_RESET on each individual connector before sending PPM_RESET. On receiving
+    PPM_RESET, the PPM disables all notifications, transitions to the "PPM Idle (Notifications
+    Disabled)" state, resets itself, and sets CCI Reset Completed Indicator (bit 27) to 1 with all
+    other CCI fields set to 0 (Table 6-2). The OPM polls CCI to detect when PPM_RESET completes
+    (within the 200 ms PPM RESET timeout in Table 7-2) and does not acknowledge it with ACK_CC_CI;
+    the PPM clears Reset Completed Indicator on receiving the next command (not PPM_RESET) from the
+    OPM.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '19']
+      section: '4.2'
+      table: '4-3'
+    - pages: ['23', '24']
+      section: '6'
+    - page: '27'
+      section: '6.2'
+      figure: '6-3'
+    - pages: ['29', '30']
+      section: '6.5.1'
+      table: '6-1'
+    - pages: ['29', '30']
+      section: '6.5.1'
+      table: '6-2'
+    - page: '104'
+      table: '7-2'
+    - page: '109'
+      table: 'A-1'
+
+- id: set-notification-enable
+  section: programming-model
+  title: SET_NOTIFICATION_ENABLE bitmask and mandatory vs optional events
+  claim: >-
+    SET_NOTIFICATION_ENABLE (0x05, Data Length = 0x00; Table 6-9) sets the 17-bit Notification
+    Enable bitmap in CONTROL bits 32:16 (bits 63:33 reserved 0): bit 0 Command Completed, bit 1
+    External Supply Change (Optional), bit 2 Power Operation Mode Change, bit 3 Attention
+    (Optional), bit 4 LPM FW Update Request from Port Partner (Optional), bit 5 Supported Provider
+    Capabilities Change (Optional), bit 6 Negotiated Power Level Change (Optional), bit 7 PD Reset
+    Complete (Optional), bit 8 Supported CAM Change (Optional), bit 9 Battery Charging Status
+    Change, bit 10 Security Request from Port Partner (Optional), bit 11 Connector Partner Change,
+    bit 12 Power Direction Change, bit 13 Set Re-timer Mode (Optional), bit 14 Connect Change, bit
+    15 Error, and bit 16 Sink Path Status Change (all unannotated bits are Normative). The OPM may
+    update the enabled notification list at any time, must not attempt to enable notifications the
+    PPM does not support, and whenever any notification is enabled must also enable Command
+    Completed (bit 0). On completion the PPM sets Command Completed Indicator (bit 31) to 1 (and
+    Error Indicator bit 30 to 1 if unsuccessful; Table 6-10).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['34', '36']
+      section: '6.5.5'
+      table: '6-9'
+    - pages: ['35', '36']
+      table: '6-10'
+    - page: '109'
+      table: 'A-1'
+
+- id: get-capability
+  section: programming-model
+  title: GET_CAPABILITY response structure, bmAttributes and bmOptionalFeatures
+  claim: >-
+    GET_CAPABILITY (0x06, Data Length = 0x00, bits 63:16 reserved 0; Table 6-11) returns CCI Data
+    Length = 0x10 (16 bytes) on success (0x00 on failure; Table 6-12) and populates MESSAGE IN
+    (Table 6-13): bmAttributes at bits 31:0 (Table 6-14: bit 0 Disabled State Support, bit 1
+    Battery Charging, bit 2 USB Power Delivery, bits 5:3 reserved 0, bit 6 USB Type-C Current, bit
+    7 reserved 0, bits 15:8 bmPowerSource where at least one of bit 8 AC Supply, bit 10 Other or
+    bit 14 Uses VBUS must be set and bits 9, 13:11 and 15 are reserved 0, bits 31:16 reserved 0);
+    bNumConnectors at bits 38:32 (7 bits, number of connectors the PPM supports; 0 is illegal); bit
+    39 reserved 0; bmOptionalFeatures at bits 63:40 (24 bits, Table 6-91: bit 0 SET_CCOM supported,
+    bit 1 SET_POWER_LEVEL supported which is always set to supported for backward compatibility,
+    bit 2 Alternate mode details supported, bit 3 Alternate mode override supported, bit 4 PDO
+    details supported, bit 5 Cable details supported, bit 6 External supply notification supported,
+    bit 7 PD reset notification supported, bit 8 GET_PD_MESSAGE supported, bit 9 Get Attention VDO,
+    bit 10 FW Update Request, bit 11 Negotiated Power Level Change, bit 12 Security Request, bit 13
+    Set Re-timer Mode, bit 14 Chunking Support); bNumAltModes at bits 71:64 (8 bits: 0 if the PPM
+    does not support Alternate Modes, up to MAX_NUM_ALT_MODE = 0x80); bits 79:72 reserved 0;
+    bcdBCVersion at bits 95:80 (16-bit BCD, valid only if bmAttributes bit 1 is set); bcdPDVersion
+    at bits 111:96 (16-bit BCD, valid only if bmAttributes bit 2 is set); and bcdUSBTypeCVersion at
+    bits 127:112 (16-bit BCD, valid only if bmAttributes bit 6 is set). When a feature bit in
+    bmOptionalFeatures is 0, the PPM/LPM sets CCI Not Supported Indicator to 1 if it receives the
+    corresponding optional command.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['36', '38']
+      section: '6.5.6'
+      table: '6-11'
+    - pages: ['36', '37']
+      table: '6-12'
+    - pages: ['37', '38']
+      table: '6-13'
+    - page: '38'
+      table: '6-14'
+    - pages: ['99', '101']
+      section: '6.7'
+      table: '6-91'
+    - page: '109'
+      table: 'A-1'
+    - page: '110'
+      table: 'A-2'
+
+- id: get-connector-capability
+  section: programming-model
+  title: GET_CONNECTOR_CAPABILITY command and response fields
+  claim: >-
+    GET_CONNECTOR_CAPABILITY (0x07, Data Length = 0x00, Connector Number in bits 22:16 where 0 is
+    illegal, bits 63:23 reserved 0; Table 6-15) returns CCI Data Length = 0x04 on success (0x00 on
+    failure; Table 6-16) and populates MESSAGE IN (Table 6-17, which defines bits 0 to 63 with bits
+    63:40 reserved 0): Operation Mode at bits 7:0 (bit 0 Rp only, bit 1 Rd only, bit 2 DRP
+    (Rp/Rd), bit 3 Analog Audio Accessory Mode (Ra/Ra), bit 4 Debug Accessory Mode (Rd/Rd), bit 5
+    USB2, bit 6 USB3, bit 7 Alternate Mode); Provider at bit 8 (valid only when Operation Mode is
+    DRP or Rp only; 1 if capable of providing power via PD, Type-C Current or BC 1.2); Consumer at
+    bit 9 (valid only when Operation Mode is DRP or Rd only; 1 if capable of consuming power); Swap
+    to DFP at bit 10 and Swap to UFP at bit 11 (both valid only when Operation Mode is DRP, Rp only
+    or Rd only); Swap to SRC at bit 12 and Swap to SNK at bit 13 (both valid only when Operation
+    Mode is DRP); Extended Operation Mode at bits 21:14 (bit 0 USB4, bit 1 EPR Source, bit 2 EPR
+    Sink, bits 3-4 Deprecated, bits 7:5 Reserved); Miscellaneous Capabilities at bits 25:22 (bit 0
+    FW Update, bit 1 Security, bits 3:2 Reserved); Reverse Current Protection Support at bit 26;
+    Partner PD Revision at bits 28:27 (2 bits: partner's major USB PD revision from the USB PD
+    message header); bits 31:29 Reserved (0); Number of Alternate Modes supported by the LPM at
+    bits 39:32 (8 bits; 0 if none); and bits 63:40 Reserved (0).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['38', '41']
+      section: '6.5.7'
+      table: '6-15'
+    - page: '39'
+      table: '6-16'
+    - pages: ['40', '41']
+      table: '6-17'
+    - page: '109'
+      table: 'A-1'
+
+- id: get-connector-status
+  section: programming-model
+  title: GET_CONNECTOR_STATUS 19-byte response layout and status-change bitmap
+  claim: >-
+    GET_CONNECTOR_STATUS (0x12, Data Length = 0x00, Connector Number in bits 22:16, bits 63:23
+    reserved 0; Table 6-41) returns CCI Data Length = 0x13 (19 bytes / 152 bits) on success (0x00
+    on failure; Table 6-42) and populates MESSAGE IN (Table 6-43): Connector Status Change at bits
+    15:0 (Table 6-44: bit 1 External Supply Change, bit 2 Power Operation Mode Change, bit 3
+    Attention, bit 5 Supported Provider Capabilities Change, bit 6 Negotiated Power Level Change,
+    bit 7 PD Reset Complete, bit 8 Supported CAM Change, bit 9 Battery Charging Status Change, bit
+    11 Connector Partner Changed, bit 12 Power Direction Changed, bit 13 Sink Path Status Change,
+    bit 14 Connect Change which is reset to 0b when OPM/PPM reads GET_CONNECTOR_STATUS, and bit 15
+    Error; bits 0, 4 and 10 are reserved 0); Power Operation Mode at bits 18:16 (valid when Connect
+    Status = 1: 1 USB Default Operation, 2 BC, 3 PD, 4 USB Type-C Current 1.5A, 5 USB Type-C
+    Current 3A, 6 USB Type-C Current 5A; 0 and 7 reserved); Connect Status at bit 19 (1 when a
+    device is connected); Power Direction at bit 20 (valid when Connect Status = 1: 0 consumer, 1
+    provider); Connector Operating Mode at bits 28:21 (valid when Connect Status = 1: bit 0 USB 2.0
+    or 3.x, bit 1 Alternate Mode, bit 2 USB4 Mode, bit 3 Deprecated, bits 7:4 Reserved); Connector
+    Partner Type at bits 31:29 (valid when Connect Status = 1: 1 DFP attached, 2 UFP attached, 3
+    Powered cable/No UFP attached, 4 Powered cable/UFP attached, 5 Debug Accessory attached, 6
+    Audio Adapter Accessory attached; 0 and 7 reserved); Request Data Object at bits 63:32
+    (optional, valid when Connect Status = 1, Power Operation Mode = PD, and PDO Details Supported
+    is set); Battery Charging Capability Status at bits 65:64 (valid when operating as a Sink: 0
+    not charging, 1 nominal, 2 slow, 3 very slow); Provider Capabilities Limited Reason at bits
+    69:66 (valid when operating as a provider, Table 6-45: bit 0 Power Budget Lowered, bit 1
+    Reaching Power Budget Limit, bits 3:2 reserved 0); bcdPDVersion Operation Mode at bits 85:70
+    (optional 16-bit BCD revision during an Explicit Contract, valid when Power Operation Mode =
+    PD); Orientation at bit 86 (0 direct, 1 flipped); Sink Path Status at bit 87 (1 enabled, 0
+    disabled); Reverse Current Protection Status at bit 88 (valid if Reverse Current Protection
+    Support is 1 in GET_CONNECTOR_CAPABILITY); Power Reading Ready at bit 89; current Scale at bits
+    92:90 (3 bits, 5 mA per bit); Peak Current at bits 108:93 (16 bits); Average Current at bits
+    124:109 (16 bits); voltage Scale at bits 128:125 (4 bits, 5 mV per bit); Voltage Reading at
+    bits 144:129 (16 bits); and bits 151:145 Reserved (0).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['58', '64']
+      section: '6.5.17'
+      table: '6-41'
+    - pages: ['59', '60']
+      table: '6-42'
+    - pages: ['60', '63']
+      table: '6-43'
+    - pages: ['63', '64']
+      table: '6-44'
+    - page: '64'
+      table: '6-45'
+    - page: '100'
+      section: '6.7.5'
+    - page: '109'
+      table: 'A-1'
+
+- id: connector-reset-and-set-ccom
+  section: programming-model
+  title: CONNECTOR_RESET (Hard Reset vs Data Reset) and SET_CCOM
+  claim: >-
+    CONNECTOR_RESET (0x03, Data Length = 0x00, Connector Number in bits 22:16, Reset Type in bit
+    23: 0 Hard Reset (default) or 1 Data Reset, bits 63:24 reserved 0; Table 6-5) resets the
+    specified connector: the PPM sends a command completion once it starts the Reset process and an
+    asynchronous notification after the Reset process completes on the connector. A Hard Reset puts
+    the connector through a disconnect-connect sequence; if a USB Type-C charger is connected to
+    the connector being reset and there is no other power source (e.g. a dead battery condition),
+    the PPM must fail CONNECTOR_RESET, and the OPM can identify the cause via bit 5 of
+    GET_ERROR_STATUS. A Data Reset resets the USB data connection and exits all Alternate Modes
+    with a port partner while preserving VBUS power (following the USB PD Data_Reset message): a
+    port that supports USB4 must support Data Reset, whereas a port that does not support USB4 may
+    set CCI Not Supported Indicator (bit 25) to 1; on success the PPM/LPM sets Command Completed
+    Indicator within tSenderResponse + tDataReset + LPM_BUSY_ATOMIC_TIME (LPM_BUSY_ATOMIC_TIME
+    minimum 0xF0 = 240 ms; Table A-2), or else sets Error Indicator. SET_CCOM (0x08, Data Length =
+    0, Connector Number in bits 22:16 where 0 is illegal, CC Operation Mode in bits 26:23: bit 0 Rp
+    Only, bit 1 Rd Only, bit 2 DRP, bit 3 Disabled removing all CC terminations for at least
+    tErrorRecovery when transitioning from Attached.SNK; setting all four bits to 0 is illegal;
+    bits 63:27 reserved 0; Table 6-18) changes the connector's USB Type-C state machine mode and
+    resets when the PPM is reset (defaulting to DRP if supported). If the LPM does not support the
+    requested role it returns Not Supported, except for Disable: if the LPM does not support
+    Disable, it directs the port to Unattached.SNK or Unattached.SRC.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['31', '33']
+      section: '6.5.3'
+      table: '6-5'
+    - pages: ['32', '33']
+      table: '6-6'
+    - pages: ['41', '43']
+      section: '6.5.8'
+      table: '6-18'
+    - pages: ['42', '43']
+      table: '6-19'
+    - page: '109'
+      table: 'A-1'
+    - page: '110'
+      table: 'A-2'
+
+- id: role-swap-commands-set-uor-and-set-pdr
+  section: programming-model
+  title: Data and power role control (SET_UOR and SET_PDR)
+  claim: >-
+    SET_UOR (0x09, Data Length = 0, Connector Number in bits 22:16 where 0 is illegal, USB
+    Operation Role in bits 25:23, Data Role Swap Policy in bits 27:26, bits 63:28 reserved 0; Table
+    6-20) and SET_PDR (0x0B, Data Length = 0, Connector Number in bits 22:16 where 0 is illegal,
+    Power Direction Role in bits 25:23, bits 63:26 reserved 0; Table 6-22) set the USB operation
+    role and power direction role for the current connection, and their values reset when the PPM
+    is reset, power cycled, or the remote device detaches. Both require an active connection and
+    USB PD support (SET_UOR is valid only if the connector supports PD and fails if there is no
+    active connection or the requested role is unsupported; SET_PDR fails if there is no active
+    connection, the port partner is not PD-capable, or the requested role is unsupported). If the
+    connector is already in the requested role, the command completes successfully; if executing
+    the command results in a successful data or power role swap, it should not generate a connector
+    status change notification, whereas if the swap fails (for example Port Partner rejected Swap,
+    Hard Reset occurred, or PPM Policy Conflict) the command returns an error and the role remains
+    unchanged. In SET_UOR, USB Operation Role bit 0 initiates a swap to DFP if not already DFP, bit
+    1 initiates a swap to UFP if not already UFP (setting or clearing Bit 0 and Bit 1 at the same
+    time is illegal), and bit 2 controls whether the connector accepts role swap requests from the
+    port partner based on Data Role Swap Policy (0 accept all, 1 only accept swaps to DFP, 2 only
+    accept swaps to UFP, 3 reserved; ignored if bit 2 is not set). In SET_PDR, Power Direction Role
+    bit 0 initiates a swap to Source if not already Source, bit 1 initiates a swap to Sink if not
+    already Sink, and bit 2 accepts (1) or rejects (0) power swap requests from the port partner
+    (default before SET_PDR is to accept power swaps; setting all three bits to 0 is illegal).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['43', '45']
+      section: '6.5.9'
+      table: '6-20'
+    - pages: ['44', '45']
+      table: '6-21'
+    - pages: ['45', '47']
+      section: '6.5.10'
+      table: '6-22'
+    - page: '47'
+      table: '6-23'
+    - page: '109'
+      table: 'A-1'
+
+- id: pdo-and-power-level-commands
+  section: programming-model
+  title: PDO discovery, configuration and power controls (GET_PDOS, SET_PDOS, SET_POWER_LEVEL, SET_SINK_PATH, READ_POWER_LEVEL)
+  claim: >-
+    GET_PDOS (0x10, Table 6-35) retrieves up to four 32-bit PDOs in MESSAGE IN (Table 6-37, CCI
+    Data Length = 4 * PDOs returned, or 0 with Error Indicator = 0 when a valid target has no PDOs;
+    Table 6-36) for Connector Number (bits 22:16): Partner PDO (bit 23) selects the attached device
+    (1) or connector (0); PDO Offset (bits 31:24) is 0-7 for SPR, 0-4 for EPR, or 0-11 for SPR+EPR;
+    Number of PDOs (bits 33:32) is the count to return minus 1; Source or Sink PDOs (bit 34)
+    selects Source (1) or Sink (0) PDOs; Source Capabilities Type (bits 36:35, valid only when
+    Partner PDO = 0 and Source or Sink PDOs = 1) selects 0 Current Supported, 1 Advertised, or 2
+    Maximum Supported Source Capabilities; and Range (bits 38:37) selects 0 SPR, 1 EPR, or 2
+    SPR+EPR. If PDO Offset + Number of PDOs exceeds the range maximum (7, 4 or 11), or Partner PDO
+    = 0 requests a direction inappropriate for the target, the PPM sets Error Indicator = 1 and
+    Invalid Command Specific Parameters in GET_ERROR_STATUS; if Partner PDO = 1 with no partner
+    present it sets CC Communication Error, or with a non-PD partner or inappropriate partner
+    direction it sets Incompatible Connector Partner. SET_PDOS (0x1D, Table 6-75) overwrites Source
+    (bit 26 = 1) or Sink (bit 26 = 0) PDOs from MESSAGE_OUT (Table 6-76; Connector Number = 0
+    broadcasts to all LPMs) using Number of PDOs (bits 30:27), Data Index (bits 37:31) and End of
+    Message (bit 38), superseding SET_POWER_LEVEL; if End of Message = 0 arrives before an Explicit
+    Contract is established, the LPM postpones contract establishment until a SET_PDOS with End of
+    Message = 1 arrives or SENDER_RESPONSE_TIMEOUT (maximum 0x3C = 60 ms, counted from clearing the
+    alert upon receiving ACK_CC_CI) elapses. SET_POWER_LEVEL (0x14, Table 6-49) sets maximum
+    negotiable power for the current connection (or total power for all ports when Connector
+    Number = 0), with Source or Sink (bit 23), USB PD Max Power (bits 31:24), USB Type-C Current
+    (bits 34:32: 0 PPM default, 1 3A, 2 1.5A, 3 Type-C Default; must be 0 when Connector Number =
+    0), LsbControl (bit 35: 0 for 0.5 W / 20 mV steps up to 21 V, 1 for 1.0 W / 25 mV steps with
+    least-significant bits zeroed to 100 mV effective LSB up to 48 V), Operating Current (bits
+    42:36, 50 mA steps, errored if above 5 A) and Output Voltage (bits 56:45, for AVS/PPS requests,
+    errored if above 21 V when LsbControl = 0 or 48 V when LsbControl = 1). SET_SINK_PATH (0x1C,
+    Table 6-70) enables (bit 23 = 1) or disables (bit 23 = 0) the sink path on a non-zero Connector
+    Number, setting Error Indicator = 1 if the LPM is in source mode or no port partner is
+    connected. READ_POWER_LEVEL (0x1E, Table 6-85) initiates peak/average current and voltage
+    measurements on a sourcing LPM (failing with Invalid Command Specific Parameters if no active
+    connection or in sink mode).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['54', '56']
+      section: '6.5.15'
+      table: '6-35'
+    - pages: ['55', '56']
+      table: '6-36'
+    - page: '56'
+      table: '6-37'
+    - pages: ['66', '69']
+      section: '6.5.19'
+      table: '6-49'
+    - pages: ['83', '84']
+      section: '6.5.26'
+      table: '6-70'
+    - pages: ['86', '89']
+      section: '6.5.28'
+      table: '6-75'
+    - pages: ['92', '94']
+      section: '6.5.32'
+      table: '6-85'
+    - page: '109'
+      table: 'A-1'
+    - page: '110'
+      table: 'A-2'
+  todo:
+    check: document
+    text: >-
+      Detailed READ_POWER_LEVEL timing fields (Time to Read Power bits 27:23, Time Interval between
+      readings bits 32:31, Continuous Measurements bit 33 in Table 6-85, pp. 93-94) and the
+      GET_CONNECTOR_STATUS Power Reading Ready clearing rules (pp. 59, 63) are not extracted in
+      full.
+
+- id: alternate-mode-and-usb-commands
+  section: programming-model
+  title: Alternate Mode discovery, control, priority and SET_USB
+  claim: >-
+    GET_ALTERNATE_MODES (0x0C, Table 6-24) queries 6-byte (16-bit SVID, 32-bit MID) entries in
+    MESSAGE IN (Table 6-26) for Recipient (bits 18:16: 0 Connector, 1 SOP, 2 SOP', 3 SOP''),
+    Connector Number (bits 30:24), Alternate Mode Offset (bits 39:32), and Number of Alternate
+    Modes (bits 41:40, count minus 1, maximum field value 1, returning up to two Alternate Modes /
+    12 bytes per command). GET_CAM_SUPPORTED (0x0D, Table 6-27) returns a bit vector of
+    floor((Number of Alternate Modes + 7) / 8) bytes (Table 6-28, Table 6-29) indicating which of
+    the connector's Alternate Modes (in GET_ALTERNATE_MODES order) are currently available.
+    GET_CURRENT_CAM (0x0E, Table 6-30) returns 1-byte offsets into the PPM's Alternate Mode list
+    for each active mode on the connector (0xFF in Current Alternate Mode[0] if not operating in an
+    Alternate Mode; Table 6-32), and GET_CAM_CS (0x18, Table 6-58) takes one Current Alt Mode value
+    (bits 31:24) and returns its 8-bit index, 32-bit Status, 8-bit Number of VDOs, and VDO[N]
+    (Table 6-60). SET_NEW_CAM (0x0F, Table 6-33) enters (EnterOrExit bit 23 = 1) or exits (bit 23 =
+    0) the Alternate Mode at offset New CAM (bits 31:24) with 32-bit AMSpecific (bits 63:32);
+    setting New CAM = 0xFF exits all Alternate Modes and enters/advertises no new ones, and a
+    command to enter an already-entered mode or exit an already-exited mode is not an error.
+    SET_CAM_PRIORITY (0x23, Table 6-87) writes an ordered array of 16-bit SVIDs in MESSAGE_OUT
+    (Table 6-88, Data Length = 2 * SVIDs) for the LPM/PPM to auto-enter (omitted modes are not
+    auto-entered), with Trigger Mode (bit 23: 0 future connections only, 1 current and future
+    connections), Number of SVIDs (bits 31:24), Data Index (bits 38:32) and End of Message (bit
+    39). SET_USB (0x21, Table 6-83) enables or disables USB3 Mode (bit 23) and USB4 Mode (bit 24)
+    on a non-zero Connector Number (bits 22:16) with a 32-bit Enter USB Data Object (EUDO, bits
+    60:29), performing a Data Reset on the present connection if disabling when in USB mode or
+    enabling when not in USB mode.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['47', '49']
+      section: '6.5.11'
+      table: '6-24'
+    - page: '49'
+      table: '6-26'
+    - pages: ['49', '51']
+      section: '6.5.12'
+      table: '6-27'
+    - pages: ['51', '52']
+      section: '6.5.13'
+      table: '6-30'
+    - pages: ['52', '54']
+      section: '6.5.14'
+      table: '6-33'
+    - pages: ['75', '76']
+      section: '6.5.22'
+      table: '6-58'
+    - pages: ['91', '92']
+      section: '6.5.31'
+      table: '6-83'
+    - pages: ['95', '97']
+      section: '6.5.33'
+      table: '6-87'
+    - page: '109'
+      table: 'A-1'
+
+- id: cable-pd-message-and-info-commands
+  section: programming-model
+  title: Cable properties, PD message retrieval, chunking and LPM/PPM version info
+  claim: >-
+    GET_CABLE_PROPERTY (0x11, Table 6-38) returns CCI Data Length = 0x05 on success (Table 6-39)
+    and populates MESSAGE IN (Table 6-40): bmSpeedSupported at bits 15:0 (bits 1:0 Speed Exponent:
+    0 b/s, 1 Kb/s, 2 Mb/s, 3 Gb/s; bits 15:2 Speed Mantissa), bCurrentCapability at bits 23:16 (in
+    50 mA units), VBUSInCable at bit 24, CableType at bit 25 (1 Active, 0 Passive), Directionality
+    at bit 26 (1 configurable, 0 fixed), Plug End Type at bits 28:27 (0 USB Type-A, 1 USB Type-B, 2
+    USB Type-C, 3 Other), Mode Support at bit 29 (valid only when CableType = 1), Cable PD Revision
+    at bits 31:30, Latency at bits 35:32, and bits 63:36 Reserved (0). GET_PD_MESSAGE (0x15, Table
+    6-51) retrieves up to Number of Bytes (bits 41:34, at most MAX_DATA_LENGTH, non-zero multiple
+    of 4 for Data Messages) from Message Offset (bits 33:26) of Response Message Type (bits 47:42:
+    0 Sink_Capabilities_Extended, 1 Source_Capabilities_Extended, 2 Battery_Capabilities, 3
+    Battery_Status, 4 Discover Identity Response, 5 Revision) for Connector Number (bits 22:16) and
+    Recipient (bits 25:23: 0 Connector, 1 SOP, 2 SOP', 3 SOP''), returning the payload in MESSAGE
+    IN without the USB PD Message Header or Extended Message Header and merging chunked Extended
+    Messages. For Recipient 1, 2 or 3, Message Offset = 0 initiates a USB PD request on the wire,
+    whereas a non-zero Message Offset returns the cached response (failing with CC Communication
+    Error if no cached response exists). CHUNKING_SUPPORT (0x1F, Table 6-72; Connector Number = 0
+    may broadcast to all LPMs and return the lowest size) returns a 1-byte Chunking Size in MESSAGE
+    IN (CCI Data Length = 0x01; Table 6-73, Table 6-74), or sets Not Supported Indicator = 1 if
+    chunking is not supported (in which case the LPM/OPM supports up to the full MESSAGE_IN /
+    MESSAGE_OUT size in Table 4-1). GET_LPM_PPM_INFO (0x22, Table 6-80; Connector Number = 0
+    targets the PPM, non-zero targets a connector's LPM) returns 16 bytes (CCI Data Length = 0x10;
+    Table 6-81, Table 6-82): 16-bit VID (offset 0), 16-bit PID (offset 16), 32-bit XID (offset 32),
+    32-bit FW Version Upper (offset 64), 32-bit FW Version Lower (offset 96), and 32-bit HW Version
+    (printed at bit offset 32 in the final row of Table 6-82).
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['57', '58']
+      section: '6.5.16'
+      table: '6-38'
+    - page: '57'
+      table: '6-39'
+    - page: '58'
+      table: '6-40'
+    - pages: ['69', '73']
+      section: '6.5.20'
+      table: '6-51'
+    - page: '71'
+      table: '6-52'
+    - pages: ['85', '86']
+      section: '6.5.27'
+      table: '6-72'
+    - pages: ['85', '86']
+      table: '6-73'
+    - page: '86'
+      table: '6-74'
+    - pages: ['89', '91']
+      section: '6.5.30'
+      table: '6-80'
+    - page: '90'
+      table: '6-81'
+    - page: '91'
+      table: '6-82'
+    - page: '109'
+      table: 'A-1'
+
+- id: error-status-and-timeouts
+  section: programming-model
+  title: GET_ERROR_STATUS error bitmap and command timing bounds
+  claim: >-
+    GET_ERROR_STATUS (0x13, Data Length = 0x00, Connector Number in bits 22:16, bits 63:23 reserved
+    0; Table 6-46) retrieves details on why a command failed (CCI Error Indicator = 1) or on a
+    connector change event with the Error bit set. On success it sets CCI Data Length to
+    GET_ERROR_STATUS_DATA_LENGTH (0x10 = 16 bytes; Table 6-47, Table A-2) and returns a 16-bit
+    Error Information bitmap at bits 15:0 of MESSAGE IN followed by N vendor-defined bits and
+    (112-N) reserved zero bits (Table 6-48): bit 0 Unrecognized command, bit 1 Non-existent
+    connector number, bit 2 Invalid command specific parameters, bit 3 Incompatible connector
+    partner, bit 4 CC communication error, bit 5 Command unsuccessful due to dead battery
+    condition, bit 6 Contract negotiation failure, bit 7 Overcurrent, bit 8 Undefined, bit 9 Port
+    partner rejected swap, bit 10 Hard Reset, bit 11 PPM Policy Conflict, bit 12 Swap Rejected, bit
+    13 Reverse Current Protection, bit 14 Set Sink Path Rejected, and bit 15 Reserved (0). Table
+    7-1 defines the transfer and alert timing limits across OPM, PPM and LPM (Tsw_ppm 50 ms, Tppm 2
+    ms, Tppm_sci 2 ms, Tsw_cci 50 ms, Tppm_cc 2 ms, Tlpm_cc 10 ms, Tppm_nt 10 ms, Tsw_ack 50 ms,
+    Tppm_ack 2 ms, Tlpm_clr 3 ms, Tppm_clr 2 ms, Tlpm_next_alert 10 ms), and Table 7-2 defines the
+    maximum command timeouts (Tlpm): 200 ms for PPM RESET, GET CAPABILITY, SET NOTIFICATION, GET
+    CONNECTOR CAPABILITY, CONNECTOR CAPABILITY, SET CCOM, GET ALTERNATE MODES, GET CAM SUPPORTED,
+    GET CURRENT CAM, GET PDOs, GET CABLE PROPERTIES, GET CONNECTOR STATUS, GET ERROR STATUS,
+    SET_PDOs, GET_PD_MESSAGE, GET_ATTENTION_VDO, READ_POWER_LEVEL, CHUNKING_SUPPORT and GET
+    LPM_PPM_INFO; 400 ms for SET USB Operation Role and SET SINK PATH; 700 ms for SET POWER LEVEL;
+    1000 ms for CONNECTOR RESET (for Hard Reset; Data Reset timing is specified in Section 6.5.3),
+    SET POWER DIRECTTON ROLE and SET_USB; 400 ms + 1000 ms for SET NEW CAM; and 400 ms + 2000 ms
+    for LPM FW UPDATE REQUEST, SEQUIRITY REQUEST and SET RETIMER MODE.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['64', '66']
+      section: '6.5.18'
+      table: '6-46'
+    - page: '65'
+      table: '6-47'
+    - page: '66'
+      table: '6-48'
+    - pages: ['102', '104']
+      section: '7'
+      table: '7-1'
+    - page: '104'
+      table: '7-2'
+    - page: '109'
+      table: 'A-1'
+    - page: '110'
+      table: 'A-2'
+
+- id: ppm-reset-no-notification-no-ack
+  section: gotchas
+  title: PPM_RESET disables notifications, sets Reset Completed Indicator (not Command Completed) and never takes ACK_CC_CI
+  claim: >-
+    Unlike normal commands, PPM_RESET disables all notifications and puts the PPM into the "PPM
+    Idle (Notifications Disabled)" state, so the PPM sets CCI Reset Completed Indicator (bit 27) to
+    1 with Command Completed Indicator (bit 31) and all other CCI bits set to 0, without sending a
+    notification to the OPM. The OPM must poll CCI for Reset Completed Indicator == 1 and must not
+    send ACK_CC_CI after PPM_RESET; the PPM clears Reset Completed Indicator automatically when it
+    receives the next non-PPM_RESET command from the OPM.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '19']
+      section: '4.2'
+      table: '4-3'
+    - pages: ['23', '24']
+      section: '6'
+    - page: '27'
+      section: '6.2'
+      figure: '6-3'
+    - page: '28'
+      section: '6.3'
+    - pages: ['29', '30']
+      section: '6.5.1'
+      table: '6-2'
+
+- id: ack-cc-ci-uses-acknowledge-indicator
+  section: gotchas
+  title: ACK_CC_CI completes with Acknowledge Command Indicator (bit 29) instead of Command Completed Indicator (bit 31)
+  claim: >-
+    When the PPM/LPM completes ACK_CC_CI, it sets CCI Acknowledge Command Indicator (bit 29) to 1
+    and leaves Command Completed Indicator (bit 31) set to 0 (Table 6-8). An OPM driver must wait
+    for Acknowledge Command Indicator == 1 rather than Command Completed Indicator == 1, and must
+    not send another ACK_CC_CI to acknowledge the ACK_CC_CI completion notification; the PPM
+    automatically resets bit 29 when it receives the next command from the OPM.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['17', '19']
+      section: '4.2'
+      table: '4-3'
+    - pages: ['23', '24']
+      section: '6'
+    - page: '27'
+      section: '6.2'
+      figure: '6-3'
+    - pages: ['33', '34']
+      section: '6.5.4'
+      table: '6-8'
+
+- id: concurrent-connector-change-and-command-completion
+  section: gotchas
+  title: Asynchronous connector changes can arrive in CCI alongside a command completion
+  claim: >-
+    An asynchronous connector event can be reported in CCI Connector Change Indicator (bits 7:1) at
+    the same time as a command completion (or CANCEL completion), whereas a connector change that
+    occurs as a direct result of a command sent to that connector (such as a successful role swap
+    from SET_UOR or SET_PDR, or Alternate Mode entry from SET_NEW_CAM) must not set Connector
+    Change Indicator unless the LPM/PPM needs more time to process the command. When CCI reports
+    both a command completion and an asynchronous connector change, the OPM can either acknowledge
+    Command Completed first and process the pending connector change afterward, or process the
+    connector change and set both Connector Change Acknowledge (bit 16) and Command Completed
+    Acknowledge (bit 17) in a single ACK_CC_CI command.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['23', '24']
+      section: '6'
+    - page: '27'
+      section: '6.2'
+      figure: '6-3'
+    - page: '33'
+      section: '6.5.4'
+      table: '6-7'
+    - page: '43'
+      section: '6.5.9'
+    - page: '45'
+      section: '6.5.10'
+    - page: '52'
+      section: '6.5.14'
+
+- id: get-error-status-cleared-on-ack
+  section: gotchas
+  title: Query GET_ERROR_STATUS before acknowledging a failed command or error notification
+  claim: >-
+    The PPM is permitted to clear its Error Status Data once the OPM has acknowledged the command
+    completion or connector change notification (or after receiving PPM_RESET), and is forbidden to
+    clear it before then. An OPM that wants error details via GET_ERROR_STATUS after seeing CCI
+    Error Indicator = 1 or a connector change with the Error bit set must therefore issue
+    GET_ERROR_STATUS before acknowledging the original failed command or connector change
+    notification with ACK_CC_CI.
+  support:
+  - class: standard
+    doc: usb-ucsi-3.1.pdf
+    at:
+    - pages: ['23', '24']
+      section: '6'
+    - page: '64'
+      section: '6.5.18'
