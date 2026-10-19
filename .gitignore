@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+
+# Local marker that exempts this checkout from the pitch-gate hook.
+/.no-pitch
+
+# Checkouts made by scripts/checks.sh users beside the specs.
+/.driver-lab/
+/.venv-spec/

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Root marker for hardware-specs-usb, spec format 2 (driver-lab, skills/spec-format/SKILL.md).
+# license: is this repository's license; accepts: lists the SPDX licenses a cited source may
+# carry. Documents only: no source tree is accepted.
+format: 2
+layer: public
+name: hardware-specs-usb
+license: CC-BY-4.0
+accepts: []
