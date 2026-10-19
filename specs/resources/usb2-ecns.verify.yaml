@@ -1,0 +1,332 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb2-ecns
+spec_file: usb2-ecns.spec.yaml
+spec_sha256: 8f5ef616533743741a3bcc806e1ef5de9071c9c41dddbf70cf5bfdbb9e78a75d
+canonical: fact-v1
+sources:
+- name: usb-2.0-connect-timing-ecn.pdf
+  url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+  sha256: 31528541e9d829b1401fd0c747829012c56e6d6d6b12d8f1591ff4cb6549b73b
+  fetch: ok
+  note: The Connect Timing Update ECN PDF ("USB ECN Final 20130404.pdf") inside the USB-IF zip
+    download; SHA-256 checked and page text extracted with pdftotext.
+- name: usb-2.0-lpm-ecn.pdf
+  url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+  sha256: 9774dc93323695b44c7781d2bc18bdd4dddefb936c185eea9fa792d92a3bd75d
+  fetch: ok
+  note: The Link Power Management Addendum ECN PDF ("USB2_LinkPowerManagement_ECN.pdf") inside the
+    USB-IF zip download; SHA-256 checked and page text extracted with pdftotext.
+- name: usb-2.0-iad-ecn.pdf
+  url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+  sha256: 494239252b46aed214ef4a22828c0a623b0ec0dac812ef249dc49a1d995c08a7
+  fetch: ok
+  note: The Interface Association Descriptors ECN PDF ("InterfaceAssociationDescriptor_ecn.pdf")
+    inside the USB-IF zip download; SHA-256 checked and page text extracted with pdftotext.
+summary:
+  pass: 17
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  connect-timing-parameters:
+    basis: 251a07ee6694c2b57a380af7b1ca5281120c6643b66df6fa5da768129a013b6e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-connect-timing-ecn.pdf p. 1 (Definition of Terms: Attach and Connect
+      via 1.5 kOhm pull-up on D+ or D-) and pp. 4-6 (Specification Changes: Figure 7-29, delta t1
+      to delta t4 prose on pp. 4-5, and the Table 7-7 and Table 7-14 INSTRUCTIONS blocks on pp.
+      5-6). Table 7-7 adds VSESS_VLD (0.8 V min, 4.0 V max); ICCS is globally replaced with ISUSP;
+      Table 7-14 replaces TATTDB with TCON_RST (100 ms min software debounce after D+/D- high,
+      restarted on disconnect), replaces TSIGATT (100 ms max) with TSVLD_CON_PWD (1 s max), and
+      adds TSVLD_CON_WKB (2 minutes max), TUNIT_CON (100 ms max) and TCON_ISUSP (1 s max). Delta
+      t1-t3 confirm TSVLD_UNIT current limits (IUNIT for dead/weak battery, ISUSP for good battery)
+      and VDP_SRC signaling on D+ during TSVLD_CON_WKB. Read all 6 pages of the ECN for contrary
+      evidence; the uncleaned redline in delta t1 ("shall reduce its current draw to ISUSP is
+      allowed to draw up to five times IUNIT") and Figure 7-29's 500 mA dashed line are covered by
+      sibling fact connect-timing-redline-contradictions. The TODO accurately notes that BC 1.1/1.2
+      definitions of VDP_SRC and battery thresholds are external to this ECN.
+    contrary_evidence: none-found
+    citation_precision: exact
+  post-connect-current-and-suspend-window:
+    basis: 719e65e07ee8dd3fd2eeb11f5bd996defcfc9fb2c71d4ee8d5ad7f48241b7d3d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-connect-timing-ecn.pdf pp. 2-3 (Summary of ECN and Impact on
+      Existing Peripherals and Systems) and pp. 5-6 (delta t7 TCON_ISUSP, delta t8 T2SUSP, and the
+      Table 7-14 TCON_ISUSP instruction). Delta t7 on p. 5 states that after connecting, a
+      good-battery peripheral may draw up to 1 unit load (IUNIT) and a dead/weak-battery peripheral
+      up to 5x IUNIT for TCON_ISUSP (1 s max on p. 6), dropping to ISUSP if still unconfigured or
+      drawing configured current if configured; delta t8 requires obeying Section 7.1.7.6 suspend
+      rules after TCON_ISUSP from connect. Page 3 confirms host/hub hardware must supply 1 unit
+      load for at least 1 s (TCON_ISUSP) after connect, no host or peripheral software changes are
+      required, and the host may still suspend the bus at any time after connect. Read all 6 pages
+      for contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  iad-multi-interface-function:
+    basis: 6d3893cd6cbf86f759d064f908274005c7cb0e631ff8578d1ff647e8ef01d1db
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-iad-ecn.pdf p. 1 (Summary of ECN), p. 3 (Table 9-6 addition of OTG
+      = 9, DEBUG = 10, INTERFACE_ASSOCIATION = 11), and p. 4 (Section 9.X.Y Interface Association,
+      to be inserted as Section 9.6.6). Section 9.X.Y confirms that an IAD associates two or more
+      contiguous interfaces and all of their alternate settings into one device function, is
+      mandatory for each function requiring more than one interface, is returned only as part of
+      GetDescriptor(Configuration), cannot be accessed directly via GetDescriptor() or
+      SetDescriptor(), and must precede the interface descriptors (including alternate settings) of
+      the associated contiguous interfaces. Searched all 5 pages of the ECN for contrary evidence
+      or exceptions; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  iad-descriptor-layout:
+    basis: c82034d12e6d7fb49321a9c0a7b02e34e1cddcbf6c7e2653cc5ca17c93258b8e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-iad-ecn.pdf p. 3 (Table 9-6 value 11) and p. 4 (Section 9.X.Y prose
+      and Table 9-Z Standard Interface Association Descriptor). All 8 single-byte fields (offsets 0
+      to 7: bLength, bDescriptorType, bFirstInterface, bInterfaceCount, bFunctionClass,
+      bFunctionSubClass, bFunctionProtocol, iFunction), their class/subclass/protocol constraints
+      (bFunctionClass != 0, FFH vendor-specific, non-FFH subclass values reserved for USB-IF,
+      protocol qualified by class and subclass), and the rule allowing values from any associated
+      interface with the first associated interface preferred for existing device classes match
+      Section 9.X.Y and Table 9-Z verbatim. Searched all 5 pages for contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  lpm-link-states:
+    basis: a4deea0a5881c5e807f96338d2644a4fef9c941a1332a8f3032f1fb0a6c137d8
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 3-5 (Section 1, Table 1-1, Figure 1-1, Section 1.1,
+      and Table 1-2). Table 1-1 and Figure 1-1 define L0 (On, L0-Active/L0-Idle with 1 ms FS /
+      125 us HS SOFs or LS keep-alives), L1 (Sleep), L2 (Suspend, after 3 ms inactivity) and L3
+      (Off: powered-off, disconnected, disabled), forbid direct L1-to-L2 or L2-to-L1 transitions
+      (requiring transition via L0), and show L3 entered from L0/L1/L2 on
+      disconnect/power-loss/disable and exiting to L0 via reset and enable. Table 1-2 confirms
+      low/full-speed idle signaling and ~0.6 mW link pull-up consumption for both L1 and L2, ~10 us
+      entry and ~70 us to 1 ms exit latencies for L1 versus ~3 ms entry and >30 ms exit for L2, and
+      no specification-mandated device VBUS draw limit in L1 versus <=500 uA or <=2.5 mA in L2.
+      Searched the full 29-page ECN for contrary state-transition rules; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  ext-token-and-subpid:
+    basis: f64626064a44706c4182b02ad18c27eac8234c5289cb2d4c922e4acf58290dc6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 5-7 (Section 2.1, Table 2-1 and footnote, Section
+      2.1.1, Figure 2-1, and Table 2-2). Table 2-1 overrides USB 2.0 Table 8-1 to assign Special
+      PID 0000B (MSb order, bit 0 sent first) to EXT. Section 2.1.1 and Figure 2-1 specify two
+      back-to-back 3-byte token packets (6 bytes total): EXT token (8-bit PID=0000B, 7-bit ADDR,
+      4-bit ENDP, 5-bit CRC5) followed by Extended Token (8-bit SubPID, 11-bit variable field,
+      5-bit CRC5 over the 11 bits). All 16 4-bit SubPID codes in Table 2-2 are accounted for (#103):
+      0011B LPM token, eight codes reserved for future use (0000B, 1011B, 0111B, 1111B, 0010B,
+      1010B, 1110B, 0110B), and seven base token PID codes forbidden from SubPID reuse (0001B,
+      1001B, 0101B, 1101B, 1000B, 0100B, 1100B). Searched the full ECN for contrary evidence; none
+      found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  lpm-token-and-hird-encoding:
+    basis: 81021161ae5a1368f321133717239dfb0ddeecb9775e63b30cf0ee3d923dabcb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 7-8 (Section 2.2.1, Figure 2-2, Table 2-3) and pp.
+      10-11 (Section 4.1). Figure 2-2 and Table 2-3 define the LPM token (SubPID 0011B) following
+      EXT and its 11-bit bmAttributes field: bits 3:0 bLinkState (0001B = L1 Sleep, 0000B and
+      0010B-1111B reserved), bits 7:4 HIRD, bit 8 bRemoteWake (1B enables remote wake on an
+      application-specific event, 0B disables it), and bits 10:9 reserved. Section 4.1 on pp. 10-11
+      confirms that the remote wake flag temporarily overrides the Chapter 9 Remote Wake feature
+      while in L1, and defines HIRD as a 4-bit encoding starting at 50 us for 0000B with 75 us
+      steps (0001B = 125 us, 0010B = 200 us, up to 1111B = 1.2 ms / 1200 us in Table 4-6). Searched
+      the full ECN for contrary evidence; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  lpm-transaction-handshakes:
+    basis: cfbe2317252444373c65b35d700dae07ae460810ef31bc0cb4656ba695e44e69
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf p. 4 (Section 1.1), p. 8 (Section 2.2.2, Figure 2-3),
+      pp. 10-11 (Section 4.1, Section 4.1.1, Figure 4-2), and p. 23 (Section 4.9 Table 4-6). All
+      handshake responses (ACK, NYET, STALL, or no handshake on token error or unsupported EXT),
+      retry bounds (up to 2 retries / 3 total attempts, retry for lost ACK sent before
+      TL1TokenRetry(min) = 8 us), device L1 transition window (8 us to 10 us after ACK), high-speed
+      to full-speed idle transition before TL1Residency(min) (50 us), and host restrictions (device
+      must be directly connected to the targeted downstream port; no split transaction in flight)
+      match the cited sections (#105 satisfied). The conflicting NYET typo in Section 4.8.2 (p. 22)
+      is explicitly documented in sibling fact lpm-ecn-internal-typos-and-omissions.
+    contrary_evidence: none-found
+    citation_precision: exact
+  bos-usb2-extension-descriptor:
+    basis: 92ba1edb55caed4a6098b4f7819232ceae1d142111f1c2f03b39e44ae5baada5
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf p. 9 (Section 3 and Table 3-1). Section 3 states that
+      devices supporting the BOS descriptor (defined in WUSB 1.0 Section 7.4.1) must report bcdUSB
+      >= 0201H in their Device Descriptor, and that the USB 2.0 Extension capability descriptor is
+      only available within a BOS descriptor set and cannot be accessed directly by GetDescriptor()
+      or SetDescriptor(). Table 3-1 defines the 7-byte layout: bLength (offset 0, 1 byte),
+      bDescriptorType (offset 1, 1 byte, DEVICE CAPABILITY), bDevCapabilityType (offset 2, 1 byte,
+      002H USB 2.0 EXTENSION), and bmAttributes (offset 3, 4-byte bitmap: bit 0 reserved 0, bit 1
+      LPM = 1 when LPM supported, bits 31:2 reserved 0). The TODO properly records that numeric BOS
+      and DEVICE CAPABILITY descriptor type constants reside in WUSB 1.0 Section 7.4.1.
+    contrary_evidence: none-found
+    citation_precision: exact
+  lpm-timing-parameters:
+    basis: 9ffb949cce0ec88772456ee19adc146c8b805922d6676bf58376f06a19537d4a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified all nine timing parameters and their bounds/tolerances against usb-2.0-lpm-ecn.pdf
+      pp. 12-13 (Section 4.2.1, Figure 4-3), pp. 14-15 (Section 4.2.2, Figure 4-6), and p. 23
+      (Section 4.9, Table 4-6): TL1Residency (50 us min, >50 us max), TL1TokenRetry (8 to 10 us),
+      TL1HubDrvResume1 (50 +/- 1 to 1200 +/- 1 us, Note 1 non-continuous 75 us steps per Section
+      4.1), TL1DevDrvResume (50 +/- 1 us min), TL1ExitDevRecovery (10 us min), TL1ExitLatency1 (60
+      to 1210 us), TL1ExitLatency2 (70 to 1000 us), TL1HubDrvResume2 (60 +/- 1 to 990 +/- 1 us),
+      and TL1HubReflect (implementation-dependent min, 48 us max, 1 us guard band on p. 13). Marked
+      citation_precision: imprecise because the third support locator (page: '23', section: '4.9')
+      specifies `figure: 4-6` instead of `table: 4-6` (Table 4-6 is on p. 23 in Section 4.9,
+      whereas Figure 4-6 is on p. 15 in Section 4.2.2, already covered by the second locator).
+    contrary_evidence: none-found
+    citation_precision: imprecise
+  hub-lpm-clock-and-repeater-rules:
+    basis: 98a05a7ec660977942e4728b40f0aad1c386520a8248cf5e2484958596231351
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 16-18 (Section 4.4, 4.4.1 L1Suspend, 4.4.2 L1Resume)
+      and pp. 20-22 (Section 4.8, 4.8.2 L1Suspended, 4.8.3 L1Resuming, 4.8.4 Restart_L1S). Confirm
+      50 us TL1Residency timer on entering upstream L1Suspend, >=64 kHz hub clock in L1, upstream
+      receiver providing K to repeater while normal signaling clock stabilizes in L1Resume,
+      disabled differential transmitter and FS terminations with HS status in L1Suspended, 4 ms
+      disconnect-detection suppression, TDDIS noise filter on K/SE0, L1Resuming entry on K >= 2.5
+      us when upstream receiver is not in L1Suspended (driving K for TL1HubDrvResume2), and
+      Restart_L1S 9 us window when upstream receiver is in L1Suspend (K >= TDDIS -> C_PORT_L1,
+      TransmitR, TrueRWU/GL1_Exit_P; SE0 >= TDDIS -> Disconnected; otherwise back to L1Suspended).
+      The TODO accurately scopes the unextracted state-machine diagrams/tables in Sections 4.3-4.7.
+    contrary_evidence: none-found
+    citation_precision: exact
+  hub-lpm-feature-selectors-and-status:
+    basis: 3f1b5fa94c51683bd92be1c139e34d2c68e06c4a9aea1023012b3d7f668b3f5d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 23-24 (Section 4.10, Table 4-7), pp. 25-27 (Section
+      4.10.2, Table 4-9, Section 4.10.2.1.1, Table 4-10, Section 4.10.2.3), and p. 29 (Section
+      4.10.4). Table 4-7 adds PORT_L1 (10) and C_PORT_L1 (23) and labels selector 2 PORT_SUSPEND
+      (L2). Table 4-9 and Section 4.10.2.1.1 define wPortStatus bit 5 (PORT_L1) and reserved bits
+      6..7 and 13..15 returning 0, set on SetandTestPortFeature(PORT_L1) with PORT_ENABLE set and
+      device ACK, and cleared on resume completion or when PORT_ENABLE is cleared. Table 4-10 and
+      Section 4.10.2.3 define wPortChange bit 5 (C_PORT_L1) and reserved bits 6..15 returning 0,
+      set on Resuming->SendEOR or Restart_L1S->TransmitR and cleared by ClearPortFeature(C_PORT_L1)
+      or in Powered-off. Section 4.10.4 forbids SetPortFeature on PORT_L1 or C_PORT_L1 (Request
+      Error). The TODO covers unchanged base USB 2.0 rows in Tables 4-7, 4-9 and 4-10.
+    contrary_evidence: none-found
+    citation_precision: exact
+  hub-set-and-test-port-feature:
+    basis: 8ab6cc0644f9026554ce5c715753ab486700f53df771381e7a7616b3533611e8
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf p. 10 (Section 4.1, Figure 4-1) and pp. 28-29 (Section
+      4.10.3, Table 4-11, Section 4.10.3.1). Confirm bmRequestType 10100011B, bRequest
+      SET_AND_TEST, wValue PORT_L1 (10), wLength 1, wIndex bitfields (bits 3..0 Port Number, 7..4
+      HIRD, 14..8 Device Address, 15 Remote Wake Enable), stopping traffic repetition by the next
+      microframe boundary after SETUP, NAKing DATA (IN) while LPM TE runs up to 3 attempts (initial
+      + 2 retries), 200 us DATA stage response bound (#105), all four Completion Code values (00H
+      Success, 01H Reserved, 10H NYET, 11H Timeout) (#103), functional no-op rules (already in L1
+      returns 00H Success; not in Enabled, Transmitting or L1 is functional no-op), Request Error
+      conditions, and undefined response when unconfigured.
+    contrary_evidence: none-found
+    citation_precision: exact
+  hub-clear-port-feature-l1:
+    basis: 72ea518db297971e52a9260a2d8b9516578efc0eede0c1d3a49b45595c82c583
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-lpm-ecn.pdf pp. 11-14 (Section 4.2 Rules 1 and 2, Section 4.2.1
+      policy statement, Table 4-1), pp. 14-15 (Section 4.2.2, Figure 4-5), and p. 24 (Section
+      4.10.1, Table 4-8). Section 4.10.1 and Table 4-8 confirm ClearPortFeature clears PORT_L1
+      (initiating L1 exit resume, or functional no-op if not in L1) and C_PORT_L1, with wIndex bits
+      3..0 Port, 7..4 HIRD (which must match the SetandTestPortFeature HIRD to the same device),
+      and 15..8 Selector. Section 4.2.2 requires one ClearPortFeature(PORT_L1) per link in the
+      hierarchy path. Section 4.2 Rule 2, p. 13 and Table 4-1 confirm that a hub waking from
+      upstream L1 or L2 broadcasts resume down all L0 downstream ports without recovering devices
+      on adjacent L0 ports, requiring host software to keep downstream ports at a power-savings
+      state equal to or deeper than the upstream port.
+    contrary_evidence: none-found
+    citation_precision: exact
+  connect-timing-redline-contradictions:
+    basis: d16a3013aaec504d0fef455acbe21b2fe2035e095a231762c49319e7daf5cf35
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified verbatim against usb-2.0-connect-timing-ecn.pdf pp. 1-2 (Summary of ECN Update and
+      Summary of ECN) and pp. 5-6 (Specification Changes). Page 1 explains the 45-minute 100 mA
+      trickle-charge provision of the prior ECN, introduces the 500 mA short-time provision, and
+      states that the original ECN text is preserved below with redlines. Page 2 retains the
+      unchanged 100 mA pre-connect text. Page 5 contains the exact uncleaned redline strings in
+      delta t1 ("shall reduce its current draw to ISUSP is allowed to draw up to five times IUNIT"),
+      delta t2 ("during this timegood batteries are allowed to draw up to ISUSP"), and delta t7
+      ("ISSUSP."), and page 6 sets TSVLD_CON_WKB to 2 minutes max in Table 7-14.
+    contrary_evidence: none-found
+    citation_precision: exact
+  iad-device-descriptor-class-migration:
+    basis: a4f3f7b79c56fccf875a317e5b19fc8fd201cc4b26fb8f6304dcf04f28213b87
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified against usb-2.0-iad-ecn.pdf p. 2 (Impact on Existing Peripherals and Systems:
+      Software Implications) and pp. 4-5 (Note under Table 9-Z in Section 9.X.Y). Both passages
+      confirm that older OS versions ignore IADs and cannot enumerate multi-function devices with
+      multiple interfaces per function, that the ECN strongly recommends placing the
+      Multi-interface Function Class codes in the Device Descriptor to trigger upgrade driver
+      installation, and that the numeric class codes are published on the USB-IF website rather
+      than in the ECN text (as captured in the TODO).
+    contrary_evidence: none-found
+    citation_precision: exact
+  lpm-ecn-internal-typos-and-omissions:
+    basis: 552539237b18570b79cac84f6b6f0f646138f2ae2405e1680f10dd98becd61c3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.6 (anthropic/claude-opus-4-6), subagent, USB 2.0 ECNs reader A
+    note: >-
+      Verified all four internal inconsistencies in usb-2.0-lpm-ecn.pdf: (1) Section 4.8.2 on p. 22
+      states "LPM TE will only return L1OK when the device responded with a NYET handshake",
+      contradicting Table 1-1 (p. 3), Section 4.1.1 (p. 11), Table 4-5 (p. 21) and Section 4.10.3.1
+      (p. 29); (2) Section 4.10.2.1.1 on p. 26 is titled "PORT_SUSPEND" and references "SendEOP"
+      and "Restart_S" while describing the PORT_L1 status bit; (3) Tables 4-8 (p. 24) and 4-11 (p.
+      28) assign wIndex bits 3..0 to the port number whereas Section 4.10.3 prose (p. 28) checks
+      wIndex[7..0]; and (4) Section 4.10.3 on p. 28 names bRequest SET_AND_TEST without a numeric
+      code and leaves a "`<<tbd>>`" placeholder for the LPM transaction field receiving HIRD. Marked
+      citation_precision: imprecise because the claim text cites "Section 4.1.1 (p. 11)" inline
+      while `support[0].at` omits `{page: '11', section: 4.1.1}` (it lists pp. 3, 20-22, 24, 26,
+      28-29). The TODO accurately notes that USB2-LPM-Errata-final.pdf is marked Confidential and
+      excluded from this public root.
+    contrary_evidence: none-found
+    citation_precision: imprecise

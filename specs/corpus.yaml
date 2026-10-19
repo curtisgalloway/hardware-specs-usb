@@ -50,11 +50,29 @@ documents:
   access: public
   subsystem: protocol
   disposition: spec:usb2
-- name: usb-2.0-ecns
-  title: USB 2.0 errata and engineering change notices (Connect Timing, LPM, IAD and others)
+- name: usb-2.0-connect-timing-ecn.pdf
+  title: 'USB 2.0 Engineering Change Notice: USB 2.0 Connect Timing Update'
+  sha256: 31528541e9d829b1401fd0c747829012c56e6d6d6b12d8f1591ff4cb6549b73b
   access: public
   subsystem: protocol
-  disposition: "planned: the ECNs in the USB 2.0 package, starting with Connect Timing and Link Power Management"
+  disposition: spec:usb2-ecns
+- name: usb-2.0-lpm-ecn.pdf
+  title: 'USB 2.0 Engineering Change Notice: Link Power Management Addendum'
+  sha256: 9774dc93323695b44c7781d2bc18bdd4dddefb936c185eea9fa792d92a3bd75d
+  access: public
+  subsystem: protocol
+  disposition: spec:usb2-ecns
+- name: usb-2.0-iad-ecn.pdf
+  title: 'USB 2.0 Engineering Change Notice: Interface Association Descriptors'
+  sha256: 494239252b46aed214ef4a22828c0a623b0ec0dac812ef249dc49a1d995c08a7
+  access: public
+  subsystem: protocol
+  disposition: spec:usb2-ecns
+- name: usb-2.0-lpm-errata.pdf
+  title: 'USB 2.0 Link Power Management Addendum Engineering Change Notice Errata'
+  access: public
+  subsystem: protocol
+  disposition: "excluded: pages in the USB 2.0 package are stamped Confidential although served publicly; a public root does not cite it"
 - name: usb-3.2
   title: Universal Serial Bus 3.2 Specification
   access: public
@@ -110,6 +128,10 @@ blocks:
   title: USB 2.0 hub class requests and port status
   subsystem: protocol
   disposition: spec:usb2#hub-port-status-bits
+- name: usb2-ecns
+  title: USB 2.0 ECNs (Connect Timing Update, Link Power Management Addendum, Interface Association Descriptors)
+  subsystem: protocol
+  disposition: spec:usb2-ecns
 - name: usb2-split-transactions
   title: USB 2.0 split transactions and transaction translator
   subsystem: protocol
