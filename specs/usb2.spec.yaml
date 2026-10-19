@@ -1,0 +1,633 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb2
+name: Universal Serial Bus 2.0 protocol and device framework
+triggers:
+- usb2
+- USB 2.0
+- USB device framework
+- USB standard requests
+- USB descriptors
+resources:
+  documents:
+  - name: usb-2.0.pdf
+    class: standard
+    title: Universal Serial Bus Specification
+    revision: Revision 2.0, April 27, 2000
+    url: https://www.usb.org/document-library/usb-20-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+    sha256: d39698a33486c399124af92bd02e4f978fd9a836b5cf4e52e6e4633eb1d89f61
+    pages: 650
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the USB 2.0 package as a zip without an account; the
+      cited bytes are usb_20.pdf inside it, the base specification of April 2000. The package
+      also holds errata and ECNs (Connect Timing, Link Power Management, Interface Association
+      Descriptor and others) that this spec does not cite. No page carries a confidentiality
+      marking; the promoters' copyright and disclaimer remain applicable and the bytes are not
+      redistributed. Locators are PDF page numbers, which are the printed page numbers plus 28
+      in the chapters (printed page 239 is PDF page 267).
+orientation: >-
+  Terms: the host owns the bus; a device exposes endpoints, and endpoint zero is the Default
+  Control Pipe every device has. A control transfer starts with an 8-byte Setup packet and may
+  have a Data stage before its Status stage. A descriptor is a data structure a device returns
+  to describe itself. A hub port is reset by driving SE0 on it. This spec records the parts of
+  the USB 2.0 specification a host or device driver acts on: device states, enumeration, the
+  standard requests and their codes, the standard descriptor layouts, timing limits, packet size
+  limits, PID codes and the hub class's requests and port status bits. Electrical and mechanical
+  requirements, split transactions, the transaction-translator and scheduling rules are out of
+  its scope so far. Descriptor layouts are written as prose claims because a kind ip spec
+  carries no structured layout payloads (driver-lab#164).
+facts:
+- id: device-states
+  section: standards
+  title: Visible device states
+  claim: >-
+    A USB device is in one of the visible states Attached, Powered, Default, Address, Configured
+    or Suspended. Once powered it must not respond to any bus transaction until it has received
+    a bus reset; after the reset it is in the Default state and answers at the default address.
+    The host then assigns a unique address (Address state), and a SetConfiguration() request
+    with a non-zero configuration value moves it to Configured, the only state in which its
+    function may be used. A device enters Suspended after it has seen no bus activity for 3 ms,
+    keeping its address and configuration, and also when the hub port it is attached to is
+    disabled.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['267', '269']
+      section: '9.1'
+      table: '9-1'
+    - pages: ['270', '271']
+      section: 9.1.1
+
+- id: enumeration-sequence
+  section: standards
+  title: How the host enumerates a newly attached device
+  claim: >-
+    When a device attaches to a powered port, the hub reports the change and the port is
+    disabled. The host waits at least 100 ms for the insertion to complete and power to
+    stabilize, then enables and resets the port; after reset the device is in the Default state,
+    may draw no more than 100 mA from VBUS, and answers at the default address. The host assigns
+    a unique address, reads the device descriptor to learn the default pipe's maximum packet
+    size, reads each configuration, and selects one with SetConfiguration(); only then may the
+    device draw the VBUS power its configuration descriptor states.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['271', '272']
+      section: 9.1.2
+
+- id: setup-packet-format
+  section: programming-model
+  title: The 8-byte Setup packet
+  claim: >-
+    Every Setup packet is eight bytes, little-endian: bmRequestType (offset 0), bRequest (1),
+    wValue (2, two bytes), wIndex (4, two bytes) and wLength (6, two bytes). In bmRequestType,
+    bit 7 is the data direction (0 host-to-device, 1 device-to-host; ignored when wLength is 0),
+    bits 6..5 the type (0 standard, 1 class, 2 vendor, 3 reserved) and bits 4..0 the recipient
+    (0 device, 1 interface, 2 endpoint, 3 other, 4..31 reserved). wLength is the number of bytes
+    in the Data stage, 0 meaning no Data stage; on an input request a device never returns more
+    than wLength bytes and may return fewer.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '276'
+      section: '9.3'
+      table: '9-2'
+    - page: '277'
+      section: 9.3.5
+    - page: '223'
+      section: '8.1'
+
+- id: windex-endpoint-interface
+  section: programming-model
+  title: wIndex when it names an endpoint or interface
+  claim: >-
+    When wIndex names an endpoint, bits 3..0 hold the endpoint number and bit 7 the direction (0
+    OUT, 1 IN), with bits 6..4 and 15..8 reserved and zero; for a control pipe the direction bit
+    should be 0, though a device may accept either. When wIndex names an interface, bits 7..0
+    hold the interface number and bits 15..8 are reserved and zero.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '277'
+      section: 9.3.4
+      figure: '9-2'
+    - page: '277'
+      figure: '9-3'
+
+- id: standard-request-codes
+  section: programming-model
+  title: Standard request codes and descriptor types
+  claim: >-
+    Standard requests (bmRequestType type 0) use these bRequest codes: GET_STATUS 0,
+    CLEAR_FEATURE 1, SET_FEATURE 3, SET_ADDRESS 5, GET_DESCRIPTOR 6, SET_DESCRIPTOR 7,
+    GET_CONFIGURATION 8, SET_CONFIGURATION 9, GET_INTERFACE 10, SET_INTERFACE 11 and SYNCH_FRAME
+    12; codes 2 and 4 are reserved. Descriptor type codes are DEVICE 1, CONFIGURATION 2, STRING
+    3, INTERFACE 4, ENDPOINT 5, DEVICE_QUALIFIER 6, OTHER_SPEED_CONFIGURATION 7 and
+    INTERFACE_POWER 8. Feature selectors are ENDPOINT_HALT 0 (endpoint), DEVICE_REMOTE_WAKEUP 1
+    and TEST_MODE 2 (device). Devices must respond to standard requests even before they have an
+    address or a configuration.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '278'
+      section: '9.4'
+      table: '9-3'
+    - page: '279'
+      table: '9-4'
+    - page: '279'
+      table: '9-5'
+    - page: '280'
+      table: '9-6'
+  todo:
+    check: document
+    text: >-
+      Table 9-3's per-request wValue, wIndex, wLength and Data columns (p. 278), the per-state
+      validity rules of sections 9.4.1 to 9.4.11 (pp. 280-288) and the Test Mode selectors of
+      Table 9-7 (p. 287) are not extracted.
+
+- id: request-errors
+  section: programming-model
+  title: How a device rejects a request
+  claim: >-
+    A request that is not defined for the device, is inappropriate for its current setting or
+    has incompatible values is a Request Error: the device returns STALL in the Data or Status
+    stage, preferably at the next Data stage. An unsupported or invalid request does not set the
+    Halt feature of the control pipe. If a device can no longer communicate through its Default
+    Control Pipe because of an error condition, it must be reset to restart the pipe.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '275'
+      section: 9.2.7
+    - page: '280'
+      table: '9-6'
+
+- id: get-status-data
+  section: programming-model
+  title: What GET_STATUS returns
+  claim: >-
+    GET_STATUS returns two bytes. To a device: bit 0 Self Powered (1 when currently
+    self-powered, not changeable by Set/ClearFeature) and bit 1 Remote Wakeup (1 when remote
+    wakeup is enabled; cleared by a device reset and changed with the DEVICE_REMOTE_WAKEUP
+    feature). To an interface: all bits reserved and zero. To an endpoint: bit 0 Halt. The Halt
+    feature is required for every interrupt and bulk endpoint. For an endpoint that uses data
+    toggle, ClearFeature(ENDPOINT_HALT) always reinitializes the toggle to DATA0, whether or not
+    the endpoint was halted, and the Halt feature is cleared by SetConfiguration() or
+    SetInterface() even when the configuration or interface does not change.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['282', '283']
+      section: 9.4.5
+      figure: '9-4'
+    - page: '283'
+      figure: '9-5'
+    - page: '284'
+      figure: '9-6'
+
+- id: configuration-resets-endpoint-state
+  section: programming-model
+  title: Configuring resets endpoint state
+  claim: >-
+    Configuring a device or changing an interface's alternate setting sets the status and
+    configuration values of every endpoint in the affected interfaces to their defaults,
+    including resetting the data toggle of any endpoint that uses data toggles to DATA0. The
+    default alternate setting of every interface when a device is first configured is zero.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '271'
+      section: 9.1.1.5
+    - pages: ['272', '273']
+      section: 9.2.3
+
+- id: device-descriptor
+  section: programming-model
+  title: Device descriptor layout
+  claim: >-
+    The device descriptor is 18 bytes: bLength (offset 0, 1 byte), bDescriptorType (1, 1 byte,
+    DEVICE), bcdUSB (2, 2 bytes, BCD, so 2.10 is 210H), bDeviceClass (4), bDeviceSubClass (5),
+    bDeviceProtocol (6), bMaxPacketSize0 (7, the maximum packet size of endpoint zero: only 8,
+    16, 32 or 64 are valid; it must be 64 when the device operates at high speed, and a
+    low-speed control endpoint's size is 8), idVendor (8, 2 bytes), idProduct (10, 2 bytes),
+    bcdDevice (12, 2 bytes, BCD), iManufacturer (14), iProduct (15), iSerialNumber (16), each a
+    string descriptor index, and bNumConfigurations (17). A bDeviceClass of 0 means each
+    interface carries its own class information; FFH means a vendor-specific class.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['289', '290']
+      section: 9.6.1
+      table: '9-8'
+    - page: '291'
+      table: '9-8'
+    - page: '67'
+      section: 5.5.3
+  todo:
+    check: document
+    text: >-
+      The rules for bDeviceSubClass and bDeviceProtocol values (zero and FFH meanings, USB-IF
+      assignment; Table 9-8, pp. 290-291) are not extracted.
+
+- id: configuration-descriptor
+  section: programming-model
+  title: Configuration descriptor layout
+  claim: >-
+    The configuration descriptor is 9 bytes: bLength (0), bDescriptorType (1, CONFIGURATION),
+    wTotalLength (2, 2 bytes: the combined length of the configuration and every interface,
+    endpoint and class- or vendor-specific descriptor returned with it), bNumInterfaces (4),
+    bConfigurationValue (5, the argument SetConfiguration() takes to select it), iConfiguration
+    (6), bmAttributes (7: bit 7 reserved and set to one, bit 6 self-powered, bit 5 remote
+    wakeup, bits 4..0 reserved and zero) and bMaxPower (8, the maximum bus current when fully
+    operational, in 2 mA units, so 50 means 100 mA). A GET_DESCRIPTOR request for a
+    configuration returns the configuration descriptor followed by its interface and endpoint
+    descriptors, each interface's endpoints after its interface descriptor, and class- or
+    vendor-specific descriptors after the standard descriptor they extend.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['292', '293']
+      section: 9.6.3
+      table: '9-10'
+    - page: '294'
+      table: '9-10'
+    - pages: ['281', '282']
+      section: 9.4.3
+
+- id: interface-descriptor
+  section: programming-model
+  title: Interface descriptor layout
+  claim: >-
+    The interface descriptor is 9 bytes: bLength (0), bDescriptorType (1, INTERFACE),
+    bInterfaceNumber (2, zero-based), bAlternateSetting (3), bNumEndpoints (4, endpoints used by
+    this interface excluding endpoint zero), bInterfaceClass (5; 0 reserved, FFH
+    vendor-specific), bInterfaceSubClass (6), bInterfaceProtocol (7) and iInterface (8). It is
+    returned only as part of a configuration, never by its own GET_DESCRIPTOR; each alternate
+    setting of an interface has its own interface descriptor, with the same bInterfaceNumber,
+    followed by its endpoint descriptors.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '295'
+      section: 9.6.5
+    - page: '296'
+      table: '9-12'
+    - page: '297'
+      table: '9-12'
+
+- id: endpoint-descriptor
+  section: programming-model
+  title: Endpoint descriptor layout
+  claim: >-
+    The endpoint descriptor is 7 bytes: bLength (0), bDescriptorType (1, ENDPOINT),
+    bEndpointAddress (2: bits 3..0 endpoint number, bit 7 direction, 0 OUT and 1 IN, ignored for
+    control endpoints), bmAttributes (3: bits 1..0 transfer type, 00 control, 01 isochronous, 10
+    bulk, 11 interrupt; for isochronous endpoints bits 3..2 synchronization type and bits 5..4
+    usage type, otherwise reserved), wMaxPacketSize (4, 2 bytes: bits 10..0 the maximum packet
+    size, and for high-speed isochronous and interrupt endpoints bits 12..11 the number of
+    additional transactions per microframe, 0 to 2) and bInterval (6). There is never an
+    endpoint descriptor for endpoint zero.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '297'
+      section: 9.6.6
+      table: '9-13'
+    - page: '298'
+      table: '9-13'
+    - page: '299'
+      table: '9-13'
+  todo:
+    check: document
+    text: >-
+      The synchronization and usage type encodings (Table 9-13, p. 298) and the wMaxPacketSize
+      ranges allowed for 2 and 3 transactions per microframe (Table 9-14, p. 301) are not
+      extracted.
+
+- id: binterval-encoding
+  section: programming-model
+  title: How bInterval is encoded
+  claim: >-
+    bInterval is in frames (1 ms) or microframes (125 us) according to the device's operating
+    speed. For full- and high-speed isochronous endpoints and for high-speed interrupt endpoints
+    it is 1 to 16 and gives a period of 2^(bInterval-1) units, so 4 means 8. For a full-speed
+    interrupt endpoint it is the period itself, 1 to 255 frames; a low-speed interrupt endpoint
+    may specify only 10 to 255 ms. For interrupt endpoints the value is the desired bus access
+    period. For high-speed bulk and control OUT endpoints it is the maximum NAK rate, 0 to 255
+    (0 meaning the endpoint never NAKs), used only for compliance.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '299'
+      table: '9-13'
+    - page: '301'
+    - pages: ['77', '79']
+      section: 5.7.4
+
+- id: string-descriptors
+  section: programming-model
+  title: String descriptors
+  claim: >-
+    String descriptors are optional; a device without them sets every string index in its other
+    descriptors to zero and does not return a LANGID array. String index zero returns the array
+    of supported two-byte LANGID codes, whose size in bytes is bLength minus 2. Other string
+    descriptors hold a UNICODE string of bLength minus 2 bytes. Neither is NULL-terminated, and
+    a request for a string names the language by its LANGID in wIndex.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '301'
+      section: 9.6.7
+      table: '9-15'
+    - page: '302'
+      table: '9-16'
+    - page: '278'
+      table: '9-3'
+
+- id: speed-dependent-descriptors
+  section: programming-model
+  title: Other-speed descriptors of a high-speed device
+  claim: >-
+    A high-speed capable device returns descriptors valid for its current speed and reports its
+    other speed through the device_qualifier descriptor (type 6, 10 bytes) and
+    other_speed_configuration descriptors (type 7, same layout as a configuration descriptor).
+    Such a device sets bcdUSB to 0200H. A full-speed-only device whose bcdUSB is 0200H answers a
+    device_qualifier request with a Request Error, and the host must not request an
+    other_speed_configuration until it has read the device_qualifier successfully. A device
+    whose bcdUSB is below 0200H should not be sent the other-speed requests.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '275'
+      section: 9.2.6.6
+    - page: '292'
+      section: 9.6.2
+      table: '9-9'
+    - pages: ['294', '295']
+      section: 9.6.4
+      table: '9-11'
+    - page: '279'
+      table: '9-5'
+
+- id: request-timing
+  section: programming-model
+  title: Time limits for device requests
+  claim: >-
+    After a reset or resume the host allows a 10 ms recovery interval before expecting the
+    device to respond, measured from the end of the reset or of the resume signaling. A device
+    completes a SetAddress() request, through its Status stage, within 50 ms and then has a 2 ms
+    recovery interval, after which it accepts Setup packets at the new address and ignores the
+    old one. A standard request with no Data stage completes within 50 ms. With a Data stage to
+    the host, the device returns the first data packet within 500 ms of the request, each later
+    packet within 500 ms of the previous one, and completes the Status stage within 50 ms of the
+    last. With a Data stage to the device the 5-second limit applies, on the assumption that the
+    host sends the data as fast as the device can accept it; delays the host adds between
+    packets extend the time allowed. Class-specific requests follow the same limits unless the
+    class document exempts a request.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['273', '274']
+      section: 9.2.6
+    - page: '275'
+      section: 9.2.6.5
+
+- id: reset-and-resume-timing
+  section: programming-model
+  title: Reset, resume and attach timing
+  claim: >-
+    A hub drives reset (SE0) on a downstream port for TDRST, 10 to 20 ms when requested through
+    SetPortFeature(PORT_RESET). Resets from a root port last at least TDRSTR, 50 ms in total,
+    which may be built from segments of at least TDRST each separated by less than TRHRSI, 3 ms.
+    The system software waits TATTDB, at least 100 ms, after a connect is detected before
+    resetting the device (restarting the interval if it disconnects), allows TRSTRCY, 10 ms, of
+    reset recovery before the device must accept SetAddress(), and allows TRSMRCY, 10 ms, of
+    resume recovery after resume signaling, which the host or controlling hub drives downstream
+    for TDRSMDN, at least 20 ms.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '214'
+      table: '7-13'
+    - page: '216'
+      table: '7-14'
+    - page: '181'
+      section: 7.1.7.5
+    - pages: ['177', '179']
+      section: 7.1.7.3
+    - page: '184'
+  todo:
+    check: document
+    text: >-
+      TSIGATT and the device's connect timing (Figure 7-29 and Table 7-14, pp. 178 and 216) are
+      not extracted: the Connect Timing ECN in the same USB-IF package changes them for devices
+      with dead batteries and is not cited here.
+
+- id: control-packet-sizes
+  section: programming-model
+  title: Maximum packet sizes by transfer type and speed
+  claim: >-
+    A control endpoint's maximum data payload is 8 bytes at low speed, 8, 16, 32 or 64 bytes at
+    full speed and 64 bytes at high speed; a Setup packet is always 8 bytes. A bulk endpoint's
+    is 8, 16, 32 or 64 bytes at full speed and 512 bytes at high speed, and a low-speed device
+    has no bulk endpoints. An interrupt endpoint's is at most 8 bytes at low speed, 64 at full
+    speed and 1024 at high speed. A full-speed isochronous endpoint's is at most 1023 bytes. To
+    learn the Default Control Pipe's size, the host reads the first eight bytes of the device
+    descriptor, which the device always returns in a single packet, and takes bMaxPacketSize0
+    from byte 7.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '67'
+      section: 5.5.3
+    - page: '81'
+      section: 5.8.3
+    - page: '76'
+      section: 5.7.3
+    - page: '72'
+      section: 5.6.3
+  todo:
+    check: document
+    text: >-
+      High-speed isochronous payload limits and high-bandwidth endpoints (sections 5.6.3 and
+      5.9, pp. 72-76 and 84) and the host-controller support requirements in each section are
+      not extracted.
+
+- id: pid-codes
+  section: programming-model
+  title: Packet identifier (PID) codes
+  claim: >-
+    PID<3:0> values (most significant bit first; bit 0 is sent first): tokens OUT 0001B, IN
+    1001B, SOF 0101B, SETUP 1101B; data DATA0 0011B, DATA1 1011B, DATA2 0111B, MDATA 1111B;
+    handshakes ACK 0010B, NAK 1010B, STALL 1110B, NYET 0110B; special PRE 1100B (token), ERR
+    1100B (split handshake, reusing PRE's value), SPLIT 1000B, PING 0100B; 0000B is reserved. A
+    function that receives a valid PID for a transaction type or direction it does not support
+    must not respond.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['223', '224']
+      section: 8.3.1
+      table: '8-1'
+
+- id: hub-class-requests
+  section: programming-model
+  title: Hub class request codes and feature selectors
+  claim: >-
+    Hub class requests use bmRequestType 00100000B or 10100000B for the hub and 00100011B or
+    10100011B for a port, with bRequest codes GET_STATUS 0, CLEAR_FEATURE 1, SET_FEATURE 3,
+    GET_DESCRIPTOR 6, SET_DESCRIPTOR 7, CLEAR_TT_BUFFER 8, RESET_TT 9, GET_TT_STATE 10 and
+    STOP_TT 11. Port feature selectors are PORT_CONNECTION 0, PORT_ENABLE 1, PORT_SUSPEND 2,
+    PORT_OVER_CURRENT 3, PORT_RESET 4, PORT_POWER 8, PORT_LOW_SPEED 9, C_PORT_CONNECTION 16,
+    C_PORT_ENABLE 17, C_PORT_SUSPEND 18, C_PORT_OVER_CURRENT 19, C_PORT_RESET 20, PORT_TEST 21
+    and PORT_INDICATOR 22; hub feature selectors are C_HUB_LOCAL_POWER 0 and C_HUB_OVER_CURRENT
+    1. GetPortStatus returns four bytes, wPortStatus then wPortChange. Every hub class request
+    except SetHubDescriptor() is mandatory.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '448'
+      section: 11.24.2
+      table: '11-15'
+    - page: '449'
+      table: '11-16'
+    - page: '449'
+      table: '11-17'
+    - page: '450'
+      table: '11-17'
+    - page: '454'
+
+- id: hub-port-status-bits
+  section: programming-model
+  title: Hub port status and change bits
+  claim: >-
+    wPortStatus: bit 0 current connect status, 1 port enabled, 2 suspended (or resuming), 3
+    over-current, 4 reset signaling asserted, 8 port power (not in the Powered-off state), 9
+    low-speed device attached, 10 high-speed device attached (bits 9 and 10 have meaning only
+    while the port is enabled; with bit 9 at 0, bit 10 at 0 means a full-speed device), 11 port
+    test mode, 12 port indicator under software control; bits 5..7 and 13..15 are reserved.
+    wPortChange: bit 0 connect status change, 1 port enable/disable change, 2 suspend change
+    (resume complete), 3 over-current indicator change, 4 reset change (reset complete); bits
+    5..15 are reserved. A port can be enabled only by software, and is disabled by a fault such
+    as a disconnect or by software.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '455'
+      section: 11.24.2.7.1
+      table: '11-21'
+    - page: '459'
+      section: 11.24.2.7.2
+      table: '11-22'
+    - page: '457'
+      section: 11.24.2.7.1.7
+  todo:
+    check: document
+    text: >-
+      The detailed set and clear conditions of each wPortStatus and wPortChange bit (Tables
+      11-21 and 11-22, pp. 455-459) and the hub status bits of Tables 11-19 and 11-20 are not
+      extracted.
+
+- id: power-budget
+  section: standards
+  title: Bus power before and after configuration
+  claim: >-
+    A device draws no more than one unit load from VBUS until it is configured, and after reset
+    no more than 100 mA; depending on the port, it may draw up to five unit loads once
+    configured, as its configuration descriptor's bMaxPower states. Host software does not
+    select a configuration whose power requirement exceeds what the port can supply. A device
+    that was self-powered with a configuration needing more than 100 mA returns to the Address
+    state if it switches to bus power.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '273'
+      section: 9.2.5.1
+    - pages: ['271', '272']
+      section: 9.1.2
+    - page: '270'
+      section: 9.1.1.2
+
+- id: debounce-and-recovery-table-columns
+  section: gotchas
+  title: Table 7-14 lists two host-guaranteed minimums under "Max"
+  claim: >-
+    Table 7-14 lists TATTDB (100 ms) and TRSTRCY (10 ms) in its Max column, but the text of
+    sections 7.1.7.3 and 7.1.7.5 defines both as minimums the USB system software provides: a
+    debounce interval with a minimum duration of 100 ms, and a guaranteed minimum of 10 ms for
+    reset recovery.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '216'
+      table: '7-14'
+    - pages: ['177', '179']
+      section: 7.1.7.3
+    - page: '181'
+      section: 7.1.7.5
+
+- id: max-packet-size-from-first-read
+  section: gotchas
+  title: Read eight bytes of the device descriptor first
+  claim: >-
+    Before the host knows the default pipe's maximum packet size it reads only the first eight
+    bytes of the device descriptor; the device always returns at least those bytes in one
+    packet, and bMaxPacketSize0 is byte 7. The host then allows the correct size for all later
+    transactions. Endpoint zero may be as small as 8 bytes at low or full speed.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '67'
+      section: 5.5.3
+    - page: '291'
+      table: '9-8'
+
+- id: halt-clear-resets-toggle
+  section: gotchas
+  title: Clearing Halt always resets the data toggle
+  claim: >-
+    For an endpoint that uses data toggle, ClearFeature(ENDPOINT_HALT) always reinitializes the
+    toggle to DATA0, whether or not the endpoint was halted. SetConfiguration() and
+    SetInterface() clear the Halt feature even when they select the configuration or interface
+    already in use, and configuring a device or changing an alternate setting resets the data
+    toggles of the affected endpoints to DATA0.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['282', '284']
+      section: 9.4.5
+    - page: '271'
+      section: 9.1.1.5
