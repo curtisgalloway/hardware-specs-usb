@@ -1,0 +1,1074 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: ehci
+name: Enhanced Host Controller Interface (EHCI) for USB 2.0
+triggers:
+- ehci
+- eHC
+- Enhanced Host Controller Interface
+- USB 2.0 host controller interface
+resources:
+  documents:
+  - name: ehci-1.0.pdf
+    class: standard
+    title: Enhanced Host Controller Interface Specification for Universal Serial Bus
+    revision: Revision 1.0, March 12, 2002
+    url: https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/ehci-specification-for-usb.pdf
+    retrieval:
+    - url: https://web.archive.org/web/20240000000000id_/https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/ehci-specification-for-usb.pdf
+    sha256: dc76e77870930617dc0b2c8195aff6073f652d593f7b90a47dd0f22d3329c5e1
+    pages: 155
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      Intel published the specification publicly at its technical-specifications URL, with an
+      archived copy on the Internet Archive. No page carries a confidentiality marking; Intel's
+      copyright and disclaimer notices remain applicable and the document bytes are not
+      redistributed. Locators use PDF page numbers, which equal the printed page numbers plus 10
+      in the numbered chapters and appendices (printed page 1 is PDF page 11).
+orientation: >-
+  Terms: the eHC is the high-speed USB 2.0 host controller hardware and EHCI its register and
+  shared-memory schedule interface; a cHC is an optional USB 1.1 companion host controller (UHCI
+  or OHCI) that services full- and low-speed devices attached directly to the root ports. Base
+  means the start of the controller's memory-mapped I/O register space, and Operational Base means
+  Base + CAPLENGTH. An iTD (Isochronous Transfer Descriptor) handles high-speed isochronous
+  transfers, an siTD (Split-Transaction Isochronous Transfer Descriptor) handles full-speed
+  isochronous transfers through a USB 2.0 hub Transaction Translator, and a QH (Queue Head) paired
+  with qTDs (Queue Element Transfer Descriptors) handles control, bulk and interrupt transfers.
+  This spec records the generic EHCI 1.0 programming model; SoC-specific placement, clocks,
+  integrated transaction translators and quirks belong in the SoC spec that names `ehci` in
+  `instances[].ip`.
+facts:
+- id: interface-and-companion-architecture
+  section: standards
+  title: EHCI scope and companion host controller architecture
+  claim: >-
+    The EHCI specification defines the register-level and shared-memory schedule interface for a
+    USB 2.0 high-speed host controller; where it conflicts with the USB 2.0 specification, the
+    USB 2.0 specification takes precedence. A USB 2.0 host controller consists of one high-speed
+    EHCI controller and zero or more USB 1.1 companion host controllers (cHCs, such as UHCI or
+    OHCI) that manage full- and low-speed devices connected to the root ports. The EHCI controller
+    cannot work directly with a full- or low-speed device on a root port: if an implementation has
+    no companion controllers (HCSPARAMS N_CC is 0), either a high-speed device (such as a USB 2.0
+    hub) must be permanently attached to each root port used, or any full- or low-speed device
+    attached to a root port will fail the high-speed chirp during reset and leave the port
+    disabled. On a PCI implementation that includes companion controllers, the USB 2.0 host
+    controller must be a multi-function PCI device whose companion controller function numbers are
+    less than the EHCI controller's function number; if the PCI device contains only an EHCI
+    controller (no companion controllers or other PCI functions), the EHCI controller must be
+    function zero.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '11'
+      section: '1'
+    - pages: ['12', '14']
+      section: '1.2'
+      figure: '1-2'
+    - page: '24'
+      section: 2.2.3
+      table: '2-6'
+    - pages: ['64', '65']
+      section: '4.2'
+
+- id: pci-configuration-registers
+  section: standards
+  title: PCI configuration space registers (CLASSC, USBBASE, SBRN, FLADJ, PORTWAKECAP)
+  claim: >-
+    When implemented as a PCI device, the controller's PCI configuration space (Table 2-2)
+    provides CLASSC at offset 09h-0Bh (24-bit read-only value 0C0320h: Base Class 0Ch Serial Bus
+    controller, Sub-Class 03h USB Host Controller, Programming Interface 20h USB 2.0 EHCI),
+    USBBASE at 10h-13h (the 32-bit Base Address Register for the DWord-aligned MMIO register
+    space, with bits 31:8 as the R/W base address, bits 7:3 and bit 0 read-only 0, and bits 2:1
+    Type set to 00b for 32-bit addressing space, recommended, or 10b for 64-bit addressing space),
+    SBRN at 60h (8-bit read-only Serial Bus Release Number, 20h for USB 2.0), FLADJ at 61h in the
+    auxiliary power well (8-bit R/W Frame Length Adjustment, default 20h = 32 decimal, bits 7:6
+    reserved 0, bits 5:0 adjusting the SOF micro-frame cycle time to 59488 + FLADJ high-speed bit
+    times in 16-bit-time steps so 20h yields 60000 bit times; modified only when USBSTS HCHalted
+    is 1), and the optional 16-bit PORTWAKECAP at 62h-63h in the auxiliary power well (an
+    informational wake policy mask where bit 0 = 1 indicates the register is implemented and bits
+    15:1 correspond to physical ports 15:1 without affecting hardware operation). PCI
+    implementations must also implement the PCI Power Management interface (Appendix A), where D0,
+    D3hot and D3cold are required and D1 and D2 are optional, and software must place all enabled
+    downstream ports into Suspend or Disabled before leaving D0.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '18'
+      section: '2.1'
+      table: '2-2'
+    - page: '19'
+      section: 2.1.2
+    - page: '19'
+      section: 2.1.3
+    - page: '19'
+      section: 2.1.4
+    - page: '20'
+      section: 2.1.5
+    - page: '21'
+      section: 2.1.6
+    - pages: ['135', '137']
+      section: A.1
+      table: 'A-3'
+  todo:
+    check: document
+    text: >-
+      The PCI Power Management PME# assertion rules, Aux_Current reporting, and per-state
+      functional and wake-up characteristics (Appendix A, Table A-4, pp. 135-137) are not
+      extracted.
+
+- id: capability-registers
+  section: programming-model
+  title: Capability registers (CAPLENGTH, HCIVERSION, HCSPARAMS, HCCPARAMS, HCSP-PORTROUTE)
+  claim: >-
+    The read-only capability registers start at MMIO Base (offset 00h): CAPLENGTH at 00h (1 byte,
+    added to Base to find the beginning of the Operational Register Space), Reserved at 01h
+    (1 byte), HCIVERSION at 02h (2 bytes, BCD encoding of the EHCI revision, default 0100h for
+    1.0, with major revision in the high byte and minor in the low byte), HCSPARAMS at 04h
+    (4 bytes), HCCPARAMS at 08h (4 bytes) and the optional HCSP-PORTROUTE at 0Ch (60 bits). In
+    HCSPARAMS (Table 2-6), bits 3:0 N_PORTS give the number of physical downstream ports (valid
+    range 1h to Fh; 0 is undefined), bit 4 PPC indicates whether ports have port power switches
+    (1) or hard-wired power (0), bit 7 Port Routing Rules selects how ports map to companion
+    controllers, bits 11:8 N_PCC give the number of ports supported per companion controller, bits
+    15:12 N_CC give the number of companion controllers (0 means none and no port-ownership
+    hand-off), bit 16 P_INDICATOR indicates port indicator control support in PORTSC, and bits
+    23:20 Debug Port Number give the 1-based port number of the optional debug port (0 if none,
+    and never greater than N_PORTS). When Port Routing Rules is 0, the first N_PCC ports route to
+    the lowest-numbered function companion controller, the next N_PCC to the next lowest, and so
+    on; when it is 1, HCSP-PORTROUTE is a 15-element 4-bit nibble array whose first N_PORTS
+    elements (PORTROUTE[0] for port 1, etc.) explicitly name the companion controller for each
+    port (0 for lowest-numbered function, 1 for next lowest, and so on). In HCCPARAMS (Table 2-7),
+    bit 0 is the 64-bit Addressing Capability (0 = 32-bit address memory pointers in schedule data
+    structures, 1 = 64-bit data structures in Appendix B), bit 1 is the Programmable Frame List
+    Flag (0 = mandatory 1024-element frame list and RO 00b Frame List Size in USBCMD; 1 = software
+    may select 1024, 512 or 256 elements via USBCMD), bit 2 is the Asynchronous Schedule Park
+    Capability, bits 7:4 give the Isochronous Scheduling Threshold, and bits 15:8 EECP give the
+    PCI configuration space offset of the first EHCI extended capability (00h if none, or at least
+    40h when implemented).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '23'
+      section: '2.2'
+      table: '2-5'
+    - page: '23'
+      section: 2.2.1
+    - page: '24'
+      section: 2.2.2
+    - pages: ['24', '25']
+      section: 2.2.3
+      table: '2-6'
+    - pages: ['25', '26']
+      section: 2.2.4
+      table: '2-7'
+    - page: '26'
+      section: 2.2.5
+
+- id: operational-register-map
+  section: programming-model
+  title: Operational register offsets, access width and power wells
+  claim: >-
+    The operational registers start at Operational Base (Base + CAPLENGTH, DWord-aligned), are all
+    32 bits in length, and should be read and written using only DWord accesses; host controllers
+    are not required to support exclusive-access mechanisms such as PCI LOCK to the MMIO space
+    (using them yields undefined results), and software should preserve reserved bits when writing
+    modifiable registers. Operational offsets 00h to 3Fh reside in the core power well (initialized
+    to defaults on core hardware reset, HCRESET = 1, or a PCI Power Management D3hot-to-D0
+    transition): USBCMD at 00h, USBSTS at 04h, USBINTR at 08h, FRINDEX at 0Ch, CTRLDSSEGMENT at
+    10h, PERIODICLISTBASE at 14h, ASYNCLISTADDR at 18h, and Reserved at 1Ch-3Fh. Offsets from 40h
+    to the end of the register space reside in the auxiliary power well (initialized to defaults
+    only on initial auxiliary power-up or HCRESET = 1, and retained across D3hot-to-D0
+    transitions): CONFIGFLAG at 40h and PORTSC(1..N_PORTS) at 44h + 4*(Port Number - 1) for
+    1-based Port Number 1 to N_PORTS.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['17', '18']
+      section: '2'
+      table: '2-1'
+    - page: '27'
+      section: '2.3'
+      table: '2-8'
+    - page: '35'
+      section: 2.3.8
+      table: '2-15'
+    - page: '36'
+      section: 2.3.9
+    - page: '136'
+      section: A.1.1
+
+- id: usbcmd-control-fields
+  section: programming-model
+  title: USBCMD command, schedule enables, park mode and interrupt threshold
+  claim: >-
+    USBCMD (Operational Base + 00h, default 00080000h, or 00080B00h when HCCPARAMS Asynchronous
+    Schedule Park Capability is 1) has bit 0 Run/Stop (1 = Run, 0 = Stop), bit 1 Host Controller
+    Reset (HCRESET), bits 3:2 Frame List Size (00b = 1024 elements/4096 bytes default, 01b = 512
+    elements/2048 bytes, 10b = 256 elements/1024 bytes, 11b reserved; R/W only when HCCPARAMS
+    Programmable Frame List Flag is 1, otherwise RO), bit 4 Periodic Schedule Enable (0 = skip,
+    1 = use PERIODICLISTBASE), bit 5 Asynchronous Schedule Enable (0 = skip, 1 = use
+    ASYNCLISTADDR), bit 6 Interrupt on Async Advance Doorbell, and bit 7 optional Light Host
+    Controller Reset (resets the controller without affecting port state, PORTSC or CONFIGFLAG CF;
+    reads 1 while in progress and 0 when complete or unimplemented). When HCCPARAMS Asynchronous
+    Schedule Park Capability is 1, bit 11 Asynchronous Schedule Park Mode Enable (default 1b, R/W;
+    otherwise 0b, RO) and bits 9:8 Asynchronous Schedule Park Mode Count (default 3h, R/W, valid
+    1h to 3h; otherwise 0, RO; writing 0 to Park Mode Count while Park Mode Enable is 1 yields
+    undefined behavior) allow the controller to execute up to Park Mode Count consecutive bus
+    transactions from a high-speed queue head in the asynchronous schedule before continuing
+    horizontal traversal (park mode is never applied to full- or low-speed queue heads or to the
+    periodic schedule). Bits 23:16 Interrupt Threshold Control (default 08h = 8 micro-frames/1 ms;
+    valid values 01h, 02h, 04h, 08h, 10h, 20h and 40h for 1, 2, 4, 8, 16, 32 and 64 micro-frames,
+    with 00h reserved and any other value undefined) select the maximum rate at which the host
+    controller issues transaction-based interrupts and must not be modified while USBSTS HCHalted
+    is 0.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['28', '30']
+      section: 2.3.1
+      table: '2-9'
+    - pages: ['94', '96']
+      section: 4.10.3.2
+      table: '4-10'
+  todo:
+    check: document
+    text: >-
+      The per-PID and per-handshake Park Mode continuation table (Table 4-10, pp. 95-96) is not
+      extracted.
+
+- id: usbsts-and-usbintr
+  section: programming-model
+  title: Status and interrupt enable registers (USBSTS and USBINTR)
+  claim: >-
+    USBSTS (Operational Base + 04h, default 00001000h) has four read-only status bits in bits
+    15:12—bit 15 Asynchronous Schedule Status (1 = enabled, 0 = disabled), bit 14 Periodic
+    Schedule Status (1 = enabled, 0 = disabled), bit 13 Reclamation (0 = default, used to detect
+    an empty asynchronous schedule) and bit 12 HCHalted (1 = default; 0 whenever Run/Stop is 1,
+    set to 1 after the controller has stopped)—and six R/WC interrupt status bits in bits 5:0
+    cleared by writing 1: bit 5 Interrupt on Async Advance, bit 4 Host System Error, bit 3 Frame
+    List Rollover, bit 2 Port Change Detect, bit 1 USB Error Interrupt (USBERRINT) and bit 0 USB
+    Interrupt (USBINT, set when a TD/qTD with IOC = 1 is retired or when a short packet is
+    detected on an IN queue head). USBINTR (Operational Base + 08h, default 00000000h) holds the
+    matching R/W interrupt enable bits 5:0 (1 = enabled, 0 = disabled); disabled sources still
+    appear in USBSTS for polling, and clearing an enable bit in USBINTR is not required to
+    de-assert a currently active interrupt, so software must acknowledge interrupts by writing 1s
+    to the USBSTS status bits. Interrupts for USBINT (bit 0), USBERRINT (bit 1) and Interrupt on
+    Async Advance (bit 5) are deferred to the next interrupt threshold interval, whereas Port
+    Change Detect (bit 2), Frame List Rollover (bit 3) and Host System Error (bit 4) are signaled
+    immediately without waiting for the interrupt threshold. When a Host System Error occurs (such
+    as a PCI Parity error, Master Abort or Target Abort), the controller clears USBCMD Run/Stop to
+    0, sets USBSTS Host System Error and HCHalted to 1, and software must reset the controller via
+    USBCMD HCRESET before re-initializing and restarting it.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['31', '32']
+      section: 2.3.2
+      table: '2-10'
+    - pages: ['32', '33']
+      section: 2.3.3
+      table: '2-11'
+    - pages: ['125', '127']
+      section: '4.15'
+      table: '4-18'
+    - pages: ['127', '129']
+      section: 4.15.2.4
+      table: '4-19'
+  todo:
+    check: document
+    text: >-
+      The per-cycle-type Host System Error fatality matrix (Table 4-19, p. 128) is not extracted.
+
+- id: initialization-reset-and-halt
+  section: programming-model
+  title: Host controller reset, initialization sequence, start and halt
+  claim: >-
+    Writing 1 to USBCMD bit 1 HCRESET resets the controller's internal pipelines, timers,
+    counters, state machines and all operational registers (including port registers, port state
+    machines and CONFIGFLAG, returning port ownership to the companion host controllers) to their
+    default values, immediately terminates any USB transaction in progress without driving a USB
+    reset on downstream ports, and does not affect PCI configuration registers; the controller
+    clears HCRESET to 0 when the reset process is complete, and software cannot terminate it early
+    by writing 0. Software must not set HCRESET to 1 when USBSTS HCHalted is 0, and must not write
+    1 to USBCMD bit 0 Run/Stop unless HCHalted is 1; either action yields undefined behavior. To
+    initialize the host controller from its halted post-reset state, software programs
+    CTRLDSSEGMENT with the 4 GiB segment holding all schedule data structures, writes USBINTR to
+    enable interrupts, writes PERIODICLISTBASE with the Periodic Frame List base address (setting
+    all frame list elements' T-bits to 1 if there are no periodic work items), writes USBCMD to
+    set the interrupt threshold, frame list size (if applicable) and Run/Stop = 1, and writes 1 to
+    CONFIGFLAG bit 0 (CF) to route all ports to the EHCI controller. When software clears Run/Stop
+    to 0, the controller completes the current and any actively pipelined USB transactions and
+    must halt within 16 micro-frames (2 ms), setting USBSTS HCHalted to 1.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['28', '30']
+      section: 2.3.1
+      table: '2-9'
+    - page: '31'
+      section: 2.3.2
+      table: '2-10'
+    - pages: ['63', '64']
+      section: '4.1'
+      table: '4-1'
+
+- id: port-routing-and-companion-handoff
+  section: programming-model
+  title: Port routing, CONFIGFLAG, Line Status and companion handoff
+  claim: >-
+    Root port routing between the EHCI controller and companion USB 1.1 controllers is controlled
+    globally by CONFIGFLAG bit 0 (CF, Operational Base + 40h, default 0b) and per port by PORTSC
+    bit 13 (Port Owner, default 1b). Whenever CF is 0 (after auxiliary power-up, HCRESET or
+    software writing 0), Port Owner unconditionally goes to 1b and all ports default-route to the
+    companion controllers. When software transitions CF from 0b to 1b, all Port Owner bits
+    unconditionally clear to 0b so all ports default-route to the EHCI controller, inhibiting
+    connect events from reaching the companion controllers' port registers. When a device attaches
+    to an EHCI-owned port (PORTSC bit 0 Current Connect Status = 1, bit 2 Port Enabled = 0),
+    software inspects PORTSC bits 11:10 Line Status (D+ in bit 11, D- in bit 10, valid only when
+    Port Enabled is 0 and Current Connect Status is 1): if Line Status is 01b (K-state), the
+    attached device is low-speed and software releases port ownership to the companion controller
+    by writing 1 to Port Owner without performing an EHCI port reset. If Line Status is 00b (SE0),
+    10b (J-state) or 11b (not low-speed), software starts a USB 2.0 bus reset by writing 1 to
+    PORTSC bit 8 Port Reset (and 0 to Port Enabled, while HCHalted is 0), times the reset
+    duration, writes 0 to Port Reset, and waits for Port Reset to read 0; the controller must
+    terminate reset and stabilize port state within 2 ms of software writing 0. If the device
+    is high-speed, the controller automatically sets Port Enabled (bit 2) to 1; if Port Enabled
+    remains 0 after reset completes, the device is full-speed and software writes 1 to Port Owner
+    to hand the port to a companion controller (which causes the EHCI PORTSC to report a
+    disconnect with Connect Status Change = 1 and Current Connect Status = 0). When a device
+    disconnects from a companion-owned port while CF is 1, the routing logic immediately returns
+    Port Owner to 0 (EHCI ownership).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '35'
+      section: 2.3.8
+      table: '2-15'
+    - pages: ['36', '40']
+      section: 2.3.9
+      table: '2-16'
+    - pages: ['64', '67']
+      section: '4.2'
+      table: '4-2'
+      figure: '4-2'
+
+- id: portsc-power-suspend-and-test
+  section: programming-model
+  title: Port power, suspend/resume, over-current and test modes (PORTSC)
+  claim: >-
+    In PORTSC (Operational Base + 44h + 4*(Port Number - 1), default 00002000h when PPC is 1 or
+    00003000h when PPC is 0), bit 12 Port Power (PP) is RO 1b when HCSPARAMS PPC is 0 and R/W when
+    PPC is 1; when PPC is 1, software cannot change the port's state while PP is 0 and must wait
+    until power is stable (guaranteed within 20 ms of the 0-to-1 transition). Whenever PP is 0,
+    PORTSC bits 22:20 (WKOC_E, WKDSCNNT_E, WKCNNT_E), 15:14 (Port Indicator Control), 8:6 (Port
+    Reset, Suspend, Force Port Resume) and 3:0 (Port Enable/Disable Change, Port Enabled/Disabled,
+    Connect Status Change, Current Connect Status) are 0 and bits 11:10 (Line Status) are
+    undefined. Software places an enabled, EHCI-owned port into selective suspend by writing 1 to
+    bit 7 Suspend (writes of 0 to Suspend are ignored, and setting Suspend when Port Enabled is 0
+    is undefined). To initiate a resume, software must wait at least 10 ms after Suspend reads 1,
+    write 1 to bit 6 Force Port Resume (setting Force Port Resume when the port is not suspended
+    has undefined bus effects, and software-initiated resume does not set USBSTS Port Change
+    Detect), time the resume signaling (nominally 20 ms), and write 0 to Force Port Resume while
+    HCHalted is 0; the controller switches the port to high-speed idle and clears both Force Port
+    Resume and Suspend to 0 within 2 ms. A remote-wakeup J-to-K transition on a suspended port is
+    reflected downstream within 100 us and sets both Force Port Resume and USBSTS Port Change
+    Detect to 1. Bit 4 Over-current Active (RO) reflects an active over-current condition, bit 5
+    Over-current Change (R/WC) is set on any transition of Over-current Active, and bit 3 Port
+    Enable/Disable Change (R/WC) is set only when a port is disabled due to a Port Error at the
+    EOF2 point. Bits 19:16 Port Test Control select USB 2.0 test modes (0000b not enabled, 0001b
+    Test J_STATE, 0010b Test K_STATE, 0011b Test SE0_NAK, 0100b Test Packet, 0101b Test
+    FORCE_ENABLE; 0110b-1111b reserved) on at most one EHCI-owned port at a time after disabling
+    both schedules, suspending all enabled root ports, and halting the controller (for
+    Test_Force_Enable, Run/Stop is then set back to 1); software exits test mode by halting the
+    controller and setting USBCMD HCRESET to 1.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['36', '40']
+      section: 2.3.9
+      table: '2-16'
+    - pages: ['67', '71']
+      section: 4.2.4
+      table: '4-3'
+    - pages: ['69', '71']
+      section: '4.3'
+      table: '4-4'
+    - pages: ['124', '125']
+      section: '4.14'
+  todo:
+    check: document
+    text: >-
+      The per-combination Port Power Enable (PPE) truth table across CF, CHC(PP), EHC(PP) and
+      Owner (Table 4-3, p. 68) and the per-event D0/not-D0 wake-up response matrix (Table 4-4,
+      pp. 70-71) are not extracted in full.
+
+- id: periodic-frame-list-and-frindex
+  section: programming-model
+  title: Periodic Frame List, PERIODICLISTBASE, FRINDEX and H-Frame phase shift
+  claim: >-
+    The periodic schedule services all isochronous and interrupt transfers and is executed before
+    the asynchronous schedule in each micro-frame. PERIODICLISTBASE (Operational Base + 14h, DWord
+    writes) holds the 4 KiB-aligned physical base address of the Periodic Frame List in bits 31:12
+    (bits 11:0 must be written as 0). FRINDEX (Operational Base + 0Ch, default 00000000h) holds a
+    14-bit micro-frame counter in bits 13:0 (bits 31:14 reserved) that increments every 125 us
+    micro-frame; FRINDEX bits [N:3] index the Periodic Frame List (N = 12 for 1024 elements, 11
+    for 512, 10 for 256, per USBCMD Frame List Size) and bits 2:0 count the 8 micro-frames within
+    each 1 ms H-Frame, so each frame list element is accessed 8 consecutive times. FRINDEX may be
+    written only as a DWord while USBSTS HCHalted is 1 (byte writes or writes while Run/Stop is 1
+    yield undefined results), and software should never write a FRINDEX value with bits 2:0 equal
+    to 111b or 000b. The bus SOF token's 11-bit frame number (B-Frame) lags FRINDEX[13:3]
+    (H-Frame) by one micro-frame (125 us), incrementing when FRINDEX[2:0] transitions from 000b to
+    001b. Each 32-bit Frame List Link Pointer has bits 31:5 as a 32-byte-aligned address, bits 4:3
+    written as 0, bits 2:1 Typ (00b iTD, 01b QH, 10b siTD, 11b FSTN) and bit 0 Terminate (T = 1
+    marks the End-Of-Periodic-List, causing the controller to switch immediately to the
+    asynchronous schedule for the rest of the micro-frame). Software enables or disables the
+    periodic schedule via USBCMD bit 4 Periodic Schedule Enable, waiting until it matches USBSTS
+    bit 14 Periodic Schedule Status before modifying it again; the controller evaluates Periodic
+    Schedule Enable only when FRINDEX[2:0] is 000b, and software must remove any active
+    split-transaction work item that spans micro-frame 000b before clearing Periodic Schedule
+    Enable.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['33', '35']
+      section: 2.3.4
+      table: '2-12'
+    - pages: ['34', '35']
+      section: 2.3.6
+      table: '2-13'
+    - pages: ['41', '42']
+      section: '3.1'
+      figure: '3-2'
+      table: '3-1'
+    - page: '71'
+      section: '4.4'
+      figure: '4-3'
+    - pages: ['74', '76']
+      section: '4.5'
+      table: '4-6'
+    - pages: ['76', '77']
+      section: '4.6'
+
+- id: high-speed-isochronous-itd
+  section: programming-model
+  title: High-speed Isochronous Transfer Descriptor (iTD)
+  claim: >-
+    High-speed isochronous endpoints use 32-byte-aligned iTDs (64 bytes / 16 DWords in 32-bit
+    mode; 92 bytes / 23 DWords in 64-bit mode, adding seven 32-bit Extended Buffer Pointer DWords
+    at offsets 40h-5Bh) linked only into the periodic schedule. DWord 0 is the Next Link Pointer
+    (bits 31:5 address, bits 4:3 zero, bits 2:1 Typ, bit 0 Terminate T). DWords 1-8 hold eight
+    Transaction Status and Control slots indexed by FRINDEX[2:0], each containing Status in bits
+    31:28 (bit 31 Active, cleared to 0 by the controller on completion; bit 30 Data Buffer Error;
+    bit 29 Babble Detected; bit 28 Transaction Error XactErr, set only for IN transactions),
+    Transaction X Length in bits 27:16 (actual byte count from 0 to C00h = 3072; updated by the
+    controller with bytes received on IN, not required to be updated on OUT), bit 15 Interrupt On
+    Complete (IOC), bits 14:12 Page Select PG (0 to 6, selecting one of the seven buffer page
+    pointers; software must not use Page 6 for a transfer that wraps a page boundary), and bits
+    11:0 Transaction X Offset. DWords 9-15 hold seven 4 KiB-aligned Buffer Page Pointers (bits
+    31:12) for a virtually contiguous buffer of up to 24576 bytes (3 * 1024 * 8), with endpoint
+    metadata in the low 12 bits of the first three pages: Page 0 holds Endpoint Number (bits
+    11:8), bit 7 reserved 0, and Device Address (bits 6:0); Page 1 holds Direction I/O (bit 11:
+    0 = OUT, 1 = IN) and Maximum Packet Size (bits 10:0, at most 400h = 1024; larger values are
+    undefined); Page 2 holds bits 11:2 reserved 0 and Multi (bits 1:0: 01b = 1, 10b = 2, 11b = 3
+    transactions per micro-frame; 00b is reserved and undefined); Pages 3-6 have bits 11:0
+    reserved 0. A short packet on an iTD IN transaction does not set USBSTS USBINT. When adding
+    isochronous work, software reads FRINDEX and observes HCCPARAMS bits 7:4 Isochronous
+    Scheduling Threshold: 0 means no caching (software may add work as near as 2 micro-frames
+    ahead of FRINDEX), bit 7 = 0 with bits 2:0 = k > 0 means k micro-frames of periodic structures
+    cached on-chip, and bit 7 = 1 means full-frame caching (from frame N, software schedules into
+    frame N+1 if FRINDEX[2:0] is 0..6, or frame N+2 if FRINDEX[2:0] is 7).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['25', '26']
+      section: 2.2.4
+      table: '2-7'
+    - pages: ['43', '44']
+      section: 3.3.1
+      figure: '3-4'
+      table: '3-2'
+    - pages: ['44', '45']
+      section: 3.3.2
+      table: '3-3'
+    - pages: ['45', '46']
+      section: 3.3.3
+      table: '3-4'
+    - pages: ['45', '46']
+      section: 3.3.3
+      table: '3-5'
+    - pages: ['45', '46']
+      section: 3.3.3
+      table: '3-6'
+    - pages: ['45', '46']
+      section: 3.3.3
+      table: '3-7'
+    - pages: ['77', '80']
+      section: '4.7'
+    - page: '139'
+      clause: Appendix B
+      figure: 'B-1'
+  todo:
+    check: document
+    text: >-
+      The high-bandwidth isochronous OUT and IN PID sequencing state tables (Appendix D, Tables
+      D-1 and D-2, pp. 151-155) are not extracted.
+
+- id: split-transaction-isochronous-sitd
+  section: programming-model
+  title: Split-Transaction Isochronous Transfer Descriptor (siTD) and FSTN
+  claim: >-
+    Full-speed isochronous transfers through a USB 2.0 hub Transaction Translator (TT) use
+    32-byte-aligned siTDs (28 bytes / 7 DWords in 32-bit mode; 36 bytes / 9 DWords in 64-bit mode,
+    adding two 32-bit Extended Buffer Pointer DWords at offsets 1Ch-23h). DWord 0 is the Next Link
+    Pointer (bits 31:5 address, bits 4:3 zero, bits 2:1 Typ, bit 0 T). DWord 1 (Table 3-9) holds
+    Direction I/O (bit 31: 0 = OUT, 1 = IN), TT Port Number (bits 30:24), bit 23 reserved 0, Hub
+    Address (bits 22:16), bits 15:12 reserved 0, Endpoint Number (bits 11:8), bit 7 reserved 0 and
+    Device Address (bits 6:0). DWord 2 (Table 3-10) holds bits 31:16 reserved 0, Split Completion
+    Mask uFrame C-Mask (bits 15:8) and Split Start Mask uFrame S-mask (bits 7:0, non-zero). DWord
+    3 (Table 3-11) holds IOC (bit 31), Page Select P (bit 30: 0 selects Page 0, 1 selects Page 1),
+    bits 29:26 reserved 0, Total Bytes to Transfer (bits 25:16, maximum 3FFh = 1023), uFrame
+    Complete-split Progress Mask C-prog-Mask (bits 15:8) and Status (bits 7:0: bit 7 Active, bit 6
+    ERR handshake from TT, bit 5 Data Buffer Error, bit 4 Babble Detected, bit 3 XactErr for IN
+    only, bit 2 Missed Micro-Frame, bit 1 SplitXstate 0b Do Start Split / 1b Do Complete Split,
+    bit 0 reserved 0). DWords 4-5 (Table 3-12) hold two 4 KiB-aligned Buffer Page Pointers (bits
+    31:12) supporting one page cross, with Current Offset in Page 0 bits 11:0 and, in Page 1, bits
+    11:5 reserved, Transaction Position TP in bits 4:3 (00b All for <= 188 bytes, 01b Begin, 10b
+    Mid, 11b End) and Transaction Count T-Count in bits 2:0 (number of OUT start-splits, 1 to 6;
+    values above 6 are undefined). DWord 6 (Table 3-13) is the 32-byte-aligned siTD Back Pointer
+    (bits 31:5 address of an siTD, bits 4:1 reserved 0, bit 0 Terminate T) used for IN
+    complete-splits that span an H-Frame boundary. To manage full- and low-speed interrupt split
+    transactions that span an H-Frame boundary, the periodic schedule may contain a 2-DWord
+    (8-byte, 32-byte-aligned) Frame Span Traversal Node (FSTN, Typ 11b, supported only when
+    HCIVERSION >= 0096h and forbidden in the asynchronous schedule): DWord 0 is the Normal Path
+    Link Pointer (bits 31:5 address, bits 4:3 zero, bits 2:1 Typ, bit 0 T) and DWord 1 is the Back
+    Path Link Pointer (bits 31:5 address of a Queue Head, bits 4:3 zero, bits 2:1 Typ which must
+    be 01b for a Queue Head when T is 0, and bit 0 T where 0b marks a Save-Place indicator and 1b
+    marks a Restore indicator).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['46', '47']
+      section: 3.4.1
+      figure: '3-5'
+      table: '3-8'
+    - page: '47'
+      section: 3.4.2
+      table: '3-9'
+    - pages: ['47', '48']
+      section: 3.4.2
+      table: '3-10'
+    - pages: ['48', '49']
+      section: 3.4.3
+      table: '3-11'
+    - page: '49'
+      section: 3.4.4
+      table: '3-12'
+    - page: '50'
+      section: 3.4.5
+      table: '3-13'
+    - pages: ['61', '62']
+      section: '3.7'
+      figure: '3-8'
+    - pages: ['117', '118']
+      section: 4.12.3.3.1
+      table: '4-14'
+    - pages: ['118', '121']
+      section: 4.12.3.3.2
+      table: '4-15'
+    - pages: ['121', '122']
+      section: 4.12.3.3.2.1
+      table: '4-16'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-2'
+  todo:
+    check: document
+    text: >-
+      The full- and low-speed interrupt split-transaction state machines, FSTN Save-Place/Restore
+      traversal rules, and Case 2a/2b isochronous frame-wrap scheduling examples (sections 4.12.2
+      and 4.12.3.4, Table 4-17, pp. 102-123) are not extracted in full.
+
+- id: qtd-layout-and-status
+  section: programming-model
+  title: Queue Element Transfer Descriptor (qTD) layout, token and buffer pointers
+  claim: >-
+    Control, bulk and interrupt transfers use 32-byte-aligned, physically contiguous qTDs (32
+    bytes / 8 DWords in 32-bit mode; 52 bytes / 13 DWords in 64-bit mode, adding five 32-bit
+    Extended Buffer Pointer DWords at offsets 20h-33h). DWord 0 is Next qTD Pointer (bits 31:5
+    32-byte-aligned address, bits 4:1 reserved, bit 0 Terminate T: 1 = invalid, 0 = valid) and
+    DWord 1 is Alternate Next qTD Pointer (same layout, used by hardware to advance to the next
+    client buffer when an IN qTD is retired due to a short packet and its T-bit is 0). DWord 2 is
+    the qTD Token (Table 3-16): bit 31 Data Toggle (dt), bits 30:16 Total Bytes to Transfer (0 to
+    5000h = 20480 bytes; decremented by bytes moved on each successful transaction; if 0 when
+    fetched with Active = 1, the controller executes a zero-length transaction and retires the
+    qTD), bit 15 Interrupt On Complete (IOC), bits 14:12 Current Page C_Page (0h to 4h, indexing
+    the buffer pointer list), bits 11:10 Error Counter CERR (2-bit down-counter for consecutive
+    Transaction Errors; 00b disables error counting for high-speed endpoints, whereas programming
+    CERR = 00b for a full- or low-speed endpoint yields undefined behavior; when CERR decrements
+    from 1 to 0 the controller marks the qTD inactive, sets Halted and the causing error status
+    bit, and sets USBSTS USBERRINT), bits 9:8 PID Code (00b OUT token E1h, 01b IN token 69h, 10b
+    SETUP token 2Dh which is undefined on an interrupt endpoint, 11b reserved), and bits 7:0
+    Status. In Status, bit 7 is Active, bit 6 is Halted (set on babble, CERR underflow or STALL
+    handshake, always clearing Active to 0), bit 5 is Data Buffer Error (does not decrement CERR),
+    bit 4 is Babble Detected (also sets Halted and does not decrement CERR), bit 3 is Transaction
+    Error (XactErr: timeout, CRC, bad PID, or NAK/NYET to SETUP), bit 2 is Missed Micro-Frame
+    (periodic full-/low-speed split only), bit 1 is SplitXstate (0b Do Start Split, 1b Do Complete
+    Split, for full-/low-speed endpoints), and bit 0 is Ping State (P)/ERR (for high-speed OUT: 0b
+    Do OUT, 1b Do Ping; for non-high-speed periodic split: set to 1 on an ERR handshake). DWords
+    3-7 (Table 3-17) hold five 4 KiB-aligned Buffer Pointers (Pages 0..4, bits 31:12), with
+    Current Offset in Page 0 bits 11:0 and bits 11:0 reserved (initialized to 0) in Pages 1..4;
+    the data buffer must be virtually contiguous, and software must use a separate buffer pointer
+    element for each physical 4 KiB page even when the pages are physically contiguous.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['50', '51']
+      section: 3.5.1
+      figure: '3-6'
+      table: '3-14'
+    - pages: ['51', '52']
+      section: 3.5.2
+      table: '3-15'
+    - pages: ['52', '55']
+      section: 3.5.3
+      table: '3-16'
+    - page: '55'
+      section: 3.5.4
+      table: '3-17'
+    - pages: ['91', '94']
+      section: 4.10.2
+    - pages: ['96', '98']
+      section: 4.10.6
+      figure: '4-15'
+    - pages: ['125', '126']
+      section: 4.15.1.1
+      table: '4-18'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-3'
+
+- id: queue-head-layout-and-overlay
+  section: programming-model
+  title: Queue Head (QH) layout, endpoint capabilities and transfer overlay
+  claim: >-
+    Each control, bulk or interrupt endpoint is managed by a 32-byte-aligned Queue Head (48 bytes
+    / 12 DWords in 32-bit mode; 68 bytes / 17 DWords in 64-bit mode, adding five 32-bit Extended
+    Buffer Pointer DWords at offsets 30h-43h). DWord 0 (Table 3-18) is the Queue Head Horizontal
+    Link Pointer: bits 31:5 hold the 32-byte-aligned address of the next QH, iTD, siTD or FSTN
+    (never a qTD), bits 4:3 must be written as 0, bits 2:1 Typ select 00b iTD, 01b QH, 10b siTD or
+    11b FSTN, and bit 0 Terminate (T) marks the end of the periodic list when 1 and is ignored in
+    the asynchronous schedule (where software must keep T = 0 and horizontal pointers valid).
+    DWord 1 (Table 3-19, static endpoint characteristics, never modified by the controller) holds
+    Nak Count Reload RL (bits 31:28; must be 0 for interrupt endpoints), Control Endpoint Flag C
+    (bit 27: set to 1 only when EPS is not high-speed and the endpoint is a control endpoint,
+    otherwise 0), Maximum Packet Length (bits 26:16, wMaxPacketSize up to 400h = 1024), Head of
+    Reclamation List Flag H (bit 15), Data Toggle Control DTC (bit 14: 0b preserves the DT bit in
+    the QH overlay on qTD advance; 1b copies the initial DT bit from the incoming qTD), Endpoint
+    Speed EPS (bits 13:12: 00b Full-Speed 12 Mb/s, 01b Low-Speed 1.5 Mb/s, 10b High-Speed 480
+    Mb/s, 11b reserved), Endpoint Number (bits 11:8), Inactivate on Next Transaction I (bit 7,
+    valid only for periodic full-/low-speed QHs; setting it to 1 in the asynchronous schedule or
+    for a high-speed device is undefined) and Device Address (bits 6:0). DWord 2 (Table 3-20)
+    holds High-Bandwidth Pipe Multiplier Mult (bits 31:30: 01b = 1, 10b = 2, 11b = 3 transactions
+    per micro-frame; 00b is reserved and undefined), TT Port Number (bits 29:23, for full-/low-
+    speed split transactions), Hub Addr (bits 22:16, USB 2.0 hub address for split transactions),
+    uFrame C-Mask (bits 15:8, for periodic full-/low-speed complete-splits; 0 is undefined when
+    used) and Interrupt Schedule Mask uFrame S-mask (bits 7:0: 00h on the asynchronous schedule,
+    non-zero for interrupt endpoints on the periodic schedule; 00h on the periodic schedule is
+    undefined). DWord 3 (Table 3-21) holds Current qTD Pointer (bits 31:5), and DWords 4-11 form
+    the Transfer Overlay (Table 3-22), which mirrors a qTD and adds NakCnt in DWord 5 bits 4:1,
+    C-prog-mask in DWord 8 bits 7:0, FrameTag in DWord 9 bits 4:0 and S-bytes in DWord 9 bits 11:5
+    (software must ensure S-bytes in a qTD is 0 before activating it). When advancing the queue
+    (Active = 0 and Halted = 0), the controller fetches the next qTD (using Alternate Next qTD
+    Pointer if Total Bytes to Transfer != 0 and Alternate Next T = 0, otherwise Next qTD Pointer),
+    overlays it into DWords 4-11 (reloading NakCnt from RL, zeroing C-prog-mask and FrameTag, and
+    preserving Ping State for high-speed endpoints), executes transactions from the overlay, and
+    writes Total Bytes to Transfer, CERR and Status back to the source qTD at Current qTD Pointer
+    when Active transitions to 0.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['56', '57']
+      section: 3.6.1
+      figure: '3-7'
+      table: '3-18'
+    - pages: ['57', '58']
+      section: 3.6.2
+      table: '3-19'
+    - pages: ['57', '59']
+      section: 3.6.2
+      table: '3-20'
+    - pages: ['59', '60']
+      section: 3.6.3
+      table: '3-21'
+    - pages: ['59', '60']
+      section: 3.6.3
+      table: '3-22'
+    - pages: ['87', '94']
+      section: '4.9'
+      table: '4-9'
+    - pages: ['89', '96']
+      section: '4.10'
+      figure: '4-14'
+    - page: '141'
+      clause: Appendix B
+      figure: 'B-4'
+
+- id: asynchronous-schedule-and-reclamation
+  section: programming-model
+  title: Asynchronous schedule circular list, H-bit reclamation and Ping control
+  claim: >-
+    The asynchronous schedule services all control and bulk transfers and is a circular
+    singly-linked list of Queue Heads (linking an iTD, siTD or FSTN into the asynchronous schedule
+    yields undefined results) rooted at ASYNCLISTADDR (Operational Base + 18h, bits 31:5 holding a
+    32-byte-aligned QH pointer and bits 4:0 hardwired to 0). Software may write ASYNCLISTADDR with
+    defined results only while the schedule is disabled (both USBCMD Asynchronous Schedule Enable
+    and USBSTS Asynchronous Schedule Status are 0), and must not modify Asynchronous Schedule
+    Enable unless it equals Asynchronous Schedule Status. When traversing the asynchronous
+    schedule after the periodic schedule ends, the controller starts at ASYNCLISTADDR and stores
+    the horizontal pointer of the last accessed QH back into ASYNCLISTADDR when stopping at micro-
+    frame end, empty list detection or schedule disable, providing round-robin service. Software
+    must keep at most one QH in the asynchronous schedule marked with H = 1 (Head of Reclamation
+    List, DWord 1 bit 15; setting H = 1 on an interrupt QH in the periodic schedule is undefined).
+    The controller sets USBSTS bit 13 Reclamation to 1 on an asynchronous schedule Start Event
+    (transitioning from the periodic schedule or waking from the async schedule sleep timer) and
+    whenever it executes an asynchronous transaction, and clears Reclamation to 0 whenever it
+    fetches an asynchronous QH with H = 1; if it fetches a QH with H = 1 while Reclamation is
+    already 0, it stops traversing the asynchronous schedule until the next Start Event. During
+     the first pass through the reclamation list after a Start Event (between the first and second
+    fetches of the H = 1 QH), the controller reloads each visited QH's NakCnt from RL when RL is
+    non-zero. For high-speed bulk and control OUT endpoints (S-mask = 0, EPS = High-Speed,
+    PID_Code = OUT), the controller manages the USB 2.0 PING flow-control protocol via Status bit
+    0 (Ping State: 0b Do OUT, 1b Do Ping), preserving Ping State across qTD overlay advances: in
+    Do OUT, an OUT that receives NAK, NYET (which accepts the data and advances transfer state) or
+    XactErr transitions Ping State to Do Ping, while ACK stays in Do OUT; in Do Ping, a PING that
+    receives ACK transitions to Do OUT, while NAK or XactErr stays in Do Ping, and STALL in either
+    state halts the QH.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '35'
+      section: 2.3.7
+      table: '2-14'
+    - page: '42'
+      section: '3.2'
+      figure: '3-3'
+    - pages: ['71', '72']
+      section: '4.4'
+      figure: '4-4'
+    - pages: ['81', '82']
+      section: '4.8'
+    - pages: ['84', '86']
+      section: 4.8.3
+      figure: '4-11'
+      table: '4-7'
+    - pages: ['85', '87']
+      section: 4.8.5
+      figure: '4-12'
+    - pages: ['87', '89']
+      section: '4.9'
+      figure: '4-13'
+      table: '4-9'
+    - pages: ['98', '99']
+      section: '4.11'
+      table: '4-12'
+
+- id: async-schedule-unlink-doorbell
+  section: programming-model
+  title: Unlinking a Queue Head with the Interrupt on Async Advance Doorbell
+  claim: >-
+    Because the host controller may retain cached on-chip pointers to Queue Heads in an active
+    asynchronous schedule, software must not modify or free an unlinked QH until it completes the
+    Interrupt on Async Advance doorbell handshake. To remove one or more QHs without disabling the
+    asynchronous schedule, software first deactivates all active qTDs on the target QH(s) and
+    waits for each target QH to go inactive; if a QH being removed has H = 1, software first sets
+    H = 1 on another QH that will remain linked in the schedule. Software then sets the previous
+    QH's Horizontal Link Pointer to the Horizontal Link Pointer of the unlinked QH (bypassing it
+    in the circular list), sets each unlinked QH's Horizontal Link Pointer to a QH that remains in
+    the schedule, and writes 1 to USBCMD bit 6 Interrupt on Async Advance Doorbell (software must
+    not write 1 to this bit when the asynchronous schedule is disabled, as that yields undefined
+    results). Once the controller has evicted all cached schedule state that could reference the
+    unlinked structures (either by advancing past its locally reachable QHs or by observing the
+    head of the list twice), it sets USBSTS bit 5 Interrupt on Async Advance to 1 and clears the
+    USBCMD doorbell bit to 0, asserting an interrupt at the next interrupt threshold if USBINTR
+    bit 5 is 1. Software may free or reuse the unlinked QH memory only after observing USBSTS
+    Interrupt on Async Advance = 1, and should clear that USBSTS bit (by writing 1) before using
+    the doorbell handshake again.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['28', '29']
+      section: 2.3.1
+      table: '2-9'
+    - page: '31'
+      section: 2.3.2
+      table: '2-10'
+    - pages: ['82', '83']
+      section: 4.8.2
+      figure: '4-10'
+    - page: '128'
+      section: 4.15.2.3
+
+- id: extended-capabilities-and-bios-handoff
+  section: programming-model
+  title: Extended capabilities (EECP) and Pre-OS to OS handoff (USBLEGSUP)
+  claim: >-
+    When HCCPARAMS bits 15:8 (EECP) are non-zero (40h or greater), they give the PCI configuration
+    space offset of the first entry in a linked list of EHCI Extended Capabilities (Table 5-1):
+    each 32-bit capability header has Capability ID in bits 7:0 (01h = Pre-OS to OS Handoff
+    Synchronization / Legacy Support; 00h reserved), Next EHCI Extended Capability Pointer in bits
+    15:8 (PCI configuration space offset of the next capability, or 00h at the end of the list),
+    and capability-specific bits in 31:16. The Legacy Support capability (ID 01h) consists of two
+    contiguous 32-bit registers in the auxiliary power well: USBLEGSUP at EECP + 00h (Table 2-3)
+    and USBLEGCTLSTS at EECP + 04h (Table 2-4). In USBLEGSUP, bit 16 is the HC BIOS Owned
+    Semaphore (R/W, default 0) and bit 24 is the HC OS Owned Semaphore (R/W, default 0), placed in
+    adjacent bytes so BIOS and the OS driver can update their respective semaphores without
+    overwriting each other (bits 31:25 and 23:17 are reserved and must be 0). To request
+    ownership, the OS driver sets HC OS Owned Semaphore (bit 24) to 1 and waits for HC BIOS Owned
+    Semaphore (bit 16) to read 0 before using the controller; to relinquish ownership on driver
+    unload, the OS sets bit 24 to 0 (BIOS may claim ownership only during POST or when bit 24 is
+    0, and must never reclaim ownership after relinquishing it while bit 24 remains 1).
+    USBLEGCTLSTS provides R/WC status bits 31 (SMI on BAR write), 30 (SMI on PCI Command write)
+    and 29 (SMI on OS Ownership Change), read-only bits 21:16 that shadow USBSTS bits 5:0
+    (cleared by writing 1s to the corresponding USBSTS bits), and R/W SMI enable bits 15:13 (for
+    bits 31:29) and 5:0 (for bits 21:16, issuing SMIs immediately and independently of the USBCMD
+    interrupt threshold).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['21', '22']
+      section: 2.1.7
+      table: '2-3'
+    - pages: ['22', '23']
+      section: 2.1.8
+      table: '2-4'
+    - page: '25'
+      section: 2.2.4
+      table: '2-7'
+    - pages: ['131', '132']
+      section: '5.1'
+      figure: '5-1'
+      table: '5-1'
+    - pages: ['131', '133']
+      section: '5.1'
+      figure: '5-2'
+      table: '5-2'
+
+- id: debug-port-capability
+  section: programming-model
+  title: Optional USB2 Debug Port capability and registers
+  claim: >-
+    An EHCI controller that implements the optional USB2 Debug Port reports its 1-based physical
+    port number in HCSPARAMS bits 23:20 (non-zero, at most N_PORTS) and provides a PCI Capability
+    in the standard PCI Capability List with CAP_ID = 0Ah (bits 7:0), NXT_PTR in bits 15:8, Offset
+    in bits 28:16 (DWord-aligned byte offset within the target BAR, bits 17:16 always 0, up to 4
+    KiB) and BAR# in bits 31:29 (valid values 1h to 6h, selecting the memory BAR at PCI
+    configuration offset 10h to 24h). The Debug Port register interface (Table C-4) at BAR +
+    Offset consists of Control/Status at 00h, USB PIDs at 04h, an 8-byte Data Buffer as two DWords
+    at 08h and 0Ch (least significant byte at 08h, individually byte-accessible), and Device
+    Address at 10h (bits 14:8 USB Address, default 7Fh; bits 3:0 USB Endpoint, default 01h). In
+    Control/Status (Table C-5, preserving reserved bits with read-modify-write), bit 30 Owner
+    (R/W, default 0) forces port ownership to the EHCI controller overriding CONFIGFLAG CF and
+    PORTSC Port Owner, bit 28 Enabled (R/W, default 0) enables the debug port (software can set it
+    directly only when PORTSC Port Enabled is 1), bit 16 Done (R/WC, default 0) indicates request
+    completion, bit 10 In Use (R/W, default 0) is a software-only advisory flag, bits 9:7
+    Exception (RO: 000b none, 001b transaction error or babble, 010b hardware error when port is
+    suspended or reset, 011b-111b reserved) and bit 6 Error/Good# (RO) report completion status,
+    bit 5 Go (R/W) starts a request (hardware clears Go when it sets Done; writing 1 while Go is 1
+    is undefined), bit 4 Write/Read# selects write (1) or read (0), and bits 3:0 Data Length give
+    the transfer byte count (0h for zero-length packet, 1h-8h for 1-8 bytes; 9h-Fh are illegal and
+    undefined). In USB PIDs (Table C-6), bits 7:0 hold the outgoing Token PID (IN, OUT or SETUP),
+    bits 15:8 hold the outgoing Send PID (typically DATA0 or DATA1), and bits 23:16 report the
+    Received PID when Done is 1 and Error/Good# is 0. The Debug Port operates only with a
+    high-speed debug device while the controller is in D0 and the port is neither suspended nor in
+    reset, checking for debug requests at least every 125 us and transmitting 32-bit SYNC
+    keepalive packets less than 2 ms apart when the controller is halted (Mode 1).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '24'
+      section: 2.2.3
+      table: '2-6'
+    - page: '143'
+      section: C.1
+      table: 'C-1'
+    - pages: ['143', '144']
+      section: C.2
+      table: 'C-2'
+    - page: '144'
+      section: C.2
+      table: 'C-3'
+    - pages: ['144', '145']
+      section: C.3
+      table: 'C-4'
+    - pages: ['145', '147']
+      section: C.3.1
+      table: 'C-5'
+    - pages: ['147', '148']
+      section: C.3.2
+      table: 'C-6'
+    - pages: ['147', '148']
+      section: C.3.3
+      table: 'C-7'
+    - page: '148'
+      section: C.3.4
+      table: 'C-8'
+    - pages: ['148', '150']
+      section: C.4
+      table: 'C-9'
+
+- id: memory-alignment-and-64bit-segment
+  section: programming-model
+  title: 4 KiB page-boundary rule and 64-bit addressing (CTRLDSSEGMENT vs buffer pointers)
+  claim: >-
+    Software must ensure that no schedule interface data structure reachable by the EHCI
+    controller spans a 4 KiB page boundary; the Periodic Frame List is 4 KiB-page aligned (and
+    therefore physically contiguous), while iTDs, siTDs, QHs, qTDs and FSTNs are 32-byte aligned.
+    When HCCPARAMS bit 0 (64-bit Addressing Capability) is 0, the controller uses the 32-bit
+    schedule data structures of Chapter 3 and CTRLDSSEGMENT (Operational Base + 10h, default
+    00000000h) is unused (software cannot write it and reads return 0). When 64-bit Addressing
+    Capability is 1, the controller uses the 64-bit data structures of Appendix B (iTD-64,
+    siTD-64, qTD-64 and QH-64; FSTN has no separate 64-bit layout): CTRLDSSEGMENT supplies bits
+    [63:32] for PERIODICLISTBASE, ASYNCLISTADDR and every control data structure link pointer, so
+    all schedule control data structures must reside in the same 4 GiB memory segment, whereas
+    each iTD-64, siTD-64, qTD-64 and QH-64 appends an Extended Buffer Pointer array supplying bits
+    [63:32] for each 4 KiB data buffer page pointer independently. Note that HCCPARAMS bit 0 (bus
+    master 64-bit addressing) is independent of PCI USBBASE bits 2:1 (slave MMIO BAR 32- or
+    64-bit decoding).
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['25', '26']
+      section: 2.2.4
+      table: '2-7'
+    - pages: ['34', '35']
+      section: 2.3.5
+    - page: '41'
+      section: '3'
+    - page: '139'
+      clause: Appendix B
+      figure: 'B-1'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-2'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-3'
+    - page: '141'
+      clause: Appendix B
+      figure: 'B-4'
+
+- id: portsc-enable-cannot-be-set-by-software
+  section: gotchas
+  title: Software cannot enable a port by writing 1 to PORTSC Port Enabled
+  claim: >-
+    Software cannot enable an EHCI root port by writing a 1 to PORTSC bit 2 (Port
+    Enabled/Disabled); only the host controller sets Port Enabled to 1 when a port reset sequence
+    determines that the attached device is a high-speed device (software writes 0 to disable a
+    port). Moreover, when software initiates a port reset by writing 1 to PORTSC bit 8 (Port
+    Reset), it must also write 0 to Port Enabled in that write.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['36', '39']
+      section: 2.3.9
+      table: '2-16'
+
+- id: portsc-rwc-bits-on-read-modify-write
+  section: gotchas
+  title: Unmasked read-modify-write on PORTSC clears status change bits
+  claim: >-
+    Operational registers are accessed as 32-bit DWords, and PORTSC combines R/W control fields
+    (such as Port Owner, Port Power, Port Reset, Suspend, Force Port Resume, Port Indicator
+    Control, Port Test Control and the Wake Enables) with three write-1-to-clear (R/WC) change
+    bits: bit 5 Over-current Change, bit 3 Port Enable/Disable Change and bit 1 Connect Status
+    Change. A naive read-modify-write to PORTSC that does not mask bits 5, 3 and 1 to 0 will
+    write 1 back to any asserted change bit and silently clear the status change before the root
+    hub driver processes it.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['17', '18']
+      section: '2'
+    - page: '27'
+      section: '2.3'
+    - pages: ['36', '39']
+      section: 2.3.9
+      table: '2-16'
+
+- id: hcreset-and-frindex-require-halted-controller
+  section: gotchas
+  title: Setting HCRESET or writing FRINDEX, FLADJ or Interrupt Threshold while running is undefined
+  claim: >-
+    Software must not set USBCMD bit 1 (HCRESET) to 1 while USBSTS bit 12 (HCHalted) is 0;
+    attempting to reset an actively running host controller yields undefined behavior, so software
+    must clear USBCMD bit 0 (Run/Stop) to 0 and wait for HCHalted to read 1 (within 16
+    micro-frames) first. Likewise, writing 1 to USBCMD Run/Stop, modifying USBCMD Interrupt
+    Threshold Control (bits 23:16), writing FRINDEX, or changing PCI FLADJ while the controller is
+    running (HCHalted = 0 / Run/Stop = 1) yields undefined results.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - page: '20'
+      section: 2.1.5
+    - pages: ['28', '30']
+      section: 2.3.1
+      table: '2-9'
+    - page: '33'
+      section: 2.3.4
+
+- id: ctrldssegment-controls-only-structures-not-buffers
+  section: gotchas
+  title: CTRLDSSEGMENT supplies high address bits for schedule structures, not data buffers
+  claim: >-
+    When 64-bit Addressing Capability (HCCPARAMS bit 0) is 1, the 32-bit link pointers inside
+    schedule data structures (Periodic Frame List elements, QH Horizontal Link Pointer, qTD
+    Next/Alternate/Current pointers, and iTD/siTD/FSTN link pointers) and the PERIODICLISTBASE and
+    ASYNCLISTADDR registers do not widen to 64 bits; all of them concatenate their 32-bit pointer
+    with the single 32-bit CTRLDSSEGMENT register as bits [63:32], requiring every schedule
+    control structure to be allocated in the same 4 GiB memory segment. Only the data buffer page
+    pointers in iTD-64, siTD-64, qTD-64 and QH-64 have per-page 32-bit Extended Buffer Pointer
+    fields for bits [63:32], and FSTNs have no 64-bit structure variant at all.
+  support:
+  - class: standard
+    doc: ehci-1.0.pdf
+    at:
+    - pages: ['34', '35']
+      section: 2.3.5
+    - page: '139'
+      clause: Appendix B
+      figure: 'B-1'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-2'
+    - page: '140'
+      clause: Appendix B
+      figure: 'B-3'
+    - page: '141'
+      clause: Appendix B
+      figure: 'B-4'

@@ -97,11 +97,12 @@ documents:
   access: public
   subsystem: power-delivery
   disposition: spec:usb-bc
-- name: ehci-1.0
+- name: ehci-1.0.pdf
   title: Enhanced Host Controller Interface Specification for Universal Serial Bus, Revision 1.0
+  sha256: dc76e77870930617dc0b2c8195aff6073f652d593f7b90a47dd0f22d3329c5e1
   access: public
   subsystem: host-controller
-  disposition: "planned: an EHCI spec when a SoC spec needs one"
+  disposition: spec:ehci
 blocks:
 - name: xhci
   title: xHCI host controller interface
@@ -146,7 +147,7 @@ blocks:
 - name: ehci
   title: EHCI host controller interface
   subsystem: host-controller
-  disposition: "planned: an EHCI spec when a SoC spec needs one"
+  disposition: spec:ehci
 - name: type-c-port
   title: USB Type-C port (CC detection and current advertisement)
   subsystem: type-c
