@@ -40,7 +40,7 @@ committed here. A pull request's views are in its `spec-views` artifact.
 
 `specs/corpus.yaml` lists what is planned next: the USB PD, TCPCI and UCSI specifications, the
 rest of the Type-C specification (accessory modes, VCONN-powered devices, cable eMarkers), the
-USB 2.0 ECNs and split transactions, the USB 3.2 and USB4 protocol specifications, and EHCI.
+USB 2.0 ECNs, the USB 3.2 and USB4 protocol specifications, and EHCI.
 Protocol data structures (descriptor layouts, request tables) are written as prose claims for
 now; driver-lab#164 tracks a spec kind that would carry them as structured layouts.
 
