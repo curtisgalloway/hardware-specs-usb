@@ -1,0 +1,442 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: ehci
+spec_file: ehci.spec.yaml
+spec_sha256: ea86f31c561786263a9a30e026e7332057e4e96ffaba1eacfb6a49a2ff02fe0d
+canonical: fact-v1
+sources:
+- name: ehci-1.0.pdf
+  url: https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/ehci-specification-for-usb.pdf
+  sha256: dc76e77870930617dc0b2c8195aff6073f652d593f7b90a47dd0f22d3329c5e1
+  fetch: ok
+  note: >-
+    Intel's public EHCI 1.0 specification PDF; the verifier checked the SHA-256 and 155-page
+    count and verified each fact against the extracted page text.
+summary:
+  pass: 23
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  interface-and-companion-architecture:
+    basis: af5e96f6e01a37fdfb2fa72117a9c9625c768688dfe725786fb9d049f5023224
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 1 (p. 11), Section 1.2 and Figure 1-2 (pp. 12-14), Section 2.2.3
+      Table 2-6 (p. 24), and Section 4.2 (pp. 64-65). Confirmed that the USB 2.0 specification
+      takes precedence on conflicts, that an EHCI host controller pairs one high-speed controller
+      with 0 or more USB 1.1 companion controllers (UHCI/OHCI), and that when HCSPARAMS N_CC is 0
+      a full- or low-speed device on a root port fails the high-speed chirp during reset and
+      leaves the port disabled unless a high-speed device (such as a USB 2.0 hub) is attached.
+      Confirmed the PCI multi-function ordering rule in Section 4.2 requiring companion controller
+      function numbers to be less than the EHCI function number, or function 0 when the EHCI
+      controller is the sole PCI function.
+  pci-configuration-registers:
+    basis: bc82e34025b324e7a47da8785bc20096e48684269cbb95d4f48c487e7cdff6f4
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.1 Table 2-2 (p. 18), Sections 2.1.2-2.1.6 (pp. 19-21), and
+      Appendix A Section A.1 Table A-3 (pp. 135-137). Confirmed CLASSC at 09h-0Bh (24-bit RO
+      0C0320h: BASEC 0Ch, SCC 03h, PI 20h), USBBASE at 10h-13h (32-bit BAR, bits 31:8 R/W base
+      address, bits 7:3 and bit 0 RO 0, bits 2:1 RO Type 00b 32-bit recommended or 10b 64-bit),
+      SBRN at 60h (8-bit RO 20h), FLADJ at 61h in the Aux well (8-bit R/W, default 20h = 32 for
+      59488 + 32*16 = 60000 high-speed bit times, bits 7:6 reserved 0, bits 5:0 in 16-bit-time
+      steps, modified only when HCHalted = 1), and optional PORTWAKECAP at 62h-63h in the Aux
+      well (16-bit R/W policy mask, bit 0 implemented flag, bits 15:1 for ports 15:1). Confirmed
+      Table A-3 requires D0, D3hot and D3cold (with D1 and D2 optional) and Section A.1.2 (p. 136)
+      requires software to place all enabled downstream ports into Suspend or Disabled before
+      exiting D0; the TODO properly scopes out Table A-4 PME# and Aux_Current details.
+  capability-registers:
+    basis: 04e9ae4a8d055155d76544c7ffc944aea15fa9ee9cd37855705a1a615ac9d010
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.2 Table 2-5 and Section 2.2.1 (p. 23), Section 2.2.2 (p. 24),
+      Section 2.2.3 Table 2-6 (pp. 24-25), Section 2.2.4 Table 2-7 (pp. 25-26), and Section 2.2.5
+      (p. 26). Confirmed offsets, sizes, and RO attributes for CAPLENGTH (00h, 1B), Reserved
+      (01h, 1B), HCIVERSION (02h, 2B, default 0100h BCD), HCSPARAMS (04h, 4B: N_PORTS bits 3:0
+      1h-Fh with 0 undefined, PPC bit 4, Port Routing Rules bit 7, N_PCC bits 11:8, N_CC bits
+      15:12, P_INDICATOR bit 16, Debug Port Number bits 23:20 <= N_PORTS), HCCPARAMS (08h, 4B:
+      64-bit Addressing Capability bit 0, Programmable Frame List Flag bit 1, Asynchronous
+      Schedule Park Capability bit 2, Isochronous Scheduling Threshold bits 7:4, EECP bits 15:8
+      00h or >= 40h), and HCSP-PORTROUTE (0Ch, 60-bit 15-nibble array indexed by 0-based port
+      offset when Port Routing Rules is 1). Read all reserved bit ranges in Tables 2-6 and 2-7;
+      no contrary evidence found.
+  operational-register-map:
+    basis: 2ed15d0034697eba7e85e0a7259f3d0b2a1cc54d02dec5811f601d437af5e381
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2 Table 2-1 (pp. 17-18), Section 2.3 Table 2-8 (p. 27), Section
+      2.3.8 Table 2-15 (p. 35), Section 2.3.9 (p. 36), and Appendix A Section A.1.1 (p. 136).
+      Confirmed Operational Base is Base + CAPLENGTH (DWord-aligned), all operational registers
+      are 32-bit DWords accessed via DWord reads/writes, exclusive-access mechanisms such as PCI
+      LOCK yield undefined results, and reserved bits must be preserved on writes. Confirmed the
+      core power well layout (00h USBCMD, 04h USBSTS, 08h USBINTR, 0Ch FRINDEX, 10h
+      CTRLDSSEGMENT, 14h PERIODICLISTBASE, 18h ASYNCLISTADDR, 1Ch-3Fh Reserved; reset on hardware
+      reset, HCRESET = 1, or D3hot-to-D0) and auxiliary power well layout (40h CONFIGFLAG and
+      44h + 4*(Port Number - 1) PORTSC for ports 1..N_PORTS; reset only on initial Aux power-up
+      or HCRESET = 1 and retained across D3hot-to-D0).
+  usbcmd-control-fields:
+    basis: c5abf146ce88a26985a7f5fefff99cfba08ffa5b91f42f1ebaece899e8ac09a3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.1 Table 2-9 (pp. 28-30) and Section 4.10.3.2 Table 4-10
+      (pp. 94-96). Confirmed USBCMD at Operational Base + 00h defaults to 00080000h (or 00080B00h
+      when Asynchronous Schedule Park Capability is 1) and verified every bit field: Run/Stop
+      (bit 0), HCRESET (bit 1), Frame List Size (bits 3:2: 00b = 1024, 01b = 512, 10b = 256, 11b
+      reserved; R/W only when Programmable Frame List Flag is 1), Periodic Schedule Enable
+      (bit 4), Asynchronous Schedule Enable (bit 5), Interrupt on Async Advance Doorbell (bit 6),
+      optional Light Host Controller Reset (bit 7), Asynchronous Schedule Park Mode Count (bits
+      9:8, default 3h, valid 1h-3h, 0 undefined when Park Mode Enable is 1) and Enable (bit 11,
+      default 1b when supported), and Interrupt Threshold Control (bits 23:16, default 08h = 8
+      micro-frames/1 ms, valid powers of two 01h-40h, 00h reserved, modified only when HCHalted
+      is 1). Confirmed Park Mode applies only to high-speed queue heads in the asynchronous
+      schedule, and the TODO properly notes that Table 4-10 is not extracted.
+  usbsts-and-usbintr:
+    basis: e69d19d3f53484ca4c0070a48ed56c6cb543b78dec681c6012c9b221888fa9b7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.2 Table 2-10 (pp. 31-32), Section 2.3.3 Table 2-11 (pp. 32-33),
+      Section 4.15 Table 4-18 (pp. 125-127), and Section 4.15.2.4 Table 4-19 (pp. 127-129).
+      Confirmed USBSTS (Operational Base + 04h, default 00001000h) RO status bits 15:12
+      (Asynchronous Schedule Status, Periodic Schedule Status, Reclamation, HCHalted default 1)
+      and R/WC interrupt status bits 5:0 (Interrupt on Async Advance, Host System Error, Frame
+      List Rollover, Port Change Detect, USBERRINT, USBINT), and matching USBINTR (Operational
+      Base + 08h, default 00000000h) R/W enable bits 5:0. Confirmed that clearing USBINTR does
+      not de-assert an active interrupt, that bits 0, 1 and 5 are deferred to the next interrupt
+      threshold whereas bits 2, 3 and 4 are signaled immediately, and that a Host System Error
+      clears Run/Stop to 0, sets Host System Error and HCHalted to 1, and requires HCRESET before
+      re-initialization; the TODO properly notes Table 4-19 is not extracted.
+  initialization-reset-and-halt:
+    basis: a8ea0c66d0e7172aac5d7741bb5c95798ea99adc6265ed1b8b33ef30b53adc01
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.1 Table 2-9 (pp. 28-30), Section 2.3.2 Table 2-10 (p. 31), and
+      Section 4.1 Table 4-1 (pp. 63-64). Confirmed HCRESET (USBCMD bit 1) resets internal state
+      and all operational registers (including PORTSC and CONFIGFLAG, returning port ownership to
+      companion controllers) without driving a downstream USB reset or affecting PCI configuration
+      registers, self-clears to 0 on completion, cannot be terminated early by writing 0, and is
+      undefined if set when HCHalted is 0. Confirmed the five initialization steps in Section 4.1
+      (CTRLDSSEGMENT, USBINTR, PERIODICLISTBASE with T-bits = 1 if empty, USBCMD with Run/Stop =
+      1, and CONFIGFLAG CF = 1) and that clearing Run/Stop to 0 halts the controller within 16
+      micro-frames (2 ms) and sets USBSTS HCHalted to 1.
+  port-routing-and-companion-handoff:
+    basis: 684e1675c55cc7eb6fb895e2a4097199b729538dc02d35ddeee4e6945e08ec47
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.8 Table 2-15 (p. 35), Section 2.3.9 Table 2-16 (pp. 36-40),
+      and Section 4.2 Table 4-2 and Figure 4-2 (pp. 64-67). Confirmed CONFIGFLAG bit 0 (CF,
+      Operational Base + 40h, default 0b) and PORTSC bit 13 (Port Owner, default 1b) routing
+      rules: CF = 0 forces Port Owner to 1b (companion ownership), and a 0b-to-1b transition on
+      CF clears all Port Owner bits to 0b (EHCI ownership). Confirmed connect handling via PORTSC
+      Line Status bits 11:10 (valid when Port Enabled = 0 and Current Connect Status = 1): 01b
+      (K-state, low-speed) hands off immediately via Port Owner = 1, whereas 00b (SE0), 10b
+      (J-state) or 11b performs an EHCI port reset (Port Reset = 1 and Port Enabled = 0 while
+      HCHalted = 0, stabilizing within 2 ms of writing 0 to Port Reset) that either sets Port
+      Enabled = 1 for high-speed or leaves Port Enabled = 0 for full-speed handoff via Port
+      Owner = 1, and confirmed disconnect immediately returns Port Owner to 0 when CF = 1.
+  portsc-power-suspend-and-test:
+    basis: 961bb50fa325c2b48e2753a374e2ade0f2edd779c79bea25f1dd7e02527d7603
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.9 Table 2-16 (pp. 36-40), Section 4.2.4 Table 4-3 (pp. 67-71),
+      Section 4.3 Table 4-4 (pp. 69-71), and Section 4.14 (pp. 124-125). Confirmed PORTSC
+      (Operational Base + 44h + 4*(Port Number - 1), default 00002000h when PPC = 1 or 00003000h
+      when PPC = 0) Port Power (bit 12, 20 ms stabilization, and forced-zero/undefined fields when
+      PP = 0), Suspend (bit 7, write of 0 ignored, undefined if Port Enabled = 0), Force Port
+      Resume (bit 6, >= 10 ms wait after Suspend = 1, nominal 20 ms signaling, 2 ms transition to
+      high-speed idle when cleared with HCHalted = 0, and 100 us downstream reflection on remote
+      wakeup), Over-current Active/Change (bits 4 and 5), Port Enable/Disable Change (bit 3, EOF2
+      Port Error only), and Port Test Control (bits 19:16 encodings 0000b-0101b, test entry
+      sequence, and exit via HCRESET = 1). The TODO properly notes that Tables 4-3 and 4-4 are
+      not extracted in full.
+  periodic-frame-list-and-frindex:
+    basis: d5aaa14a358af9abbf7dc841c515674d38d52bcb74a8d6c5744ba8b68edeab8a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.4 Table 2-12 (pp. 33-35), Section 2.3.6 Table 2-13 (pp. 34-35),
+      Section 3.1 Figure 3-2 and Table 3-1 (pp. 41-42), Section 4.4 Figure 4-3 (p. 71), Section
+      4.5 Table 4-6 (pp. 74-76), and Section 4.6 (pp. 76-77). Confirmed PERIODICLISTBASE (14h,
+      bits 31:12 4 KiB-aligned base address, bits 11:0 written as 0), FRINDEX (0Ch, default 0,
+      bits 13:0 micro-frame counter incrementing every 125 us, bits [N:3] indexing 1024/512/256
+      elements for N = 12/11/10, DWord-only writes when HCHalted = 1, and prohibition on writing
+      bits 2:0 as 111b or 000b), and the 1-micro-frame lag of B-Frame (SOFV) behind H-Frame
+      (FRINDEX[13:3]) incrementing on the 000b-to-001b transition. Confirmed Frame List Link
+      Pointer layout (bits 31:5, bits 4:3 = 0, bits 2:1 Typ 00b iTD / 01b QH / 10b siTD / 11b
+      FSTN, bit 0 T) and Periodic Schedule Enable evaluation at FRINDEX[2:0] = 000b.
+  high-speed-isochronous-itd:
+    basis: 1900396cee6a85dabaab5cca8879986e2b20b6f824013b6f65cbff3a8e734494
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.2.4 Table 2-7 (pp. 25-26), Section 3.3 Figures 3-4 and Tables
+      3-2 through 3-7 (pp. 43-46), Section 4.7 (pp. 77-80), and Appendix B Figure B-1 (p. 139).
+      Confirmed 32-byte-aligned iTD size (64B / 16 DWords in 32-bit mode; 92B / 23 DWords in
+      64-bit mode with Extended Buffer Pointers at 40h-5Bh), DWord 0 Next Link Pointer, DWords
+      1-8 Transaction Status and Control slots (Status bits 31:28 with XactErr IN-only, Length
+      bits 27:16 up to C00h = 3072, IOC bit 15, PG bits 14:12 0..6 with no page wrap allowed on
+      Page 6, Offset bits 11:0), and DWords 9-15 Buffer Page Pointers for up to 24576 bytes with
+      Page 0 EndPt/Device Address, Page 1 I/O and Maximum Packet Size <= 400h (1024), and Page 2
+      Multi (01b=1, 10b=2, 11b=3, 00b reserved/undefined). Confirmed iTD IN short packets do not
+      set USBSTS USBINT and verified all three Isochronous Scheduling Threshold caching modes in
+      Section 4.7.2.1; the TODO properly scopes out Appendix D Tables D-1 and D-2.
+  split-transaction-isochronous-sitd:
+    basis: 44942803239742fc14108f589e78c3e6c836c54704b398bdd900a694043eb1b5
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 3.4 Figure 3-5 and Tables 3-8 through 3-13 (pp. 46-50), Section
+      3.7 Figure 3-8 (pp. 61-62), Section 4.12.3.3 Tables 4-14 through 4-16 (pp. 117-122), and
+      Appendix B Figure B-2 (p. 140). Confirmed 32-byte-aligned siTD layout (28B / 7 DWords in
+      32-bit mode; 36B / 9 DWords in 64-bit mode with Extended Buffer Pointers at 1Ch-23h),
+      DWord 0 Next Link Pointer, DWord 1 endpoint/TT addressing (I/O bit 31, Port Number bits
+      30:24, Hub Address bits 22:16, EndPt bits 11:8, Device Address bits 6:0), DWord 2 C-Mask
+      (bits 15:8) and non-zero S-mask (bits 7:0), DWord 3 transfer state (IOC bit 31, P bit 30,
+      Total Bytes to Transfer bits 25:16 <= 3FFh = 1023, C-prog-Mask bits 15:8, Status bits 7:0),
+      DWords 4-5 page pointers (Page 0 Current Offset bits 11:0; Page 1 TP bits 4:3 00b All <=
+      188B / 01b Begin / 10b Mid / 11b End and T-Count bits 2:0 1..6), and DWord 6 Back Pointer.
+      Confirmed FSTN 2-DWord layout (Typ 11b, HCIVERSION >= 0096h, periodic schedule only, Back
+      Path Link Pointer Typ = 01b QH when T = 0 Save-Place and T = 1 Restore), with the TODO
+      scoping out the full split-transaction state machines and Case 2a/2b examples.
+  qtd-layout-and-status:
+    basis: 407b60fa8fb799e4d6d4fc22de2a1c7767ec3883cffedc9f8a3cfd3a4a802c49
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 3.5 Figure 3-6 and Tables 3-14 through 3-17 (pp. 50-55), Section
+      4.10.2 (pp. 91-94), Section 4.10.6 Figure 4-15 (pp. 96-98), Section 4.15.1.1 Table 4-18
+      (pp. 125-126), and Appendix B Figure B-3 (p. 140). Confirmed 32-byte-aligned physically
+      contiguous qTD layout (32B / 8 DWords in 32-bit mode; 52B / 13 DWords in 64-bit mode with
+      Extended Buffer Pointers at 20h-33h), DWord 0 Next qTD Pointer, DWord 1 Alternate Next qTD
+      Pointer, DWord 2 Token (Data Toggle bit 31, Total Bytes to Transfer bits 30:16 up to 5000h
+      = 20480 with zero-length execution when 0 and Active = 1, IOC bit 15, C_Page bits 14:12
+      0h-4h, CERR bits 11:10 where 00b is illegal on FS/LS endpoints, PID Code bits 9:8 00b OUT
+      E1h / 01b IN 69h / 10b SETUP 2Dh undefined on interrupt endpoints / 11b reserved, and
+      Status bits 7:0), and DWords 3-7 five 4 KiB-aligned page pointers. Confirmed CERR decrement
+      and non-decrement rules in Tables 3-16 and 4-18 and the virtually contiguous buffer rule in
+      Section 4.10.6.
+  queue-head-layout-and-overlay:
+    basis: cde6c95e300abd61a178535d597c1ec29027ec5f9af3ae2aeca4583f7ffe7852
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 3.6 Figure 3-7 and Tables 3-18 through 3-22 (pp. 56-60), Section
+      4.9 Table 4-9 (pp. 87-94), Section 4.10 Figure 4-14 (pp. 89-96), and Appendix B Figure B-4
+      (p. 141). Confirmed 32-byte-aligned QH layout (48B / 12 DWords in 32-bit mode; 68B / 17
+      DWords in 64-bit mode with Extended Buffer Pointers at 30h-43h), DWord 0 Horizontal Link
+      Pointer (bits 31:5, bits 4:3 = 0, bits 2:1 Typ, bit 0 T ignored on async schedule), DWord 1
+      static characteristics (RL bits 31:28 = 0 for interrupt endpoints, C bit 27 for non-HS
+      control endpoints, Maximum Packet Length bits 26:16 <= 400h = 1024, H bit 15, DTC bit 14,
+      EPS bits 13:12 00b FS / 01b LS / 10b HS / 11b reserved, EndPt bits 11:8, I bit 7 for
+      periodic FS/LS only, Device Address bits 6:0), DWord 2 capabilities (Mult bits 31:30 01b-11b
+      with 00b undefined, TT Port Number bits 29:23, Hub Addr bits 22:16, C-Mask bits 15:8,
+      S-mask bits 7:0), DWord 3 Current qTD Pointer, and DWords 4-11 Transfer Overlay (adding
+      NakCnt in DWord 5 bits 4:1, C-prog-mask in DWord 8 bits 7:0, FrameTag in DWord 9 bits 4:0,
+      and S-bytes in DWord 9 bits 11:5), as well as queue advance and retirement write-back rules.
+  asynchronous-schedule-and-reclamation:
+    basis: c2e573ef1e5dbaa299da297e5cd34fb2711e97a5d2f9bbf086c107505358f23d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.7 Table 2-14 (p. 35), Section 3.2 Figure 3-3 (p. 42), Section
+      4.4 Figure 4-4 (pp. 71-72), Section 4.8 (pp. 81-87, Figures 4-11 and 4-12, Table 4-7),
+      Section 4.9 Figure 4-13 and Table 4-9 (pp. 87-89), and Section 4.11 Table 4-12 (pp. 98-99).
+      Confirmed ASYNCLISTADDR (Operational Base + 18h, bits 31:5 32-byte-aligned QH pointer, bits
+      4:0 hardwired to 0, written only while schedule is disabled), round-robin pointer retention
+      on stop events, single H = 1 reclamation head rule, USBSTS Reclamation (bit 13) transitions
+      on Start Events, transaction execution, and H = 1 QH fetches, and first-pass NakCnt reload
+      from RL when RL != 0. Confirmed all nine state transitions and footnotes of the high-speed
+      OUT PING protocol in Table 4-12 (Do OUT and Do Ping across ACK, NAK, NYET, XactErr and
+      STALL) and preservation of Ping State across qTD overlay advances.
+  async-schedule-unlink-doorbell:
+    basis: 858e1978123ac9b23d6bee6652ff268bff0571c0c251a9ad8fd9d5552cf30da2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.1 Table 2-9 (pp. 28-29), Section 2.3.2 Table 2-10 (p. 31),
+      Section 4.8.2 Figure 4-10 (pp. 82-83), and Section 4.15.2.3 (p. 128). Confirmed the
+      mandatory QH unlink sequence: deactivate active qTDs and wait for the target QH to go
+      inactive, migrate H = 1 to a remaining QH first if unlinking the reclamation head, bypass
+      the unlinked QH via the previous QH's Horizontal Link Pointer while pointing each unlinked
+      QH's Horizontal Link Pointer to a QH remaining in the schedule, and write 1 to USBCMD bit 6
+      (Interrupt on Async Advance Doorbell, undefined if the async schedule is disabled).
+      Confirmed the controller sets USBSTS bit 5 (Interrupt on Async Advance) to 1 and clears
+      USBCMD bit 6 to 0 after evicting cached references (interrupting at the next threshold if
+      USBINTR bit 5 is 1), after which software may free the QH and clear USBSTS bit 5.
+  extended-capabilities-and-bios-handoff:
+    basis: 5af7c96273f1ffa9358f849847047c80cf715ff00b2aca1306604adab583afa5
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.1.7 Table 2-3 (pp. 21-22), Section 2.1.8 Table 2-4 (pp. 22-23),
+      Section 2.2.4 Table 2-7 (p. 25), and Section 5.1 Figures 5-1 and 5-2 and Tables 5-1 and 5-2
+      (pp. 131-133). Confirmed HCCPARAMS EECP (bits 15:8, >= 40h when implemented) points to the
+      EHCI Extended Capability list in PCI configuration space (bits 7:0 Capability ID: 01h =
+      Pre-OS to OS Handoff Synchronization, 00h reserved; bits 15:8 Next Pointer). Confirmed
+      USBLEGSUP (EECP + 00h, Aux well: bit 16 HC BIOS Owned Semaphore R/W default 0, bit 24 HC OS
+      Owned Semaphore R/W default 0, bits 31:25 and 23:17 reserved 0), the OS request/relinquish
+      and BIOS POST-only/no-reclaim state machines in Figures 5-1 and 5-2, and USBLEGCTLSTS
+      (EECP + 04h, Aux well: R/WC status bits 31:29, RO USBSTS shadow bits 21:16 cleared via
+      USBSTS, and R/W SMI enable bits 15:13 and 5:0 issuing SMIs immediately independent of the
+      interrupt threshold).
+  debug-port-capability:
+    basis: 80a0020c8582fb3ac154d63f86eb6cf591193ac4d0b832a188f892e7307552cd
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.2.3 Table 2-6 (p. 24) and Appendix C Sections C.1-C.4 Tables
+      C-1 through C-9 (pp. 143-150). Confirmed HCSPARAMS Debug Port Number (bits 23:20, 1..N_PORTS)
+      and the PCI Capability structure (CAP_ID = 0Ah in bits 7:0, NXT_PTR in bits 15:8, DWord-
+      aligned Offset up to 4 KiB in bits 28:16 with bits 17:16 = 0, and BAR# 1h-6h in bits 31:29
+      selecting PCI BAR 10h-24h). Confirmed the MMIO register layout at BAR + Offset (00h
+      Control/Status, 04h USB PIDs, 08h and 0Ch 8-byte Data Buffer, 10h Device Address with USB
+      Address bits 14:8 default 7Fh and USB Endpoint bits 3:0 default 01h), all Control/Status
+      and USB PIDs bit fields in Tables C-5 and C-6, and the Section C.4 operational requirements
+      (high-speed debug device in D0 while not suspended or in reset, <= 125 us request polling,
+      and < 2 ms 32-bit SYNC keepalives in Mode 1 when halted).
+  memory-alignment-and-64bit-segment:
+    basis: e8c25dbe5473c632d29f5b5c87deb9fad9100c50a7e58b65d0fce8c559bedb97
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.2.4 Table 2-7 and footnote 1 (pp. 25-26), Section 2.3.5
+      (pp. 34-35), Section 3 (p. 41), and Appendix B Figures B-1 through B-4 (pp. 139-141).
+      Confirmed no reachable schedule data structure may span a 4 KiB page boundary, the Periodic
+      Frame List is 4 KiB-page aligned, and iTDs, siTDs, QHs, qTDs and FSTNs are 32-byte aligned.
+      Confirmed that when HCCPARAMS bit 0 (64-bit Addressing Capability, independent of PCI
+      USBBASE bits 2:1) is 0, Chapter 3 32-bit structures are used and CTRLDSSEGMENT (10h,
+      default 0) is not writable and reads as 0; when bit 0 is 1, CTRLDSSEGMENT supplies bits
+      [63:32] for PERIODICLISTBASE, ASYNCLISTADDR and all control structure link pointers (placing
+      all schedule structures in one 4 GiB segment), while iTD-64, siTD-64, qTD-64 and QH-64
+      append per-page 32-bit Extended Buffer Pointers for bits [63:32] and FSTNs have no 64-bit
+      variant.
+  portsc-enable-cannot-be-set-by-software:
+    basis: 8187e44a3f0ae8115a800ad48036ea909b29bfbd9cfb4ba1727ac19f062c431b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.9 Table 2-16 (pp. 36-39). Confirmed under PORTSC bit 2 (Port
+      Enabled/Disabled, p. 39) that software cannot enable a port by writing 1 to this bit—only
+      the host controller sets Port Enabled to 1 when the port reset sequence determines that the
+      attached device is a high-speed device, while software writes 0 to disable a port. Confirmed
+      under PORTSC bit 8 (Port Reset, p. 38) that when software writes 1 to Port Reset, it must
+      also write 0 to Port Enabled.
+  portsc-rwc-bits-on-read-modify-write:
+    basis: 02c35e441289ca051a1f032450852ea7ea0b0b6651f23e83cab8897d574d1f79
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2 (pp. 17-18), Section 2.3 (p. 27), and Section 2.3.9 Table 2-16
+      (pp. 36-39). Confirmed that operational registers are read and written using 32-bit DWord
+      accesses, that R/WC bits are cleared to 0 by writing 1 and unaffected by writing 0, and
+      that PORTSC mixes R/W control fields (bits 22:20, 19:16, 15:14, 13, 12, 8:6, 2) with three
+      R/WC status change bits: bit 5 Over-current Change, bit 3 Port Enable/Disable Change, and
+      bit 1 Connect Status Change. Consequently, an unmasked read-modify-write DWord write to
+      PORTSC that leaves bits 5, 3, and 1 as read will write 1 back to any set change bit and
+      clear it.
+  hcreset-and-frindex-require-halted-controller:
+    basis: b208577f1b8a4081575ba4d0d9c1dd0bc424559717bded70e95300741f1b3115
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.1.5 (p. 20), Section 2.3.1 Table 2-9 (pp. 28-30), and Section
+      2.3.4 (p. 33). Confirmed that setting USBCMD bit 1 (HCRESET) to 1, writing 1 to USBCMD
+      bit 0 (Run/Stop), modifying USBCMD bits 23:16 (Interrupt Threshold Control), writing
+      FRINDEX (0Ch), or modifying PCI FLADJ (61h) while the controller is running (USBSTS
+      HCHalted = 0 / USBCMD Run/Stop = 1) yields undefined behavior. Confirmed under USBCMD bit 0
+      (p. 30) that software halts the controller by clearing Run/Stop to 0 and waiting for
+      USBSTS HCHalted (bit 12) to read 1 within 16 micro-frames.
+  ctrldssegment-controls-only-structures-not-buffers:
+    basis: 3b84eb4fd7c1046664935656ebeb6921f1e519f98ba0bc21372015ca11e598e4
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: independent spec-verifier subagent, EHCI 1.0 reader A
+    contrary_evidence: none-found
+    citation_precision: exact
+    note: >-
+      Verified against Section 2.3.5 (pp. 34-35) and Appendix B Figures B-1 through B-4
+      (pp. 139-141). Confirmed that in 64-bit mode (HCCPARAMS bit 0 = 1), PERIODICLISTBASE,
+      ASYNCLISTADDR, and all structure link pointers (Periodic Frame List elements, QH Horizontal
+      Link Pointer, qTD Next/Alternate/Current pointers, and iTD/siTD/FSTN link pointers) remain
+      32-bit fields concatenated with CTRLDSSEGMENT as bits [63:32], confining all schedule
+      control structures to a single 4 GiB segment. Confirmed in Figures B-1 through B-4 that
+      only the data buffer page pointers in iTD-64, siTD-64, qTD-64 and QH-64 have per-page
+      32-bit Extended Buffer Pointer fields for bits [63:32], and the note on p. 141 confirms no
+      64-bit FSTN structure exists.
