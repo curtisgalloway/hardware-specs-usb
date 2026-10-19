@@ -1,0 +1,777 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: eusb2
+name: Embedded USB2 (eUSB2) physical and link layer supplement
+triggers:
+- eusb2
+- eUSB2
+- eUSB2V2
+- Embedded USB2
+- CM.RAP
+resources:
+  documents:
+  - name: eusb2-2.0.pdf
+    class: standard
+    title: Embedded USB2 (eUSB2) Version 2.0 Supplement to the USB 2.0 Specification
+    revision: Version 1.0, August 2024
+    url: https://www.usb.org/document-library/embedded-usb2-version-20-supplement-usb-20-specification-eusb2v2
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/Embedded%20USB2%20Version%202.0%20Supplement%20to%20the%20USB%202.0%20Specification_0.pdf
+    sha256: a78f2e1165a303de948b226140e92d465c15e2fd4e7abf81089b2346576e3d99
+    pages: 65
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the PDF directly without an account; its cover title is
+      "Embedded USB2 Version 2.0: Supplement to the USB 2.0 Specification (eUSB2V2)", Version 1.0,
+      August 2024. No page carries a confidentiality marking; the USB Promoter Group's copyright
+      and limited license terms remain applicable and the bytes are not redistributed. Locators are
+      PDF page numbers, which are the printed page numbers plus 12 in the body chapters (printed
+      page 1 is PDF page 13).
+orientation: >-
+  Terms: eUSB2V2 (Embedded USB2 Version 2.0) extends eUSB2 native mode for inside-the-box
+  host-to-peripheral links, keeping the USB 2.0 half-duplex transactional protocol, device
+  framework and software model while scaling the low-voltage differential PHY to gigabit rates.
+  HSx denotes a bit rate of x times 480 Mb/s (HS1 is 480 Mb/s; HS2 through HS10 are 0.96 Gb/s to
+  4.8 Gb/s). Links operate in symmetric high-speed mode (HSSx, x = 2..10) or asymmetric mode with
+  one direction at x * 480 Mb/s and the other at 480 Mb/s (HSUx for fast upstream, HSDx for fast
+  downstream). CM.RAP is the Control Message Register Access Protocol over the eUSB2 link, using
+  CM.14 to reach an eUSB2V2 re-driver and CM.15 to reach a host or peripheral's 6-bit register
+  space. This spec records the eUSB2V2 architecture, link speeds, PHY state machine, CM.RAP
+  register map, scrambling and framing rules, timing bounds, isochronous burst transactions and
+  device-framework descriptor and request extensions. Analog channel S-parameters, reference CTLE
+  transfer curves, CDR/JTF equations and compliance eye masks are summarized only where software-
+  visible registers reference them.
+facts:
+- id: scope-and-compatibility
+  section: standards
+  title: Scope, architecture and compatibility with USB 2.0 and eUSB2
+  claim: >-
+    eUSB2V2 is constructed on the USB 2.0 architectural base (half-duplex link, host-scheduled
+    transactional protocol and device framework) and extends eUSB2 native mode for inside-the-box
+    (embedded) peripheral interconnects. It is fully compatible with the USB 2.0 base
+    specification at the protocol layer and makes no change to the USB 2.0 software programming
+    model; client applications and device drivers, including all class drivers, require no
+    modification, while host and peripheral controllers are updated for the eUSB2V2 PHY, protocol,
+    new descriptors and increased MaxPacketSizes. eUSB2V2 operation is defined for native mode
+    only: it is not compatible with standard USB 2.0 external connectors or external cables
+    (though an internal cable and connector inside the system boundary are allowed), is not
+    compatible at the physical layer with USB 2.0 or eUSB2 (Revision 1.2), and does not require
+    physical- or protocol-level backward compatibility with USB 2.0 or eUSB2 or define how to
+    switch to them. Support for eUSB2 native mode or repeater mode is optional, and any eUSB2V2
+    port that optionally supports eUSB2 must comply with eUSB2 native mode operation.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '13'
+      section: '1.1'
+    - page: '13'
+      section: '1.2'
+    - pages: ['13', '14']
+      section: '1.3'
+    - page: '17'
+      section: '2'
+    - page: '18'
+      section: '2.1'
+    - page: '22'
+      section: '3'
+    - page: '27'
+      section: '3.5'
+
+- id: hsx-data-rates-and-link-modes
+  section: standards
+  title: HSx data rates and symmetric or asymmetric link configurations
+  claim: >-
+    eUSB2V2 bit rates, denoted HSx, are integer multiples of 480 Mb/s: HS1 is 480 Mb/s, and HS2
+    through HS10 (multipliers x = 2 to 10) are 0.96 Gb/s (2), 1.44 Gb/s (3), 1.92 Gb/s (4), 2.4
+    Gb/s (5), 2.88 Gb/s (6), 3.36 Gb/s (7), 3.84 Gb/s (8), 4.32 Gb/s (9) and 4.8 Gb/s (10). Upstream
+    Facing Port (UFP) and Downstream Facing Port (DFP) links support three configurations for
+    integer multipliers x from 2 to 10: HSSx (HSSx-speed, symmetric operation with identical
+    upstream and downstream rates from 960 Mb/s to 4.8 Gb/s), HSUx (HSUx-speed, asymmetric
+    operation with upstream at x * 480 Mb/s from 960 Mb/s to 4.8 Gb/s and downstream at 480 Mb/s)
+    and HSDx (HSDx-speed, asymmetric operation with downstream at x * 480 Mb/s from 960 Mb/s to
+    4.8 Gb/s and upstream at 480 Mb/s). HS1 (480 Mb/s) is used only as the slow direction of an
+    asymmetric link; 480 Mb/s symmetric links are not supported by eUSB2V2 and, if desired, are
+    optionally performed via eUSB2 native mode.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '16'
+      section: '1.6'
+    - page: '18'
+      section: '2.1'
+    - page: '19'
+      section: 2.2.2
+    - page: '20'
+      section: 2.2.3
+      table: '2-1'
+
+- id: physical-bus-topology
+  section: standards
+  title: In-box physical bus topology, single re-driver limit and per-port bus instances
+  claim: >-
+    Unlike USB 2.0, which uses hub tiers for fanout and cable reach, eUSB2V2 supports only in-box
+    physical topologies with at most one eUSB2V2 re-driver between a host root port and a
+    peripheral. Multiple functions may be packaged in a single physical peripheral as a composite
+    device that has a single device address and presents multiple independently controlled
+    interfaces. The logical bus topology and client-software-to-function relationship are
+    unchanged from USB 2.0 section 5.2.4. The host treats each downstream-facing eUSB2V2 port as
+    an independent full eUSB2V2 bus instance for scheduling and bandwidth calculations, and no
+    more than 90% of any frame or microframe may be allocated to periodic (isochronous and
+    interrupt) transfers across the periodic endpoints on that port.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '18'
+      section: '2.1'
+    - pages: ['56', '57']
+      section: 4.1.1
+      figure: '4-1'
+    - page: '57'
+      section: 4.1.2
+    - page: '57'
+      section: '4.2'
+    - page: '65'
+      section: 6.4.2
+
+- id: cm-rap-message-encoding
+  section: programming-model
+  title: Control Message Register Access Protocol (CM.RAP) CM.14 and CM.15 encodings and roles
+  claim: >-
+    eUSB2 defines a generic Control Message Register Access Protocol (CM.RAP) with a 64-byte
+    register address space and Read, Write, Set and Clear messages using command message ID 15
+    (CM.15), without defining register assignments. eUSB2V2 uses the term CM.RAP generically for
+    both CM.14 and CM.15 and extends the eUSB2 Control Message table (where CM[3:0] = 0..13 with
+    parity X remain as defined in the eUSB2 specification) by assigning CM.14 (CM[3:0] = 14,
+    Parity = 0) as Start of Re-driver register access and CM.15 (CM[3:0] = 15, Parity = 1) as
+    Start of host or peripheral register access. A peripheral device must implement CM.15 as a
+    receptor, a re-driver is accessed via CM.14, and a host port must implement CM.15 both as an
+    initiator (to access a peripheral's registers) and as a receptor (enabled on entry to
+    Compliance Mode so external test equipment acting as a CM.15 initiator can access the host's
+    PHY configuration and operational mode registers).
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '21'
+      section: '2.3'
+      table: '2-2'
+    - page: '25'
+      section: 3.3.1.5
+    - page: '46'
+      section: '3.9'
+
+- id: phy-states-and-lpm
+  section: programming-model
+  title: PHY architecture, HSx bus states, L1/L2 power management and Connect/Reset transitions
+  claim: >-
+    The eUSB2V2 PHY retains the basic eUSB2 block structure (differential transceiver, low-power
+    squelch detector, two pairs of single-ended buffers, pull-down resistors and LS/FS/HS
+    transceiver requirements per eUSB2 section 3.1), and its operation state machine and power
+    management match eUSB2 native mode: HSx bus state representation, HSx signaling, transition
+    to HSx idle, squelch entry, Bus Reset, L1 (LPM-L1) and L2 Suspend entry, and Resume or Remote
+    Wake from L1 and L2 Suspend all follow their eUSB2 native mode definitions. Unlike eUSB2,
+    eUSB2V2 never allows an un-terminated receiver, replaces squelch exit with the 40-bit HSx SYNC
+    pattern, and deprecates the HSx analog ping for disconnect detection (though a peripheral may
+    still perform soft disconnect via XeSE1). In the Connect and Reset states, the host and
+    peripheral follow the eUSB2 native mode HS connect and Bus Reset process, except that the HSx
+    data rate and PHY settings are pre-determined prior to Connect so no HSx speed negotiation is
+    performed during Bus Reset; upon completion of Bus Reset, the link enters L0 and starts
+    eUSB2V2 operation.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '23'
+      section: '3.1'
+      figure: '3-1'
+    - pages: ['23', '24']
+      section: '3.2'
+    - page: '24'
+      section: '3.3'
+    - page: '26'
+      section: 3.3.2
+    - pages: ['28', '29']
+      section: '3.6'
+
+- id: default-substates
+  section: programming-model
+  title: Default state sub-state machine
+  claim: >-
+    In the Default state, the host may optionally configure its own PHY transceiver and configure
+    the peripheral transceiver via CM.15 (or implementation-specific means). Default defines five
+    operational sub-states after initial Power-up: (1) Port Reset, where the host transmits XeSE1
+    to reset the link (entered by a peripheral upon detecting XeSE1, and entered by a host when
+    directed to exit Rx Margining Mode) without resetting the PHY configuration registers at RAP
+    addresses 4 and 7 through 10; (2) PHY Configuration, an optional substate for configuring host
+    or peripheral PHY registers before Port Configuration, Compliance Mode or Rx Margining Mode,
+    where peripheral configuration via CM.15 takes priority over other means; (3) Port
+    Configuration, where the host initiates the Port Configuration handshake by enabling its
+    receiver termination to synchronize and conclude link initialization before Connect; (4) Rx
+    Margining Mode, entered to perform host or peripheral receive margining (optional for an HS1
+    receiver) by setting bits d2:d0 of both Operational Mode registers to 010b (host Rx margining)
+    or 110b (peripheral Rx margining); and (5) Compliance Mode, entered when a host is directed
+    into Compliance Mode (enabling its CM.15 receptor for external test equipment) or when a
+    peripheral's Operational Mode register bits d1:d0 are set to 01b via CM.15.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '24'
+      section: 3.3.1
+    - page: '24'
+      section: 3.3.1.1
+    - page: '24'
+      section: 3.3.1.2
+    - page: '24'
+      section: 3.3.1.3
+    - page: '25'
+      section: 3.3.1.4
+    - page: '25'
+      section: 3.3.1.5
+    - page: '26'
+      figure: '3-2'
+
+- id: scrambling-and-bit-stuffing
+  section: programming-model
+  title: Packet LFSR scrambling and bit-stuffing rules
+  claim: >-
+    All packets in both directions must be scrambled starting with the first byte after the PID
+    and ending with the last byte before EOP. Scrambling and unscrambling use a free-running
+    16-bit Linear Feedback Shift Register (LFSR) implementing G(X) = X^16 + X^5 + X^4 + X^3 + 1
+    initialized to seed FFFFh (D0-D15): for each 8-bit character (D0-D7), LFSR output D15 is
+    serially XORed with data bit D0 through D7, advancing the LFSR and data register after each
+    XOR for eight serial shifts per symbol. Bit stuffing follows USB 2.0 except that it is applied
+    after scrambling and starts with the first J of the SYNC pattern.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '30'
+      section: 3.6.1
+      figure: '3-5'
+
+- id: hsx-sync-and-sof-eop
+  section: programming-model
+  title: 40-bit HSx SYNC pattern and SOF EOP translation
+  claim: >-
+    The HSx SYNC pattern is 40 bits long: the first 24 bits are consecutive Ks (to reduce squelch
+    detector sensitivity when using a half-differential comparator for squelch exit, whereas
+    squelch entry still requires a fully differential detector), followed by seven KJ pairs (14
+    bits) and ending with two Ks. Host, peripheral and eUSB2V2 re-driver receivers may each
+    consume up to 8 Ks when exiting the HSx idle state. With analog ping removed, the SOF packet's
+    EOP on the wire remains 8 UIs, and the host PHY must report 40 UIs of EOP to the host
+    controller while transmitting only 8 UIs of EOP.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - pages: ['30', '31']
+      section: 3.6.2
+      figure: '3-6'
+
+- id: interpacket-delay-and-timeout
+  section: programming-model
+  title: HSx inter-packet delays, bus turnaround limit and transaction timeout
+  claim: >-
+    HSx inter-packet delays are measured from when the line returns to HSx idle at the end of one
+    packet to when it leaves HSx idle at the start of the next: (1) consecutive packets traveling
+    in the same direction require a minimum inter-packet delay of at least THSXIPDSD = 32 transmit
+    bit times; (2) transmitting after receiving a packet (opposite direction) requires a minimum
+    inter-packet delay of at least THSXIPDOD = 32 responding PHY transmit bit times; (3) the
+    maximum bus turnaround time (maximum host or peripheral response time) is THSXRSPIPD1 = 1920
+    HS10 bit times, and when a peripheral transmits consecutive packets their delay must not
+    exceed THSXRSPIPD1 (if exceeded, the peripheral must not send further data packets within the
+    transaction); and (4) a host or peripheral assumes a transaction timeout after TTIMEOUT = 1 us
+    (minimum), with the timeout counter reset and restarted after every packet received in an
+    isochronous burst.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '31'
+      section: 3.6.3
+    - page: '32'
+      table: '3-2'
+
+- id: rap-register-map
+  section: programming-model
+  title: Configuration and operational mode register map (6-bit RAP address space)
+  claim: >-
+    Hosts, peripherals and re-drivers must implement their applicable registers in the 6-bit RAP
+    address space (0 to 63, accessed via CM.15 on hosts and peripherals and CM.14 on re-drivers):
+    addresses 0 (Vendor ID Low), 1 (Vendor ID High), 2 (Product ID Low) and 3 (Product ID High)
+    are read-only on Peripheral and Re-driver (N/A on Host); address 4 (Data Rate: DS Rate in
+    d7:d4, US Rate in d3:d0; applicable only during Compliance Mode or Rx Margining Mode), address
+    5 (Operational Mode, default 0: Trig d7, DScr d6, TP d5:d3, Dir d2, Mode d1:d0; writing a test
+    mode triggers entry into test mode) and address 6 (Error Count, default 0) are read/write on
+    Host and Peripheral (N/A on Re-driver); address 7 (Tx Configuration: DE in d4:d3, Vswing in
+    d2:d0) is read/write for Host Downstream, Peripheral Upstream and Re-driver Upstream;
+    addresses 8 (Tx Configuration Downstream, vendor defined) and 9 (Rx Configuration Upstream,
+    vendor defined) are read/write on Re-driver only (N/A on Host and Peripheral); address 10 (Rx
+    Configuration: VGA in d6:d4, CTLE in d3:d0) is read/write for Host Upstream, Peripheral
+    Downstream and Re-driver Downstream; addresses 11 (Rx Voltage Margining, default 0) and 12 (Rx
+    Timing Margining, default 0) are read/write on Host and Peripheral (N/A on Re-driver);
+    addresses 13:31 are Reserved (read/write); and addresses 32:63 are Vendor defined
+    (read/write).
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '46'
+      section: '3.9'
+    - page: '46'
+      section: 3.9.1
+      table: '3-11'
+    - page: '47'
+      table: '3-12'
+    - pages: ['48', '49']
+      table: '3-13'
+    - page: '49'
+      table: '3-14'
+  todo:
+    check: document
+    text: >-
+      The per-field mode applicability cells across Compliance Mode, Rx Margining Mode, Functional
+      Mode and Debug Operation in Functional Mode in Tables 3-13 and 3-14 (pp. 48-49) and the
+      external test equipment compliance test sequences of sections 3.7.5, 3.8.5 and 3.9 (pp.
+      35-36, 40-41 and 46) are not extracted in full.
+
+- id: data-rate-register
+  section: programming-model
+  title: Data Rate register (RAP address 4) encodings and 10 ms PLL settling delay
+  claim: >-
+    In the 8-bit Data Rate register (RAP address 4), bits d7:d4 select the Downstream Data Rate
+    (DS Rate) and bits d3:d0 select the Upstream Data Rate (US Rate). Both 4-bit fields use the
+    same encoding: 0000b Reserved, 0001b HS1, 0010b HS2, 0011b HS3, 0100b HS4, 0101b HS5, 0110b
+    HS6, 0111b HS7, 1000b HS8, 1001b HS9, 1010b HS10, and 1011b through 1111b Reserved. Default
+    values on the host and peripheral are implementation-specific, the symmetric-HS1 value
+    d7:d0 = 00010001b is invalid, and because changing data rate typically changes the PHY's PLL
+    frequency, software must wait at least 10 ms after changing the Data Rate register before the
+    next operation.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '50'
+      section: 3.9.2
+      table: '3-15'
+    - page: '50'
+      table: '3-16'
+    - page: '51'
+      figure: '3-15'
+
+- id: operational-mode-and-error-count-registers
+  section: programming-model
+  title: Operational Mode (RAP address 5) and Error Count (RAP address 6) registers
+  claim: >-
+    In the Operational Mode register (RAP address 5): Mode (d1:d0) is 00b Functional Mode
+    (default), 01b Compliance Mode, 10b Rx Margining Mode, 11b Reserved; Dir (d2) is 0 Upstream
+    (Peripheral Tx and Host Rx) or 1 Downstream (Host Tx and Peripheral Rx); TP (d5:d3) selects a
+    test pattern framed with Sync and EOP — 000b 3M bits of alternating 0 and 1 (1 shot, no
+    scrambling/bit-stuffing/NRZI), 001b 3M bits of PRBS16 + bit-stuffing + NRZI (1 shot), 010b
+    8192 bits of PRBS16 + bit-stuffing + NRZI repeated 1k times with THSXIPDSD inter-packet delay,
+    011b 1k bits of PRBS7 repeated 10k times with THSXIPDSD delay (scrambled, no bit-stuffing or
+    NRZI), 100b 8 bits of PRBS7 repeated 100k times with THSXIPDSD delay (scrambled, no
+    bit-stuffing or NRZI), 101b (64 bits of 0 + 64 bits of 1) repeated 1k times (1 shot, no
+    scrambling/bit-stuffing/NRZI), and 110b..111b Reserved (PRBS16 uses G(X) = X^16 + X^5 + X^4 +
+    X^3 + 1 with seed FFFFh and all-zero input; PRBS7 uses G(X) = X^7 + X^6 + 1 with seed FFh and
+    all-zero input); DScr (d6) is 0 scrambler/de-scrambler enabled (default) or 1 disabled
+    (applicable only in Functional Mode debug operation and ignored in Compliance and Rx Margining
+    modes); and TP Trigger (d7) is 0 Idle or 1 Triggered (set to 1 to transmit the selected test
+    pattern and reset to 0 by the PHY once transmission completes). The 8-bit Error Count register
+    (RAP address 6, bits 7:0) counts bit errors during Rx compliance testing or Rx margining, does
+    not roll over, and saturates at FFh until reset by the PHY or explicitly written to 0.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - pages: ['48', '49']
+      table: '3-13'
+    - page: '49'
+      table: '3-14'
+    - page: '52'
+      section: 3.9.3
+      table: '3-17'
+    - page: '52'
+      table: '3-18'
+    - page: '52'
+      table: '3-19'
+    - page: '53'
+      table: '3-20'
+    - page: '53'
+      table: '3-21'
+    - page: '53'
+      section: 3.9.4
+      table: '3-22'
+
+- id: tx-and-rx-configuration-registers
+  section: programming-model
+  title: Transmit Configuration (RAP address 7) and Receive Configuration (RAP address 10) registers
+  claim: >-
+    The 8-bit Transmit Configuration register (RAP address 7, bits d7:d5 reserved) configures
+    transmitter differential peak-to-peak voltage swing Vswing (d2:d0: 000b 360 mV, 001b 400 mV,
+    010b 500 mV, 011b 600 mV, 100b 700 mV, 101b 800 mV, 110b..111b Reserved) and de-emphasis boost
+    DE (d4:d3: 00b 0 dB, 01b -3.5 dB, 10b -6 dB, 11b -8 dB); the normative transmitter swing range
+    is 360 to 800 mVdiff-pp and de-emphasis range is 0 to -8 dB (recommended minimum support of 0,
+    -3.5, -6 and -8 dB), while the specific Table 3-23 and Table 3-24 bit encodings are
+    informative. The 8-bit Receive Configuration register (RAP address 10, bit d7 reserved)
+    configures receiver CTLE boost (d3:d0: 0000b through 1000b for 0 dB through 8 dB in 1 dB
+    steps, 1001b..1111b Reserved) and Variable Gain Amplifier gain multiplier VGA (d6:d4: 000b 1x,
+    001b 1.25x, 010b 1.5x, 011b 1.75x, 100b 2x, 101b 2.25x, 110b 2.5x, 111b Reserved; section
+    3.8.1 states the VGA should be programmable from 0 to 2.5x); the Table 3-25 and Table 3-26
+    settings are informative recommendations provided the implementation can meet the strongest
+    2.5x VGA gain plus 8 dB CTLE boost.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '32'
+      section: 3.7.1
+    - pages: ['32', '33']
+      section: 3.7.2
+    - page: '34'
+      section: 3.7.3
+      table: '3-3'
+    - pages: ['36', '37']
+      section: 3.8.1
+    - page: '38'
+      section: 3.8.2
+      table: '3-6'
+    - page: '54'
+      section: 3.9.5
+      table: '3-23'
+    - page: '54'
+      table: '3-24'
+    - page: '55'
+      section: 3.9.6
+      table: '3-25'
+    - page: '55'
+      table: '3-26'
+  todo:
+    check: document
+    text: >-
+      The informative channel loss and impedance expectations (Table 3-1, p. 28), non-register
+      transmitter and receiver electrical parameters (ZTX-DIFF, CTX, TRISE/FALL, TP-N-SKEW,
+      VTX-CM, VTX-CM-AC, ZRX-DIFF, CRX, TRX-TJ, VSQUELCH-DIFF, VRX-CM, VRX-CM-AC and UI in Tables
+      3-3 and 3-6, pp. 34 and 38), transmitter jitter budget and eye mask (Tables 3-4 and 3-5, pp.
+      34-35), CDR/JTF frequencies (Table 3-7, p. 38) and receiver stressed-eye and jitter
+      tolerance parameters (Tables 3-8 and 3-9, pp. 39-40) are not extracted.
+
+- id: receive-margining-registers-and-flow
+  section: programming-model
+  title: Receive voltage and timing margining registers (RAP addresses 11 and 12) and software flows
+  claim: >-
+    Host and peripheral eUSB2V2 receivers must support software-controlled receive voltage and
+    timing margining in the Default state (Rx Margining Mode; optional for an HS1 receiver, and
+    hardware-based margining is optional and vendor-specific). Rx Voltage Margining (RAP address
+    11, bits 7:0) and Rx Timing Margining (RAP address 12, bits 7:0) take vendor-specific signed
+    8-bit offsets (default 0). Voltage margining requires independent positive (high) and negative
+    (low) directions with a range of +/- 74 mV (min) to +/- 200 mV (max) and a maximum step size
+    of 3 mV; timing margining requires a range of +/- 0.2 UI (min) to +/- 0.5 UI (max) and a
+    maximum step size of 0.03 UI (independent left/right directions are optional but recommended).
+    For host Rx margining, software directs the link into Default, clears the host's error count
+    and margining registers, writes 00001010b to the host Operational Mode register (upstream
+    Dir = 0, TP(1), Rx Margining Mode) and writes 10001010b via CM.15 to the peripheral
+    Operational Mode register so the peripheral waits THSXIPDSD, transmits TP(1) and clears d7 to
+    0. For peripheral Rx margining, software clears the peripheral's error count and margining
+    registers via CM.15, writes 00001110b via CM.15 to the peripheral Operational Mode register
+    (downstream Dir = 1, TP(1), Rx Margining Mode) and writes 10001110b to the host Operational
+    Mode register so the host waits THSXIPDSD, transmits TP(1) and clears d7 to 0.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '25'
+      section: 3.3.1.4
+    - pages: ['41', '42']
+      section: 3.8.6
+      table: '3-10'
+    - pages: ['43', '44']
+      section: 3.8.6.1
+      figure: '3-13'
+    - pages: ['44', '45']
+      section: 3.8.6.2
+      figure: '3-14'
+    - page: '55'
+      section: 3.9.7
+      table: '3-27'
+    - page: '55'
+      section: 3.9.8
+      table: '3-28'
+
+- id: isochronous-burst-transactions
+  section: programming-model
+  title: Isochronous burst transactions, Burst Count and DATA2/DATA1/DATA0/MDATA PID sequencing
+  claim: >-
+    eUSB2V2 isochronous endpoints execute burst transactions managed automatically by the host
+    controller for data transactions greater than 1024 B, transferring 1, 2 or 3 consecutive data
+    packets after a single IN or OUT token packet with no handshake phase. A service interval's
+    (SI's) burst sequence consists of one or more burst transactions; every burst transaction in
+    the sequence contains 3 data packets except the last, which may be a short burst transaction
+    (< 3072 B), and every data packet is 1024 B except the last data packet of a short burst
+    transaction, which is a short packet (< 1024 B, including zero-length) unless
+    dwBytesPerInterval bytes have been transferred and is a multiple of 1024 B. Within a burst
+    transaction, Burst Count is derived from the bytes remaining for the transfer — 1 for <= 1024
+    B, 2 for 1025 B to 2048 B, and 3 for > 2048 B: for <= 1024 B, both IN and OUT send DATA0; for
+    1025 B to 2048 B, IN sends DATA1 then DATA0 while OUT sends MDATA then DATA1; for 2049 B to
+    3072 B, IN sends DATA2, DATA1 then DATA0 (descending order, always ending with DATA0) while
+    OUT sends two MDATA packets followed by DATA2 (always sending MDATA until the final packet of
+    the burst, which is DATA2, DATA1 or DATA0).
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '16'
+      section: '1.6'
+    - page: '19'
+      section: 2.2.1
+    - page: '58'
+      section: '4.6'
+    - pages: ['58', '60']
+      section: 4.6.1
+      figure: '4-2'
+    - page: '64'
+      section: '6.4'
+    - page: '64'
+      section: 6.4.1
+
+- id: isochronous-error-handling
+  section: programming-model
+  title: Isochronous burst error handling and IN versus OUT recovery
+  claim: >-
+    Isochronous transfers do not support handshakes or retransmission. A data error is indicated
+    in a service interval if any USB 2.0 section 8.7 error condition occurs, if a data PID is
+    missing in the expected burst sequence, or if the service interval ends without a terminating
+    short burst transaction when fewer than dwBytesPerInterval bytes have been received. If a PID
+    Check, Bit Stuff or Data CRC (CRC16) error is detected on a data packet, the endpoint drops
+    that packet, transitions to the HSx idle state and drops all subsequent data packets until the
+    end of the service interval; any error in a service interval invalidates and drops all data
+    for that endpoint (and retires the associated IRP) for that service interval. During an
+    isochronous IN transaction expecting more than one data packet (dwBytesPerInterval > 1024), if
+    the host receives a corrupted data packet while still expecting further data packets, the host
+    must not start a new transaction until TTIMEOUT (1 us) is detected; during an isochronous OUT
+    transaction, if the host runs out of data, it may start a new transaction immediately
+    (observing THSXIPDSD) and the peripheral treats the uncompleted transaction as corrupted and
+    processes the new transaction.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '31'
+      section: 3.6.3
+    - pages: ['58', '60']
+      section: 4.6.1
+      figure: '4-2'
+    - page: '64'
+      section: '6.4'
+    - page: '65'
+      section: 6.4.3
+
+- id: device-and-endpoint-descriptors
+  section: programming-model
+  title: eUSB2V2 Device, Endpoint, Alternate Interface and Isochronous Endpoint Companion descriptors
+  claim: >-
+    An eUSB2V2 peripheral adjusts the configuration bandwidth settings it presents according to
+    its connected speed (HSSx, HSUx or HSDx). Its standard Device descriptor sets bcdUSB to 0x230
+    and bMaxPacketSize0 to 64 B. Control, bulk and interrupt endpoints use standard USB 2.0
+    Endpoint descriptors (with control and interrupt transfer semantics unchanged from USB 2.0).
+    For each isochronous endpoint, the standard Endpoint descriptor sets wMaxPacketSize to 0
+    (declaring zero bandwidth) and is immediately followed in the GetDescriptor(Configuration)
+    response (before the next endpoint or interface descriptor; never directly accessible via
+    GetDescriptor() or SetDescriptor()) by an 8-byte eUSB2 Isochronous Endpoint Companion
+    descriptor: bLength (offset 0, 1 byte, value 8), bDescriptorType (offset 1, 1 byte, constant
+    EUSB2_ISO_ENDPOINT_COMPANION), wMaxPacketSize (offset 2, 2 bytes, set to 1024 unless the
+    endpoint transfers less than 1024 B per Service Interval) and dwBytesPerInterval (offset 4, 4
+    bytes, the maximum bytes transferred per Service Interval, replacing the USB 2.0
+    high-bandwidth wMaxPacketSize bits 12:11 multiplier and allowing more than 3072 B per
+    microframe; if dwBytesPerInterval > 1024 B, the Service Interval must be 1 microframe). To
+    support legacy software, an eUSB2V2 peripheral with isochronous endpoints must also include at
+    least one Alternate Interface that declares all of its isochronous endpoints with a maximum
+    packet size of 1024 B and a Mult of 3.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - pages: ['57', '58']
+      section: '4.3'
+    - page: '58'
+      section: '4.4'
+    - page: '60'
+      section: '4.7'
+    - page: '61'
+      section: '5.1'
+    - page: '61'
+      section: 5.1.1
+    - page: '61'
+      section: 5.1.2
+    - page: '61'
+      section: 5.1.3
+    - page: '62'
+      section: 5.1.4
+      table: '5-1'
+    - page: '65'
+      section: 6.4.2
+
+- id: bulk-max-packet-update
+  section: programming-model
+  title: SetFeature(BULK_MAX_PACKET_UPDATE) for 1024-byte bulk endpoints
+  claim: >-
+    Every eUSB2V2 peripheral that supports Bulk endpoints must support the standard device request
+    SetFeature(BULK_MAX_PACKET_UPDATE): bmRequestType 00000000B (recipient Device), bRequest
+    SET_FEATURE, wValue BULK_MAX_PACKET_UPDATE (feature selector value 8), wIndex 0, wLength 0 and
+    no Data stage. This request sets the maximum packet size of all Bulk endpoints in the
+    peripheral to 1024 B when operating with eUSB2V2-compliant software. It is valid in the
+    Default and Address (Addressed) states and is not valid in the Configured state. An eUSB2V2
+    Bulk endpoint reverts its maximum packet size to 512 B upon a USB 2.0 Bus Reset, a Disconnect
+    or Deconfiguration.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '18'
+      section: '2.1'
+    - page: '58'
+      section: '4.5'
+    - pages: ['62', '63']
+      section: '5.2'
+      table: '5-2'
+    - page: '63'
+      section: '5.3'
+      table: '5-3'
+    - page: '65'
+      section: '6.6'
+
+- id: bulk-descriptor-stays-512
+  section: gotchas
+  title: Bulk endpoint descriptor wMaxPacketSize remains 512 even after BULK_MAX_PACKET_UPDATE
+  claim: >-
+    Even after the host issues SetFeature(BULK_MAX_PACKET_UPDATE) (feature selector 8) in the
+    Default or Address state to raise the active maximum packet size of all Bulk endpoints to 1024
+    bytes, the wMaxPacketSize field in each Bulk endpoint's standard Endpoint descriptor must
+    always remain set to 512, independent of whether the current maximum packet size is 512 or
+    1024. Because SetFeature(BULK_MAX_PACKET_UPDATE) is invalid in the Configured state and bulk
+    endpoints revert to 512 bytes on USB 2.0 Bus Reset, Disconnect or Deconfiguration, host
+    software must issue the request before SetConfiguration() and re-issue it after any reset,
+    disconnect or deconfiguration.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - pages: ['62', '63']
+      section: '5.2'
+      table: '5-2'
+    - page: '63'
+      section: '5.3'
+      table: '5-3'
+
+- id: data-rate-register-role-inversion-and-hs1
+  section: gotchas
+  title: Data Rate register bit fields swap Tx/Rx roles between host and peripheral, and symmetric HS1 is invalid
+  claim: >-
+    In the Data Rate register (RAP address 4), bits d7:d4 always denote the Downstream Data Rate
+    (DS Rate, host-to-peripheral) and bits d3:d0 always denote the Upstream Data Rate (US Rate,
+    peripheral-to-host). The same byte value therefore configures opposite transceiver directions
+    at the two ends of the link: d7:d0 = 00011010b configures a peripheral to receive at HS1 (480
+    Mb/s) and transmit at HS10 (4.8 Gb/s), whereas on the host the same value configures the host
+    to transmit at HS1 and receive at HS10. In addition, d7:d0 = 00010001b (symmetric HS1) is
+    invalid in eUSB2V2, the Data Rate register applies only during Compliance Mode or Rx Margining
+    Mode (and must not be changed in Functional Mode), and software must wait at least 10 ms after
+    changing the data rate before the next operation.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '16'
+      section: '1.6'
+    - page: '20'
+      section: 2.2.3
+    - page: '47'
+      table: '3-12'
+    - pages: ['48', '49']
+      table: '3-13'
+    - page: '49'
+      table: '3-14'
+    - pages: ['50', '51']
+      section: 3.9.2
+      table: '3-15'
+      figure: '3-15'
+
+- id: port-reset-preserves-phy-config-registers
+  section: gotchas
+  title: Entering Port Reset via XeSE1 does not reset PHY Data Rate or Tx/Rx Configuration registers
+  claim: >-
+    When the host transmits XeSE1 to enter the Port Reset substate of Default (including when it
+    is directed to exit Rx Margining Mode), the PHY configuration registers at RAP addresses 4
+    (Data Rate) and 7 through 10 (Tx Configuration and Rx Configuration) are not reset so that PHY
+    Configuration does not need to be reprogrammed across port resets. Consequently, if margining
+    software changes any transmitter or receiver configuration register values during Rx Margining
+    Mode, it must explicitly restore them to their functional-mode values before exiting Rx
+    Margining Mode into Port Reset.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '24'
+      section: 3.3.1.1
+    - page: '25'
+      section: 3.3.1.4
+    - page: '46'
+      section: 3.9.1
+      table: '3-11'
+
+- id: sof-eop-host-phy-translation-and-no-analog-ping
+  section: gotchas
+  title: Host PHY translates 8-UI wire SOF EOP into 40-UI controller EOP and deprecates analog ping
+  claim: >-
+    eUSB2V2 deprecates the HSx analog ping mechanism for in-band disconnect detection because
+    embedded peripheral connectivity is known and managed by the system (though a peripheral may
+    still perform soft disconnect based on XeSE1). With analog ping removed, the EOP of an SOF
+    packet on the wire remains 8 UIs, but to maintain interoperability with the host controller,
+    the host PHY must report 40 UIs of EOP to the host controller while transmitting only 8 UIs of
+    EOP on the link.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - pages: ['23', '24']
+      section: '3.2'
+    - pages: ['30', '31']
+      section: 3.6.2
+      figure: '3-6'
+
+- id: cm-rap-no-error-detection-and-legacy-alt-interface
+  section: gotchas
+  title: CM.RAP lacks error detection, VGA text/table range differs, and the legacy alternate interface still uses eUSB2V2 bursts
+  claim: >-
+    Three specification subtleties affect software and PHY bring-up: (1) the CM.RAP protocol
+    includes no error detection mechanism, so software should read back RAP registers to confirm
+    writes when debugging; (2) section 3.8.1 states that the receiver Variable Gain Amplifier
+    (VGA) should be programmable from 0 to 2.5x amplification, whereas Table 3-26 defines the
+    3-bit VGA field (d6:d4 of RAP address 10) from 1x (000b) to 2.5x (110b) in 0.25x steps (with
+    tables taking precedence over figures and text under section 1.5.1); and (3) when legacy
+    system software selects the mandatory backward-compatible Alternate Interface (which declares
+    isochronous endpoints with standard wMaxPacketSize = 1024 B and Mult = 3), those isochronous
+    endpoints must still follow the eUSB2V2 protocol even when transferring less than 3072 B.
+  support:
+  - class: standard
+    doc: eusb2-2.0.pdf
+    at:
+    - page: '14'
+      section: 1.5.1
+    - pages: ['36', '37']
+      section: 3.8.1
+    - page: '46'
+      section: '3.9'
+    - page: '55'
+      section: 3.9.6
+      table: '3-26'
+    - page: '61'
+      section: 5.1.3

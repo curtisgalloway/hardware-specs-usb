@@ -1,0 +1,404 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: eusb2
+spec_file: eusb2.spec.yaml
+spec_sha256: 6a29a1acfb80bf6a82804f33747ad6fe8b2397f88cc74509f7b11302b2362e1d
+canonical: fact-v1
+sources:
+- name: eusb2-2.0.pdf
+  url: https://www.usb.org/sites/default/files/Embedded%20USB2%20Version%202.0%20Supplement%20to%20the%20USB%202.0%20Specification_0.pdf
+  sha256: a78f2e1165a303de948b226140e92d465c15e2fd4e7abf81089b2346576e3d99
+  fetch: ok
+  note: Fetched from the USB-IF document library; the reader verified the SHA-256 and compared every
+    claim against the extracted page-numbered text.
+summary:
+  pass: 23
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  scope-and-compatibility:
+    basis: 2bb0e1b26c66b62268485cf208a19aaea788c9eae438f2d3e7a776b0ccf67054
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against sections 1.1 (p. 13), 1.2 (p. 13), 1.3 (pp. 13-14), 2 (p. 17), 2.1 (p. 18),
+      3 (p. 22) and 3.5 (p. 27). All claims match the specification: USB 2.0 half-duplex,
+      host-scheduled transactional protocol and device framework base; extension of eUSB2 native
+      mode for inside-the-box interconnects; full protocol-layer compatibility and unchanged USB 2.0
+      software programming model (client applications and device/class drivers unmodified; host and
+      peripheral controllers updated for the eUSB2V2 PHY, protocol, descriptors and MaxPacketSizes);
+      native-mode-only operation; incompatibility with standard USB 2.0 external connectors/cables
+      (while allowing an internal cable and connector inside the system boundary per section 3.5);
+      physical-layer incompatibility with USB 2.0 and eUSB2 Rev 1.2; no requirement for physical- or
+      protocol-level backward compatibility or mode switching; and optional eUSB2 native/repeater
+      support requiring compliance with eUSB2 native mode if eUSB2 is supported. Searched Chapters
+      1-6 for contrary qualifications; none found (framework-level backward compatibility noted in
+      section 1.1 is covered in device-and-endpoint-descriptors).
+    contrary_evidence: none-found
+    citation_precision: exact
+  hsx-data-rates-and-link-modes:
+    basis: 1f03e89b5031583959870c429159aa5249b8d760f02f81ff57894cf64ac44f84
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 1.6 (p. 16), section 2.1 (p. 18), section 2.2.2 (p. 19) and section
+      2.2.3 / Table 2-1 (p. 20). All nine multiplier rows in Table 2-1 (x = 2..10: 0.96, 1.44, 1.92,
+      2.4, 2.88, 3.36, 3.84, 4.32 and 4.8 Gb/s) and HS1 = 480 Mb/s match exactly, as do the HSSx,
+      HSUx and HSDx link mode definitions for x = 2..10, the restriction of HS1 to the slow
+      direction of an asymmetric link, and the exclusion of 480 Mb/s symmetric links from eUSB2V2
+      (optionally supported via eUSB2 native mode). Searched Chapters 1-3 (including Tables 3-3,
+      3-6, 3-7, 3-15 and 3-16) for other speeds or asymmetric pairings; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  physical-bus-topology:
+    basis: 0f89a6fdf1aafcf973a244a346b6f61ae91b44d246dbf98fc894af855f80f03d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 2.1 (p. 18), section 4.1.1 and Figure 4-1 (pp. 56-57), section 4.1.2
+      (p. 57), section 4.2 (p. 57) and section 6.4.2 (p. 65). Confirmed in-box-only physical
+      topology with at most one eUSB2V2 re-driver between host and peripheral, composite device
+      packaging with a single device address and multiple independently controlled interfaces,
+      unchanged logical bus topology and client-software-to-function relationship per USB 2.0
+      section 5.2.4, per-port independent full eUSB2V2 bus instance treatment for scheduling and
+      bandwidth calculations, and the 90% maximum frame/microframe allocation for periodic
+      (isochronous and interrupt) transfers. Searched Chapters 2, 4 and 6 for exceptions or hub
+      support; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  cm-rap-message-encoding:
+    basis: 1753969a2a25459c46bd86773b37708d2116cc126b327f52064036d3f0664559
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 2.3 and Table 2-2 (p. 21), section 3.3.1.5 (p. 25) and section 3.9
+      (p. 46). Confirmed the 64-byte CM.RAP register space with Read, Write, Set and Clear
+      operations, all rows of Table 2-2 (CM[3:0] = 0..13 with Parity X as in eUSB2; CM.14 with
+      CM[3:0] = 14, Parity = 0 as Start of Re-driver register access; CM.15 with CM[3:0] = 15,
+      Parity = 1 as Start of host or peripheral register access), generic use of CM.RAP for CM.14
+      and CM.15, mandatory CM.15 receptor on peripherals, CM.14 access for re-drivers, and mandatory
+      CM.15 initiator and receptor (enabled on entry to Compliance Mode for external test equipment)
+      on hosts. Searched all CM.RAP sections across Chapters 2 and 3 for contrary rules; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  phy-states-and-lpm:
+    basis: 1686284c3d47f7676a0398c6212a95959634e69eb7f4c6dac01ce8d7cbf1a774
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.1 and Figure 3-1 (p. 23), section 3.2 (pp. 23-24), section 3.3
+      (p. 24), section 3.3.2 (p. 26) and section 3.6 (pp. 28-29). Confirmed identical PHY block
+      construction and LS/FS/HS transceiver and pull-down requirements per eUSB2 section 3.1,
+      matching eUSB2 native mode operation state machine and power management (HSx bus states,
+      signaling, HSx idle transition, squelch entry, Bus Reset, L1/L2 Suspend entry and Resume or
+      Remote Wake), prohibition of un-terminated receivers (p. 29), squelch exit via the 40-bit HSx
+      SYNC pattern, deprecation of HSx analog ping for disconnect detection while retaining XeSE1
+      soft disconnect, and Connect/Reset following eUSB2 native mode with pre-determined HSx data
+      rate and PHY settings (no speed negotiation during Bus Reset) before entering L0. Searched
+      Chapter 3 for contrary state transitions; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  default-substates:
+    basis: 85e0c224fb62910cbba1378d83005e170cdeb05255a104e1a04d43b5256db7ac
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against sections 3.3.1 through 3.3.1.5 (pp. 24-25) and Figure 3-2 (p. 26). Confirmed
+      optional host and CM.15 peripheral PHY configuration in Default and all five operational
+      sub-states after Power-up: Port Reset via XeSE1 (entered by peripheral on XeSE1 and by host on
+      exiting Rx Margining Mode, preserving RAP addresses 4 and 7..10), optional PHY Configuration
+      with CM.15 priority on the peripheral, Port Configuration initiated by the host enabling
+      receiver termination before Connect, Rx Margining Mode (optional for HS1 receivers, setting
+      Operational Mode bits d2:d0 to 010b for host Rx margining or 110b for peripheral Rx
+      margining), and Compliance Mode (host enabling CM.15 receptor; peripheral entered when
+      Operational Mode bits d1:d0 = 01b via CM.15). Searched Chapter 3 (including Tables 3-13 and
+      3-14, noting that Table 3-14 on p. 49 has copy-pasted Host/Peripheral column values from Table
+      3-13 whereas sections 3.3.1.4, 3.8.6.1, 3.8.6.2 and Table 3-18 confirm 010b and 110b); no
+      contrary evidence to the claim found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  scrambling-and-bit-stuffing:
+    basis: a42d540414636ee2b15bf3cbe6c7af4123152aa7b8c560fd26a50afb5d0212bb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.6.1 and Figure 3-5 (p. 30). Confirmed scrambling of all packets in
+      both directions from the first byte after PID to the last byte before EOP, the free-running
+      16-bit LFSR polynomial G(X) = X^16 + X^5 + X^4 + X^3 + 1 with seed FFFFh (D0-D15), serial XOR
+      of LFSR output D15 with D0 through D7 advancing the LFSR and data register after each XOR for
+      8 serial shifts per symbol, and bit stuffing per USB 2.0 applied after scrambling starting
+      with the first J of the SYNC pattern. Searched Chapter 3 for exceptions; debug scrambler
+      disable (DScr) and unscrambled compliance test patterns in section 3.9.3 are already covered
+      in operational-mode-and-error-count-registers.
+    contrary_evidence: none-found
+    citation_precision: exact
+  hsx-sync-and-sof-eop:
+    basis: e6006bc88d078dec846750061231b939eb06e09cd463a9f479f64e5800e7d774
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.6.2 and Figure 3-6 (pp. 30-31). Confirmed the 40-bit HSx SYNC
+      pattern structure (24 consecutive Ks for half-differential squelch-exit comparator sensitivity
+      while squelch entry still requires a fully differential detector, followed by 7 KJ pairs and 2
+      ending Ks), consumption of up to 8 Ks by host, peripheral and eUSB2V2 re-driver receivers when
+      exiting HSx idle, and the 8-UI wire SOF EOP with the host PHY reporting 40 UIs of EOP to the
+      host controller while transmitting only 8 UIs on the wire. Searched Chapter 3 for contrary
+      SYNC or EOP rules; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  interpacket-delay-and-timeout:
+    basis: 26bc2d2a040d625d9b8b32c847b44ebb57ca0daba6c09201655efc2c6c193b88
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.6.3 (p. 31) and all rows of Table 3-2 (p. 32). Confirmed measurement
+      between returning to HSx idle and leaving HSx idle, minimum same-direction inter-packet delay
+      THSXIPDSD = 32 transmit bit times, minimum opposite-direction inter-packet delay THSXIPDOD =
+      32 responding PHY transmit bit times, maximum bus turnaround / host or peripheral response
+      time THSXRSPIPD1 = 1920 HS10 bit times (also bounding consecutive peripheral packets, after
+      which the peripheral must not send more data packets in the transaction), and transaction
+      timeout TTIMEOUT = 1 us (minimum) with reset and restart after every packet received in an
+      isochronous burst. Searched Chapters 3, 4 and 6 for conflicting timing parameters; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  rap-register-map:
+    basis: 7c4cb4b1cc9c0c2e2c62e4861269ac143003035fe237270a3cccd4e3d6c869d2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.9 and section 3.9.1 / Table 3-11 (p. 46), Table 3-12 (p. 47), Table
+      3-13 (pp. 48-49) and Table 3-14 (p. 49). Every address range (0..63), register name, field bit
+      slice, default value, access type (Read-only vs Read/Write), role applicability (Host,
+      Peripheral, Re-driver and Upstream/Downstream direction) and note in Tables 3-11 and 3-12
+      matches the claim. The todo accurately notes that the per-field mode applicability cells of
+      Tables 3-13 and 3-14 and external test equipment compliance sequences of sections 3.7.5, 3.8.5
+      and 3.9 are not extracted in full. Searched section 3.9 for contrary register definitions;
+      none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  data-rate-register:
+    basis: d3b2d3a8d36f4f445c315ac91b7ddb48a9b49ad8da8e0ff83d67861d2ce8d3a4
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.9.2, Table 3-15 and Table 3-16 (p. 50) and Figure 3-15 and notes
+      (p. 51). Confirmed DS Rate in d7:d4 and US Rate in d3:d0, all 4-bit encodings (0000b Reserved,
+      0001b HS1 through 1010b HS10, 1011b..1111b Reserved), implementation-specific defaults,
+      invalidity of d7:d0 = 00010001b, and the mandatory >= 10 ms wait after changing the Data Rate
+      register before the next operation. Searched section 3.9 and Chapter 2 for contrary encodings;
+      none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  operational-mode-and-error-count-registers:
+    basis: dc4db4d3125dcf76c90dc6681e5eabffb52b75da43bde07f1e4c279bbce13a05
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against Tables 3-13 and 3-14 (pp. 48-49), section 3.9.3 and Tables 3-17, 3-18 and
+      3-19 (p. 52), Tables 3-20 and 3-21 (p. 53) and section 3.9.4 / Table 3-22 (p. 53). Confirmed
+      all bit ranges and encodings for Mode (d1:d0), Dir (d2), TP (d5:d3, including all 8 encodings
+      000b..111b, Sync/EOP framing, Scrambling/Bit-stuffing/NRZI columns, THSXIPDSD delays, and
+      PRBS16 G(X) = X^16 + X^5 + X^4 + X^3 + 1 seed FFFFh and PRBS7 G(X) = X^7 + X^6 + 1 seed FFh
+      with all-zero input), DScr (d6, enabled 0 default, disabled 1 in Functional Mode debug
+      operation and ignored in Compliance and Rx Margining modes), TP Trigger (d7, 0 Idle, 1
+      Triggered, auto-reset to 0 by PHY after sending), and Error Count (RAP address 6, bits 7:0,
+      non-rollover saturation at FFh until reset by PHY or written to 0). Searched Chapter 3 for
+      contrary register definitions; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  tx-and-rx-configuration-registers:
+    basis: 9bf0a03f3a49b2330be63d40c25bd44cf20104eed50680056c0cd49e08155b78
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.7.1 (p. 32), section 3.7.2 (pp. 32-33), section 3.7.3 / Table 3-3
+      (p. 34), section 3.8.1 (pp. 36-37), section 3.8.2 / Table 3-6 (p. 38), section 3.9.5 / Tables
+      3-23 and 3-24 (p. 54) and section 3.9.6 / Tables 3-25 and 3-26 (p. 55). Confirmed RAP address
+      7 reserved bits d7:d5, Vswing (d2:d0, 000b..101b = 360, 400, 500, 600, 700, 800 mVdiff-pp,
+      110b..111b Reserved), DE (d4:d3, 00b..11b = 0, -3.5, -6, -8 dB), normative ranges and
+      informative status of Tables 3-23/3-24; and RAP address 10 reserved bit d7, CTLE (d3:d0,
+      0000b..1000b = 0..8 dB in 1 dB steps, 1001b..1111b Reserved), VGA (d6:d4, 000b..110b = 1x to
+      2.5x in 0.25x steps, 111b Reserved, alongside section 3.8.1's 0 to 2.5x text), and the
+      informative recommendation status of Tables 3-25/3-26 provided 2.5x VGA gain plus 8 dB CTLE
+      boost is met. The todo accurately lists the unextracted electrical/channel tables (Tables 3-1,
+      3-3, 3-4, 3-5, 3-6, 3-7, 3-8 and 3-9).
+    contrary_evidence: none-found
+    citation_precision: exact
+  receive-margining-registers-and-flow:
+    basis: 88e07d1f9f4e1edb4a23cd220221c9d7dd27f65913e16b787ee1aec3ef3c679e
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.3.1.4 (p. 25), section 3.8.6 and Table 3-10 (pp. 41-42), section
+      3.8.6.1 and Figure 3-13 (pp. 43-44), section 3.8.6.2 and Figure 3-14 (pp. 44-45), section
+      3.9.7 / Table 3-27 (p. 55) and section 3.9.8 / Table 3-28 (p. 55). Confirmed Default-state Rx
+      Margining Mode support (optional for HS1 receivers; hardware-based margining optional and
+      vendor-specific), signed 8-bit vendor-specific offsets at RAP addresses 11 and 12 (default 0),
+      Table 3-10 voltage margining range (+/- 74 to +/- 200 mV), max step size (3 mV) and required
+      independent positive/negative directions, timing margining range (+/- 0.2 to +/- 0.5 UI), max
+      step size (0.03 UI) and optional/recommended independent left/right directions, and the exact
+      host (00001010b / 10001010b) and peripheral (00001110b / 10001110b) software margining flows
+      with THSXIPDSD wait, TP(1) transmission and d7 auto-clear to 0.
+    contrary_evidence: none-found
+    citation_precision: exact
+  isochronous-burst-transactions:
+    basis: 73af3c46224c3115056006b0dbac1e9fa929387770cbbb9523b6652b472c01df
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 1.6 (p. 16), section 2.2.1 (p. 19), section 4.6 (p. 58), section
+      4.6.1 and Figure 4-2 (pp. 58-60) and sections 6.4 and 6.4.1 (p. 64). Confirmed automatic host
+      controller burst transaction management for transfers > 1024 B, 1..3 consecutive data packets
+      following a single IN or OUT token with no handshake phase, burst sequence structure (3 data
+      packets per burst transaction except the last which may be a short burst transaction < 3072 B;
+      1024 B per data packet except the last packet of a short burst transaction which is < 1024 B
+      unless dwBytesPerInterval bytes have been transferred and is a multiple of 1024 B per section
+      6.4.1), Burst Count derivation from remaining bytes (1 for <= 1024 B, 2 for 1025..2048 B, 3
+      for > 2048 B), and exact IN (DATA0; DATA1, DATA0; DATA2, DATA1, DATA0) and OUT (DATA0; MDATA,
+      DATA1; MDATA, MDATA, DATA2) PID sequences.
+    contrary_evidence: none-found
+    citation_precision: exact
+  isochronous-error-handling:
+    basis: 6fb28c4e82f70c47f00391a3e1094879edc19627bfd0bfd039d42507baccb2da
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.6.3 (p. 31), section 4.6.1 and Figure 4-2 (pp. 58-60), section 6.4
+      (p. 64) and section 6.4.3 (p. 65). Confirmed absence of handshakes and retransmission, the
+      three service-interval data error conditions (USB 2.0 section 8.7 error, missing data PID in
+      burst sequence, or SI ending without a terminating short burst transaction when bytes received
+      < dwBytesPerInterval), immediate packet drop, transition to HSx idle and dropping of all
+      subsequent packets in the SI on PID Check, Bit Stuff or Data CRC (CRC16) error, invalidation
+      of all data for that endpoint and retirement of the IRP for the SI, the host waiting for
+      TTIMEOUT (1 us per Table 3-2) before starting a new transaction when a corrupted data packet
+      is received during an isochronous IN burst expecting further packets (dwBytesPerInterval >
+      1024), and the host starting a new transaction immediately (observing THSXIPDSD) if it runs
+      out of data during an isochronous OUT burst while the peripheral treats the uncompleted
+      transaction as corrupted.
+    contrary_evidence: none-found
+    citation_precision: exact
+  device-and-endpoint-descriptors:
+    basis: 71d90d009e7571379af3763cc340ff0d914f349210412a675e2b1b680c140aac
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against sections 4.3 (pp. 57-58), 4.4 (p. 58), 4.7 (p. 60), 5.1, 5.1.1, 5.1.2 and
+      5.1.3 (p. 61), section 5.1.4 and Table 5-1 (p. 62) and section 6.4.2 (p. 65). Confirmed
+      speed-dependent configuration bandwidth adjustment (HSSx, HSUx, HSDx), Device descriptor
+      bcdUSB = 0x230 and bMaxPacketSize0 = 64 B, standard USB 2.0 Endpoint descriptors for control,
+      bulk and interrupt endpoints, wMaxPacketSize = 0 in the standard Endpoint descriptor for
+      isochronous endpoints followed immediately in GetDescriptor(Configuration) (before the next
+      endpoint or interface descriptor and not directly accessible via GetDescriptor/SetDescriptor)
+      by the 8-byte eUSB2 Isochronous Endpoint Companion descriptor (all four fields in Table 5-1
+      verified: bLength = 8 at offset 0, bDescriptorType = EUSB2_ISO_ENDPOINT_COMPANION at offset 1,
+      2-byte wMaxPacketSize = 1024 unless transferring < 1024 B per SI at offset 2, and 4-byte
+      dwBytesPerInterval at offset 4 requiring SI = 1 microframe when > 1024 B), and the mandatory
+      legacy Alternate Interface with wMaxPacketSize = 1024 B and Mult = 3.
+    contrary_evidence: none-found
+    citation_precision: exact
+  bulk-max-packet-update:
+    basis: f2fe9d53d0b3ac23d071cafdc529299dc791d0ec3596f4758ccede65b8a315fb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 2.1 (p. 18), section 4.5 (p. 58), section 5.2 and Table 5-2 (pp.
+      62-63), section 5.3 and Table 5-3 (p. 63) and section 6.6 (p. 65). Confirmed mandatory support
+      on all eUSB2V2 peripherals with Bulk endpoints, all Table 5-2 request fields (bmRequestType =
+      00000000B, bRequest = SET_FEATURE, wValue = BULK_MAX_PACKET_UPDATE = 8 per Table 5-3 with
+      recipient Device, wIndex = 0, wLength = 0, Data = None), setting all Bulk endpoints' maximum
+      packet size to 1024 B, validity in Default and Addressed states and invalidity in Configured
+      state, and reversion to 512 B on USB 2.0 Bus Reset, Disconnect or Deconfiguration.
+    contrary_evidence: none-found
+    citation_precision: exact
+  bulk-descriptor-stays-512:
+    basis: 33812186dcc714ebc28241533cf4cff95ed23fb39e8d176e1be776c6f989ea29
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 5.2 and Table 5-2 (pp. 62-63) and section 5.3 and Table 5-3 (p. 63).
+      Page 63 explicitly mandates that wMaxPacketSize in the Bulk Endpoint descriptor shall always
+      be set to 512 independent of whether the current maximum packet size is 512 or 1024, and page
+      62 specifies that SetFeature(BULK_MAX_PACKET_UPDATE) is valid only in the Default and
+      Addressed states (invalid in Configured) and reverts to 512 bytes on USB 2.0 Bus Reset,
+      Disconnect or Deconfiguration.
+    contrary_evidence: none-found
+    citation_precision: exact
+  data-rate-register-role-inversion-and-hs1:
+    basis: 96e84f34af57a428585e25a74c02caf2ed25091dead588be57f0865179927f80
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 1.6 (p. 16), section 2.2.3 (p. 20), Table 3-12 (p. 47), Tables 3-13
+      and 3-14 (pp. 48-49) and section 3.9.2, Table 3-15 and Figure 3-15 (pp. 50-51). Confirmed that
+      DS Rate (d7:d4) is always downstream and US Rate (d3:d0) is always upstream, the explicit
+      d7:d0 = 00011010b example on p. 51 (peripheral receives at HS1 and transmits at HS10, while
+      host transmits at HS1 and receives at HS10), invalidity of d7:d0 = 00010001b (symmetric HS1),
+      restriction of Data Rate register changes to Compliance Mode or Rx Margining Mode (Note 1 of
+      Table 3-12 and "No" in Functional Mode in Tables 3-13/3-14), and the >= 10 ms settling delay
+      after changing data rate.
+    contrary_evidence: none-found
+    citation_precision: exact
+  port-reset-preserves-phy-config-registers:
+    basis: 94f83a3156ece91c3619628e1e588e1398bf995d7d05f628df08718629989902
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.3.1.1 (p. 24), section 3.3.1.4 (p. 25) and section 3.9.1 / Table
+      3-11 (p. 46). Confirmed that entering Port Reset via XeSE1 (including when exiting Rx
+      Margining Mode) does not reset RAP addresses 4 and 7 through 10, and that section 3.3.1.4
+      requires margining software to restore any modified transmitter or receiver configuration
+      register values to their functional-mode values before exiting Rx Margining Mode.
+    contrary_evidence: none-found
+    citation_precision: exact
+  sof-eop-host-phy-translation-and-no-analog-ping:
+    basis: 4bb8bc3b77ba0e6796dec7e61e749e71ced00cc80027b1213168d1a60bd93053
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 3.2 (pp. 23-24) and section 3.6.2 and Figure 3-6 (pp. 30-31).
+      Confirmed deprecation of HSx analog ping for in-band disconnect detection (while retaining
+      soft disconnect via XeSE1) and the requirement that the host PHY report 40 UIs of SOF EOP to
+      the host controller while transmitting only 8 UIs of EOP on the wire.
+    contrary_evidence: none-found
+    citation_precision: exact
+  cm-rap-no-error-detection-and-legacy-alt-interface:
+    basis: 7c47b1b08a44e3a5451e554d10c3cfa258d61bfb659259d615b235d5d7f57a27
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent reader, eUSB2 reader A
+    note: >-
+      Verified against section 1.5.1 (p. 14), section 3.8.1 (pp. 36-37), section 3.9 (p. 46),
+      section 3.9.6 / Table 3-26 (p. 55) and section 5.1.3 (p. 61). Confirmed all three points:
+      section 3.9 notes CM.RAP has no error detection mechanism and advises reading back registers
+      for debug; section 3.8.1 states the VGA should be programmable from 0 to 2.5x whereas Table
+      3-26 defines d6:d4 from 1x (000b) to 2.5x (110b) in 0.25x steps (with tables taking
+      precedence over figures and text per section 1.5.1); and section 5.1.3 mandates that
+      isochronous endpoints in the legacy Alternate Interface (wMaxPacketSize = 1024 B, Mult = 3)
+      must still follow the eUSB2V2 protocol even when transferring less than 3072 B.
+    contrary_evidence: none-found
+    citation_precision: exact
