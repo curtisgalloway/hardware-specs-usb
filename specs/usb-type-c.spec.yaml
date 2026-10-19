@@ -1,0 +1,592 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb-type-c
+name: USB Type-C port connection detection (Configuration Channel)
+triggers:
+- usb-type-c
+- USB Type-C
+- USB-C
+- Type-C port
+- configuration channel
+resources:
+  documents:
+  - name: usb-type-c-2.5.pdf
+    class: standard
+    title: Universal Serial Bus Type-C Cable and Connector Specification
+    revision: Release 2.5, March 2026
+    url: https://www.usb.org/document-library/usb-type-cr-cable-and-connector-specification-release-25
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/USB%20Type-C%202.5%20Release%20202603.zip
+    sha256: 6636cd61387a2f78b0fa96c8ea86ccc0f39ec59f98821cdb57b206d31445a328
+    pages: 442
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-18
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the release as a zip download without an account; the
+      cited bytes are the file "USB Type-C Spec R2.5 - March 2026.pdf" inside it (the zip also
+      holds a redline against Release 2.4, the incorporated ECNs and the adopters agreement). No
+      page carries a confidentiality marking. The USB 3.0 Promoter Group's copyright and limited
+      license terms remain applicable; the bytes are not redistributed. Printed page numbers
+      equal PDF page numbers.
+orientation: >-
+  Terms: a Source supplies VBUS power and a Sink consumes it; a DRP (Dual-Role-Power port) can
+  be either. The two CC (Configuration Channel) pins, CC1 and CC2, carry the terminations that
+  detect attach and orientation: the Source's pull-up Rp (or current source), the Sink's
+  pull-down Rd and a powered cable's Ra. VCONN powers electronics in a cable plug. vRd is the
+  voltage a Sink sees across its Rd. This spec records the generic connection-detection model of
+  the standard: the CC terminations and their values, the CC pin states, the main Source, Sink
+  and DRP states, their timing and the Sink's current tracking. USB Power Delivery messaging
+  over CC, accessory and Charge-Through VPD states, cable eMarkers and the connector's
+  mechanical and electrical requirements are out of its scope so far. How a particular board
+  wires a Type-C port (which controller, which TCPC, which pins) belongs in that board's spec.
+facts:
+- id: cc-purposes
+  section: standards
+  title: What the CC pins do
+  claim: >-
+    The two CC pins, CC1 and CC2, establish and manage the Source-to-Sink connection: they
+    detect attach, resolve cable orientation and twist so the USB data bus can be routed,
+    establish data roles, discover and configure VBUS (USB Type-C Current or USB Power
+    Delivery), configure VCONN, and discover and configure optional Alternate and Accessory
+    modes.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '158'
+      section: 4.5.1
+
+- id: port-role-interoperability
+  section: standards
+  title: Which port types work together
+  claim: >-
+    A Source-only port works with a Sink-only port or a DRP, a Sink-only port works with a
+    Source-only port or a DRP, and two DRPs work together (role resolution may be automatic or
+    manual). Two Source-only ports, or two Sink-only ports, do not function together; neither
+    port may be harmed, and a Source applies neither VBUS nor VCONN in these cases.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '160'
+      section: 4.5.1.2
+      table: '4-9'
+
+- id: power-precedence
+  section: standards
+  title: Order of precedence among power mechanisms
+  claim: >-
+    Every USB Type-C device supports USB Type-C Current. From highest to lowest precedence the
+    power mechanisms are USB Power Delivery (up to 48 V, 5 A), USB Type-C Current at 3.0 A, USB
+    Type-C Current at 1.5 A (both at 5 V), USB BC 1.2 (up to 1.5 A), then Default USB Power as
+    defined by USB 3.2 and USB 2.0. Once a USB PD contract exists the device follows it and
+    ignores the others; on leaving USB PD it falls back down this order. Default USB Power is
+    500 mA for a USB 2.0 port and 900 mA or 1,500 mA for a USB 3.2 port in single-lane or
+    dual-lane operation.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['224', '225']
+      section: '4.6'
+      table: '4-19'
+    - page: '226'
+      section: 4.6.2.1
+  todo:
+    check: document
+    text: >-
+      Table 4-19's Note 1 (BC 1.2 providers between 0.5 A and 1.5 A and their droop rule, p.
+      225), the Power Sinking Device rules and Table 4-20's mapping to USB PD Power (pp.
+      226-227) are not extracted.
+
+- id: source-rp-values
+  section: programming-model
+  title: Source pull-up (Rp) values for each current advertisement
+  claim: >-
+    A Source advertises its USB Type-C Current with the value of its CC pull-up. With a current
+    source to 1.7-5.5 V: Default USB Power 80 uA +/-20%, 1.5 A 180 uA +/-8%, 3.0 A 330 uA +/-8%.
+    With a resistor pull-up to 4.75-5.5 V: 56 kOhm +/-20%, 22 kOhm +/-5%, 10 kOhm +/-5%. With a
+    resistor pull-up to 3.3 V +/-5%: 36 kOhm +/-20%, 12 kOhm +/-5%, 4.7 kOhm +/-5%. Each value
+    is the total current or resistance into the CC pin, leakage and parallel paths included.
+    Other pull-up voltages are allowed if they stay below 5.5 V and produce the right voltage
+    ranges at the Sink. For the Default USB Power Rp in the Type-C plug of a Type-C to USB 3.1
+    Standard-A cable, a Type-C to USB 2.0 Standard-A cable, a Type-C to USB 2.0 Micro-B
+    receptacle adapter, or a Type-C captive cable connected to a USB host, the value is 56 kOhm
+    +/-5% to tolerate IR drop in the cable.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '245'
+      section: 4.11.1
+      table: '4-27'
+
+- id: sink-rd-and-cable-terminations
+  section: programming-model
+  title: Sink pull-down (Rd), cable Ra and the open-circuit impedance
+  claim: >-
+    A Sink terminates each CC pin to ground with Rd: a 5.1 kOhm resistor at +/-10% (which lets
+    it detect the Source's current advertisement), a 5.1 kOhm resistor at +/-20% (which does
+    not), or a 1.1 V +/-20% voltage clamp (which does not, and inhibits USB PD until the Sink
+    switches to the resistor). A powered cable presents Ra of 800 Ohm to 1.2 kOhm on its VCONN
+    pin; the minimum may be lower while VCONN is not applied. A port in the Disabled or
+    ErrorRecovery state, and an unpowered Source, present at least zOPEN = 126 kOhm to ground on
+    CC (evaluated only below vCC-Clamp) so that a Source cannot detect it.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '245'
+      table: '4-28'
+    - page: '246'
+      table: '4-29'
+    - page: '246'
+      table: '4-30'
+
+- id: cc-pin-states
+  section: programming-model
+  title: How a port classifies each CC pin
+  claim: >-
+    A port classifies CC1 and CC2 independently, and its state transitions depend on the
+    combination. A port asserting Rp sees SRC.Open (partner open or Rp) when the CC voltage is
+    above the maximum vRd, SRC.Rd (partner Rd) when it is within the vRd range, and SRC.Ra
+    (partner Ra) when it is below the minimum vRd. A port asserting Rd sees SNK.Rp (partner Rp)
+    above the minimum vRd-Connected, and SNK.Open (partner open, Ra or Rd) below it.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['178', '179']
+      section: 4.5.2.2
+      table: '4-16'
+    - page: '179'
+      table: '4-17'
+
+- id: source-termination-combinations
+  section: programming-model
+  title: What a Source infers from its two CC pins
+  claim: >-
+    Seen from a Source: both pins open means nothing attached; Rd on one pin and open on the
+    other means a Sink is attached; Ra on one pin and open on the other means a powered cable
+    without a Sink (or Liquid Corrosion Mitigation Mode); Rd on one pin and Ra on the other
+    means a powered cable with a Sink, a VCONN-Powered Accessory or a VCONN-Powered USB Device;
+    Rd on both means Debug Accessory Mode; Ra on both means Liquid Corrosion Mitigation Mode. A
+    Source need not source VCONN unless it detects Ra.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['160', '162']
+      section: 4.5.1.2.1
+      table: '4-10'
+
+- id: plug-orientation
+  section: programming-model
+  title: Determining plug orientation
+  claim: >-
+    The CC wire in a standard cable is aligned with the first TX/RX pairs, so the CC pin through
+    which the partner's termination is seen gives the plug orientation and selects the TX/RX
+    pairs for single-lane operation. A Source finds it as the pin in the SRC.Rd state, a Sink as
+    the pin in the SNK.Rp state (pulled up above its ground). A Source or Sink that needs
+    orientation determines it only on entry to Attached.SRC or Attached.SNK (accessory states
+    have their own rules, outside this spec); a Sink that reached Attached.SNK directly from
+    Unattached.SNK on VBUS alone must not determine it. VCONN, when supplied, goes on the other
+    CC pin, the one not connected to the cable's CC wire.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '158'
+      section: 4.5.1.1
+    - page: '162'
+    - page: '182'
+      section: 4.5.2.2.5.1
+    - page: '187'
+      section: 4.5.2.2.9.1
+    - page: '153'
+      section: 4.4.3
+
+- id: sink-attach
+  section: programming-model
+  title: Sink attach (Unattached.SNK to Attached.SNK)
+  claim: >-
+    In Unattached.SNK and AttachWait.SNK a port drives neither VBUS nor VCONN and terminates CC1
+    and CC2 to ground independently through Rd. A port that supports USB PD or accessories moves
+    to AttachWait.SNK when at least one CC pin is SNK.Rp. From AttachWait.SNK it moves to
+    Attached.SNK once exactly one CC pin has been SNK.Rp for at least tCCDebounce and VBUS is
+    detected. When both pins are SNK.Open for at least tPDDebounce it leaves AttachWait.SNK for
+    Unattached.SNK (a Sink with Accessory Support for Unattached.Accessory, a DRP for
+    Unattached.SRC). A USB 2.0-only Sink without accessory or USB PD support that is
+    self-powered or needs only default power may go straight from Unattached.SNK to Attached.SNK
+    on detecting VBUS; it then must not determine orientation, use more than Default USB Power,
+    or use USB PD.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['180', '181']
+      section: 4.5.2.2.3
+    - pages: ['181', '182']
+      section: 4.5.2.2.4
+    - page: '182'
+      section: 4.5.2.2.5
+
+- id: sink-detach
+  section: programming-model
+  title: Sink detach
+  claim: >-
+    A port in Attached.SNK that is not a VCONN-Powered USB Device and is not in a USB PD
+    PR_Swap, Hard Reset or FR_Swap returns to Unattached.SNK within tSinkDisconnect (at most 40
+    ms) after VBUS falls below vSinkDisconnect (a threshold between 0.8 V and 3.67 V for 5 V
+    VBUS), or below vSinkDisconnectPD when USB PD has negotiated VBUS above 5 V. A port in USB
+    PD communication that has seen the CC voltage exceed vRd-USB may also watch CC: unless it is
+    in a USB PD PR_Swap or FR_Swap, it then leaves within tSinkDisconnect after CC stays below
+    vRd-USB for tPDDebounce. A VCONN-Powered
+    USB Device instead returns to Unattached.SNK when VBUS is below vSinkDisconnect and VCONN is
+    below vVCONNDisconnect. A Sink supplying VCONN stops within tVCONNOFF of leaving
+    Attached.SNK.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['183', '184']
+      section: 4.5.2.2.5.2
+    - pages: ['152', '153']
+      section: 4.4.2
+      table: '4-3'
+  todo:
+    check: document
+    text: >-
+      Table 4-3's PPS-contract variants of vSinkDisconnect and the definition of vSinkPD_min (p.
+      153) are not extracted.
+
+- id: source-attach
+  section: programming-model
+  title: Source attach (Unattached.SRC to Attached.SRC)
+  claim: >-
+    In Unattached.SRC and AttachWait.SRC a port drives neither VBUS nor VCONN and presents a
+    separate Rp on CC1 and CC2 (a Source with a captive cable or only a plug presents a single
+    Rp on its one CC pin). It moves to AttachWait.SRC when either pin is SRC.Rd or both are
+    SRC.Ra; SRC.Ra on one pin with SRC.Open on the other is a cable with nothing attached and
+    causes no transition. In AttachWait.SRC it loads VBUS so it reaches vSafe0V within tVsafe0V,
+    and moves to Attached.SRC when VBUS is at vSafe0V, exactly one pin has been SRC.Rd for at
+    least tCCDebounce, and its bulk supply is ready to supply vSafe5V. In Attached.SRC it
+    supplies VBUS within tVBUSON (at most 275 ms), at the current its Rp advertises until a USB
+    PD contract replaces that advertisement, sources current on the SRC.Rd pin and monitors it,
+    and starts no USB PD communication until VBUS reaches vSafe5V. A port that signals on the
+    USB TX/RX pairs supplies VCONN, within tVCONNON (at most 2 ms), either unconditionally to
+    the CC pin not in SRC.Rd or to the pin in SRC.Ra.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['184', '185']
+      section: 4.5.2.2.7
+    - pages: ['185', '186']
+      section: 4.5.2.2.8
+    - pages: ['186', '187']
+      section: 4.5.2.2.9
+    - page: '247'
+      section: 4.11.2
+      table: '4-32'
+
+- id: source-detach
+  section: programming-model
+  title: Source detach
+  claim: >-
+    A Source in Attached.SRC detects detach as the SRC.Open state on the CC pin it monitors,
+    within tSRCDisconnect (at most 20 ms). If it is supplying VCONN, or has handed VCONN to the
+    Sink by a USB PD VCONN_Swap, it goes to UnattachedWait.SRC, where it discharges the CC pin
+    that carried VCONN through Rdch below vVCONNDischarge before entering Unattached.SRC;
+    otherwise it goes to Unattached.SRC directly. A DRP in Attached.SRC instead goes to
+    Unattached.SNK, or to TryWait.SNK if it strongly prefers the Source role. VBUS must be
+    removed and at vSafe0V within tVBUSOFF (at most 650 ms) of the Sink's detach.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '188'
+      section: 4.5.2.2.9.2
+    - page: '184'
+      section: 4.5.2.2.6
+    - page: '247'
+      table: '4-32'
+    - page: '250'
+      table: '4-34'
+
+- id: drp-toggling
+  section: programming-model
+  title: DRP toggling between Source and Sink
+  claim: >-
+    Until it attaches, a DRP alternates between Unattached.SRC and Unattached.SNK. One cycle,
+    tDRP, lasts 50 to 100 ms; the DRP presents Rp for dcSRC.DRP of it, 30% to 70%, and switches
+    roles within tDRPTransition (at most 1 ms). It leaves Unattached.SRC for Unattached.SNK
+    after dcSRC.DRP times tDRP, and leaves Unattached.SNK for Unattached.SRC after both pins
+    have been SNK.Open for tDRP minus dcSRC.DRP times tDRP. The toggle clock and duty cycle
+    should not come from a precision timing source such as a crystal, so two DRPs do not stay in
+    lockstep.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '249'
+      table: '4-33'
+    - page: '181'
+      section: 4.5.2.2.3.2
+    - page: '185'
+      section: 4.5.2.2.7.2
+    - page: '167'
+      section: 4.5.1.3.3
+
+- id: try-src-try-snk
+  section: programming-model
+  title: Choosing a role with Try.SRC and Try.SNK
+  claim: >-
+    A DRP may implement Try.SRC (to end up a Source when meeting another DRP) or Try.SNK (to end
+    up a Sink); either can be used only once, during the initial connection, after which USB PD
+    swaps may change roles. A DRP without USB PD should implement one of them. A DRP that
+    strongly prefers the Source role may enter Try.SRC instead of Attached.SNK when exactly one
+    CC pin has been SNK.Rp for tCCDebounce and VBUS is detected. One that strongly prefers the
+    Sink role may enter Try.SNK instead of Attached.SRC when VBUS is at vSafe0V and exactly one
+    pin has been SRC.Rd for tCCDebounce, without the Attached.SRC condition that its bulk supply
+    be ready.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '168'
+      section: 4.5.1.4.1
+    - page: '169'
+      table: '4-12'
+    - page: '182'
+      section: 4.5.2.2.4.2
+    - page: '186'
+      section: 4.5.2.2.8.2
+  todo:
+    check: document
+    text: >-
+      The Try.SRC, TryWait.SNK, Try.SNK and TryWait.SRC state requirements (sections 4.5.2.2.10
+      to 4.5.2.2.13, pp. 188-191) and their timers tDRPTry, tDRPTryWait and tTryTimeout (Table
+      4-33, p. 249) are not extracted.
+
+- id: cc-timing
+  section: programming-model
+  title: CC timing parameters
+  claim: >-
+    tCCDebounce, the time a port waits before deciding it is attached, is 100 to 200 ms.
+    tPDDebounce, the time a Sink waits before deciding it is detached (to ride through USB PD
+    signaling on CC), is 10 to 20 ms, as is tTryCCDebounce for re-attach during the try-wait
+    process. A self-powered port stays in ErrorRecovery for tErrorRecovery of at least 25 ms,
+    and a Source that was sourcing VCONN in the previous state for at least 240 ms. A Sink waits
+    tRpValueChange before acting on a change of Rp: 10 to 20 ms when CC is not BMC Idle or the
+    port cannot detect BMC Idle, 0 to 5 ms when it can detect USB PD signaling and CC is BMC
+    Idle. tSRCDisconnect is at most 20 ms.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '250'
+      table: '4-34'
+  todo:
+    check: document
+    text: >-
+      Table 4-34's connection-detection times (tNoToggleConnect, tOnePortToggleConnect,
+      tTwoPortToggleConnect) and Charge-Through VPD timers (tVPDCTDD, tVPDDisable), p. 250, are
+      not extracted.
+
+- id: sink-current-tracking
+  section: programming-model
+  title: Sink tracking of the Source's current advertisement
+  claim: >-
+    While attached as a Sink on default VBUS (before any USB PD contract), the port is in one of
+    three power sub-states, starting in PowerDefault.SNK: it draws no more than Default USB
+    Power there, no more than 1.5 A in Power1.5.SNK and no more than 3.0 A in Power3.0.SNK. A
+    Sink that wants more than default current monitors vRd and moves to the sub-state matching
+    its range (vRd-USB, vRd-1.5 or vRd-3.0) only after the new vRd has been stable for
+    tRpValueChange; when the advertisement drops it reduces its consumption to the new range
+    within tSinkAdj (at most 60 ms). A Sink that never draws more than default current need not
+    implement the sub-states.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['200', '202']
+      section: 4.5.2.3
+    - page: '247'
+      table: '4-32'
+
+- id: sink-vrd-thresholds-example
+  section: programming-model
+  title: Example Sink CC voltage ranges (Rd +/-10%)
+  claim: >-
+    The specification derives the Sink's CC thresholds from equations rather than fixing them;
+    its worked example for an Rd of +/-10% gives vRd-USB 0.277 to 0.612 V, vRd-1.5 0.746 to
+    1.164 V and vRd-3.0 1.369 to 2.042 V, thresholds between them of 0.613 to 0.745 V and 1.165
+    to 1.368 V, and a disconnect threshold of at most 0.276 V. These numbers are an example for
+    one design point; an implementation computes its own from the equations of section
+    4.11.3.1.1 and its parameter variances.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '254'
+      section: 4.11.3.2.2
+      table: '4-36'
+    - page: '251'
+      section: 4.11.3
+    - page: '252'
+      section: 4.11.3.1.1
+  todo:
+    check: document
+    text: >-
+      The detection equations themselves (section 4.11.3.1, pp. 251-253), the +/-20% Rd example
+      (Table 4-35, p. 254) and the Source-side examples (Tables 4-37 onward, pp. 255-257) are
+      not extracted.
+
+- id: error-recovery-and-disabled
+  section: programming-model
+  title: ErrorRecovery and Disabled states
+  claim: >-
+    In ErrorRecovery and Disabled a port drives neither VBUS nor VCONN and presents more than
+    zOPEN to ground on both CC pins, so the partner sees a detach. ErrorRecovery lasts
+    tErrorRecovery and then returns the port to Unattached.SNK or Unattached.SRC according to
+    its type (or CorrosionMitigation if directed); ports that support USB PD must support it,
+    and reach it from any state when directed. Disabled lasts until the port is directed out; a
+    port entering it from Attached.SNK keeps its terminations removed for at least
+    tErrorRecovery.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['179', '180']
+      section: 4.5.2.2.1
+    - pages: ['179', '180']
+      section: 4.5.2.2.2
+  todo:
+    check: document
+    text: >-
+      The per-port-type exit rules from ErrorRecovery (DRP, DRP with accessory and Try support,
+      Charge-Through VPD; p. 180) are not extracted beyond Source and Sink.
+
+- id: vconn-source
+  section: programming-model
+  title: VCONN supply
+  claim: >-
+    VCONN, which powers electronics in a cable plug, is supplied on the CC pin not connected to
+    the cable's CC wire. A VCONN source keeps it between 3.0 V and 5.5 V and supplies at least 1
+    W (single-lane) or 1.5 W (dual-lane) when the port has TX/RX signals, and at least 100 mW in
+    USB suspend or without TX/RX signals. A Source may skip or turn off VCONN when Ra is not
+    detected on the other CC pin after tCCDebounce, or when USB PD Discover Identity to SOP'
+    gets no GoodCRC.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['153', '154']
+      section: 4.4.3
+      table: '4-5'
+  todo:
+    check: document
+    text: >-
+      Table 4-4's VCONN requirements by port capability (p. 154), the VCONN-Powered USB Device
+      power row, the Rdch range, and the cable-side VCONN characteristics of Table 4-6 (p. 155)
+      are not extracted.
+
+- id: rp-ignored-under-pd-contract
+  section: gotchas
+  title: Rp stops meaning current once a USB PD contract exists
+  claim: >-
+    Once a Source and Sink are in a USB PD contract, the VBUS current is no longer tied to the
+    Source's Rp, and Rp may behave as USB PD defines. The Sink power sub-states, which track the
+    Rp advertisement, apply only until VBUS is removed or a contract is established, and a Sink
+    in a contract follows the USB PD specification for its current.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '187'
+      section: 4.5.2.2.9.1
+    - page: '200'
+      section: 4.5.2.3
+    - page: '226'
+      section: 4.6.2.1
+    - page: '227'
+
+- id: pd-signaling-looks-like-open
+  section: gotchas
+  title: USB PD signaling briefly looks like a detach
+  claim: >-
+    USB PD communication from the Source can make the connected CC pin read SNK.Open for short
+    periods, never longer than tPDDebounce. A Sink therefore requires SNK.Open on both pins for
+    at least tPDDebounce before returning from AttachWait.SNK to Unattached.SNK
+    (Unattached.Accessory or Unattached.SRC for an accessory Sink or a DRP), and a Sink watching
+    CC for detach in Attached.SNK waits tPDDebounce below vRd-USB.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '182'
+      section: 4.5.2.2.4.2
+    - pages: ['183', '184']
+      section: 4.5.2.2.5.2
+    - page: '250'
+      table: '4-34'
+
+- id: superspeed-vbus-holdoff
+  section: gotchas
+  title: A SuperSpeed device can enumerate as USB 2.0 if it reports VBUS too early
+  claim: >-
+    The specification strongly recommends that a USB 3.2 SuperSpeed device hold off reporting
+    VBUS to its device controller until Attached.SNK (or DebugAccessory.SNK) is reached, that is
+    until a CC pin is in the SNK.Rp state; otherwise it may connect as a USB 2.0 device when
+    attached to a legacy host or a hub's downstream port.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['181', '182']
+      section: 4.5.2.2.4.1
+
+- id: ra-ra-no-longer-audio
+  section: gotchas
+  title: Ra on both CC pins no longer means an audio adapter
+  claim: >-
+    Release 2.3 deprecated the Audio Adapter Accessory Mode and replaced it with Liquid
+    Corrosion Mitigation Mode, so in Release 2.5 Ra on both CC pins indicates Liquid Corrosion
+    Mitigation Mode (Appendix A). The terms table keeps an entry for the Audio Adapter Accessory
+    Mode (Ra/Ra) and marks it deprecated and replaced, but Table 4-11 still lists "Reconfigure
+    for analog audio" as the Source behavior for Liquid Corrosion Mitigation Mode, a leftover
+    from the old meaning.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '27'
+      heading: Revision History
+    - pages: ['160', '162']
+      section: 4.5.1.2.1
+      table: '4-10'
+    - page: '162'
+      table: '4-11'
+    - page: '31'
+
+- id: dead-battery-sink
+  section: gotchas
+  title: A Sink with a dead battery must still present Rd
+  claim: >-
+    A port with a dead battery enters Unattached.SNK while unpowered: it applies Rd to both CC1
+    and CC2 and follows the Sink rules, so a Source recognizes it and supplies default VBUS. The
+    unpowered Rd circuit need only hold CC within the voltage range of the clamp implementation
+    of Rd.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '180'
+      section: 4.5.2.2.3
+    - page: '235'
+      section: 4.8.5
