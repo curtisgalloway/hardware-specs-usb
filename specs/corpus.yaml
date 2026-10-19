@@ -80,11 +80,12 @@ documents:
   access: public
   subsystem: protocol
   disposition: "planned: protocol facts the host controller specs refer to"
-- name: usb4
-  title: USB4 Specification
+- name: usb4-2.0.pdf
+  title: Universal Serial Bus 4 (USB4) Specification, Version 2.0 (with Errata and ECN through November 19, 2025)
+  sha256: d2c27a35f5436559ba7e52448b873553434218544b2b8f160667bfd036ec024b
   access: public
   subsystem: protocol
-  disposition: "planned: no USB4 host router spec has been requested yet"
+  disposition: spec:usb4
 - name: eusb2-2.0.pdf
   title: Embedded USB2 (eUSB2) Version 2.0 Supplement to the USB 2.0 Specification
   sha256: a78f2e1165a303de948b226140e92d465c15e2fd4e7abf81089b2346576e3d99
@@ -176,3 +177,7 @@ blocks:
   title: USB Battery Charging (BC 1.2) port detection
   subsystem: power-delivery
   disposition: spec:usb-bc
+- name: usb4-router
+  title: USB4 router, fabric, Connection Manager control protocol and Host Interface
+  subsystem: protocol
+  disposition: spec:usb4
