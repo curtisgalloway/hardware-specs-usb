@@ -40,10 +40,10 @@ orientation: >-
   to describe itself. A hub port is reset by driving SE0 on it. This spec records the parts of
   the USB 2.0 specification a host or device driver acts on: device states, enumeration, the
   standard requests and their codes, the standard descriptor layouts, timing limits, packet size
-  limits, PID codes and the hub class's requests and port status bits. Electrical and mechanical
-  requirements, split transactions, the transaction-translator and scheduling rules are out of
-  its scope so far. Descriptor layouts are written as prose claims because a kind ip spec
-  carries no structured layout payloads (driver-lab#164).
+  limits, PID codes, the hub class's requests and port status bits, high-speed split
+  transactions, and the hub Transaction Translator (TT). Electrical and mechanical requirements
+  are out of its scope so far. Descriptor layouts are written as prose claims because a kind ip
+  spec carries no structured layout payloads (driver-lab#164).
 facts:
 - id: device-states
   section: standards
@@ -557,6 +557,390 @@ facts:
       11-21 and 11-22, pp. 455-459) and the hub status bits of Tables 11-19 and 11-20 are not
       extracted.
 
+- id: split-token-format
+  section: programming-model
+  title: The 4-byte SPLIT special token packet
+  claim: >-
+    High-speed split transactions are used only between the host controller and a high-speed hub
+    to communicate with full- or low-speed devices on the hub's downstream facing ports;
+    low-speed preamble (PRE) packets are never sent on the high-speed bus. Both start-split
+    (SSPLIT) and complete-split (CSPLIT) special tokens are 4 bytes (32 bits), sent LSb first
+    after SYNC: an 8-bit SPLIT PID (PID<3:0> = 1000B with its 4-bit one's-complement check
+    field, 78H), a 7-bit Hub Addr (ADDR<6:0>, the hub's USB device address), a 1-bit SC
+    (Start/Complete: 0 for SSPLIT, 1 for CSPLIT), a 7-bit Port number (PORT<6:0>, up to 128
+    ports; the host must set Port for both single-TT and multiple-TT hubs, though a single-TT
+    hub may ignore it), a 1-bit S field, a 1-bit E (in SSPLIT) or U (in CSPLIT) field, a 2-bit
+    ET (Endpoint Type, msb:lsb: 00 Control, 01 Isochronous, 10 Bulk, 11 Interrupt) and a 5-bit
+    CRC5 covering the 19 non-PID bits. For control and interrupt transactions S gives the target
+    speed (0 full speed, 1 low speed); for bulk IN/OUT and isochronous IN SSPLITs, S must be 0.
+    For bulk/control IN/OUT, interrupt IN/OUT and isochronous IN SSPLITs, E must be 0. For
+    full-speed isochronous OUT SSPLITs (which cannot be low speed), S (Start) and E (End) encode
+    how the high-speed payload maps to the full-speed packet: S=0, E=0 middle, S=0, E=1 end,
+    S=1, E=0 beginning and S=1, E=1 all of the full-speed payload. In CSPLIT, U is
+    reserved/unused and must be 0B while S keeps its SSPLIT definition. In the token phase of
+    every SSPLIT and CSPLIT, the 4-byte SPLIT token is immediately followed by a normal 3-byte
+    IN, OUT or SETUP token packet carrying the full- or low-speed device address and endpoint
+    number; depending on transfer type and direction, an SSPLIT has 2, 3 or 4 packets and a
+    CSPLIT has 2 or 3 packets.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['223', '224']
+      section: 8.3.1
+    - page: '226'
+      section: 8.3.5.1
+    - pages: ['227', '232']
+      section: 8.4.2
+      table: '8-2'
+    - page: '232'
+      table: '8-3'
+    - page: '371'
+      section: 11.14.1.1
+
+- id: tt-architecture-single-vs-multi
+  section: programming-model
+  title: Single-TT and Multi-TT hub organizations and descriptors
+  claim: >-
+    A high-speed hub isolates high-speed signaling from downstream full- and low-speed ports
+    using a Transaction Translator (TT) with a high-speed handler, a full-/low-speed handler,
+    and separate periodic (isochronous/interrupt) and non-periodic (bulk/control) transaction
+    buffers. A hub can provide either one TT shared across all downstream facing ports that have
+    full- or low-speed devices attached (single TT) or one TT per downstream facing port
+    (multiple TT); all hubs must support the single-TT organization, and the TT organization
+    must not be changed while full- or low-speed transactions are in progress. When operating at
+    high speed, a single-TT hub sets bDeviceClass = 09H (HUB_CLASSCODE), bDeviceSubClass = 0 and
+    bDeviceProtocol = 1 in its device descriptor and exposes one interface descriptor
+    (bInterfaceNumber = 0, bAlternateSetting = 0) with bInterfaceProtocol = 0; a multiple-TT hub
+    sets bDeviceProtocol = 2 in its device descriptor and exposes two interface descriptors for
+    interface 0: alternate setting 0 with bInterfaceProtocol = 1 (single-TT mode) and alternate
+    setting 1 with bInterfaceProtocol = 2 (multiple-TT mode). When operating at full speed, a
+    hub sets bDeviceProtocol = 0 and bInterfaceProtocol = 0, reporting its high-speed
+    bDeviceProtocol (1 or 2) in its device_qualifier descriptor. In the class-specific hub
+    descriptor (bDescriptorType = 29H), wHubCharacteristics (offset 3, 2 bytes) bits 6..5 report
+    the TT Think Time, the inter-transaction gap the TT requires on a downstream full- or
+    low-speed bus before proceeding to the next transaction: 00B at most 8 full-speed bit times,
+    01B at most 16, 10B at most 24 and 11B at most 32 full-speed bit times.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['370', '372']
+      section: 11.14.1
+    - page: '401'
+      section: 11.18.2
+    - pages: ['435', '444']
+      section: 11.23.1
+    - pages: ['445', '446']
+      section: 11.23.2.1
+      table: '11-13'
+  todo:
+    check: document
+    text: >-
+      The remaining fields of the hub descriptor (bDescLength, bNbrPorts, wHubCharacteristics
+      bits 4..0 and 15..7, bPwrOn2PwrGood, bHubContrCurrent, DeviceRemovable and
+      PortPwrCtrlMask; Table 11-13, pp. 445-446) and the status-change endpoint and
+      other_speed_configuration descriptor tables in section 11.23.1 (pp. 436-445) are not
+      extracted.
+
+- id: split-bulk-and-control-sequences
+  section: programming-model
+  title: Bulk and control split transaction sequences and responses
+  claim: >-
+    Each TT provides at least two non-periodic bulk/control transaction buffers (requiring at
+    least 2 x (64 data + 4 status) bytes) and services pending periodic start-splits ahead of
+    bulk/control transactions, issuing a pending bulk/control transaction on the downstream bus
+    in round-robin order only when no periodic start-split is available and sufficient time
+    remains in the 1 ms frame before EOF1. A TT buffers at most one bulk or control split
+    transaction per endpoint at a time, matching buffers by device address, endpoint number and,
+    for bulk endpoints only (not control endpoints), direction. On a bulk/control start-split
+    (SSPLIT + OUT/SETUP + DATA0/1, or SSPLIT + IN), the TT returns ACK if a free buffer accepts
+    the transaction (Is_new_SS) or if a buffer for that endpoint is already pending or ready
+    (Is_old_SS, a retry after a lost ACK, in which case duplicate OUT data is ignored), and
+    returns NAK if all bulk/control buffers are occupied by other endpoints (Is_no_space). After
+    ACK the host must not send another SSPLIT for that endpoint until the corresponding CSPLIT
+    completes; after NAK the host retries SSPLIT on its normal schedule without incrementing
+    err_count and may skip other bulk/control SSPLITs for that TT until a bulk/control CSPLIT
+    finishes. If the TT times out waiting for the token or data packet or sees a bad CRC16 on
+    OUT data, it sends no handshake; on a high-speed timeout or invalid handshake, the host
+    increments err_count (unless caused by a host memory or non-USB system hold-off) and retries
+    SSPLIT while err_count < 3 or halts the endpoint at err_count >= 3. On the downstream bus,
+    the TT locally retries full-/low-speed transaction errors up to three strikes—reflecting
+    three downstream errors as a STALL result—and never locally retries an ACK, NAK or STALL
+    handshake from the device. On a complete-split (CSPLIT + OUT/SETUP/IN), the TT returns NYET
+    while the downstream transaction is still pending (host retries CSPLIT later), returns STALL
+    if no matching buffer exists (protocol violation), or marks a ready buffer old (freeing it
+    for reuse after the CSPLIT) and returns the downstream result: for OUT/SETUP, ACK (advance
+    to next command and reset err_count to 0), NAK (retry from SSPLIT without incrementing
+    err_count; not allowed for control SETUP) or STALL (halt endpoint); for IN, DATA0/DATA1
+    (if CRC16 is valid and matches the expected data toggle, accept data and advance; if CRC16
+    is valid but the toggle mismatches, reject data and retry from SSPLIT), NAK (retry from
+    SSPLIT) or STALL (halt endpoint; an unexpected downstream ACK state on IN also maps to STALL
+    in Figure 11-59). On a high-speed transaction error during CSPLIT (timeout, invalid
+    handshake or bad CRC16 on IN data), the host increments err_count (unless due to a host
+    hold-off) and while err_count < 3 retries the CSPLIT immediately before any other
+    bulk/control split transaction for that TT (periodic split or non-split transactions may
+    intervene), halting the endpoint at err_count >= 3.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['373', '374']
+      section: 11.14.2.2
+    - pages: ['374', '376']
+      section: '11.15'
+    - pages: ['388', '400']
+      section: '11.17'
+    - page: '410'
+      section: '11.19'
+
+- id: split-periodic-pipeline-and-scheduling
+  section: programming-model
+  title: Periodic split transaction microframe pipeline and scheduling rules
+  claim: >-
+    High-speed split transactions for periodic (interrupt and isochronous) endpoints are
+    allocated from the 80% periodic portion of a high-speed microframe across the eight 125 us
+    microframes Y0..Y7 of each 1 ms full-speed frame, where Y0 is the zeroth microframe (whose
+    high-speed SOF increments the 11-bit frame number). The host schedules periodic split
+    transactions from a best-case full-speed wire budget assuming no bit stuffing, using each
+    endpoint's wMaxPacketSize, maximum inter-packet gaps, bus turnaround times and the hub's TT
+    think time: a 1 ms frame holds at most 1157 periodic bytes (90% of raw full-speed capacity
+    after worst-case 7/6 bit stuffing), budgeted as 188 bytes each in Y0..Y5, 29 bytes in Y6
+    and 0 bytes in Y7 (raw wire time is 187.5 bytes in Y0..Y5 and 32 bytes in Y6). The host
+    must never schedule a periodic SSPLIT in microframe Y6 (TT behavior is undefined), must
+    schedule each periodic SSPLIT in the microframe before its full-/low-speed transaction (or
+    188-byte isochronous OUT slice) is budgeted to start, must never schedule more than one
+    CSPLIT in the same microframe for the same full-/low-speed transaction, must never issue
+    more than 16 SSPLITs in any microframe for any TT (at most 16 full-speed transactions can
+    complete in a microframe; the TT periodic pipeline requires less than 752 data bytes / 4
+    microframes and 16 x 4 status entries of < 4 bytes each for SSPLITs, plus 2 x 188 data
+    bytes / 2 microframes and 16 x 2 status entries for CSPLITs), must issue each split
+    transaction in its scheduled microframe, and must issue periodic CSPLITs in a microframe in
+    the same relative order as their corresponding SSPLITs. At each microframe boundary (NOW),
+    the TT marks SSPLITs received in NOW-1 as pending, frees unstarted pending SSPLITs from
+    NOW-4 or earlier (and at full-speed EOF frees pending SSPLITs except those received in
+    (Y-1)7), and frees CSPLIT response entries from NOW-2. The TT aborts an in-progress
+    downstream periodic transaction if full-speed EOF occurs, or for an interrupt transaction if
+    the microframe timer reaches X+4 for an SSPLIT received in microframe X (for IN, omitting
+    the downstream handshake and ignoring the data; for OUT, stopping data transmission and
+    forcing a bit-stuffing error), creating no CSPLIT entry so the host receives NYET. When
+    searching the CSPLIT pipeline (which holds at most 1 microframe of responses accumulated in
+    the previous microframe), the TT may time out the first CSPLIT if its search is not yet
+    complete (match_busy), causing the host to retry CSPLIT immediately; if a CSPLIT matches a
+    later pipeline entry, the TT frees earlier skipped entries and returns the matching entry's
+    response.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '86'
+      section: '5.10'
+    - pages: ['400', '410']
+      section: '11.18'
+    - page: '410'
+      section: '11.19'
+
+- id: split-interrupt-sequences
+  section: programming-model
+  title: Interrupt split transaction sequences and microframe responses
+  claim: >-
+    For a full- or low-speed interrupt IN or OUT transaction budgeted to start in microframe B,
+    the host schedules one SSPLIT in microframe B-1 and schedules CSPLITs in microframes B+1 and
+    B+2, plus a third CSPLIT in B+3 unless B is microframe Y6 (which gets only two CSPLITs, in
+    Y7 and (Y+1)0). An interrupt OUT SSPLIT consists of SSPLIT, OUT token and DATA0/DATA1 with a
+    single high-speed CRC16; an interrupt IN SSPLIT consists of SSPLIT and IN token; neither has
+    a high-speed handshake phase, and if an SSPLIT suffers a high-speed timeout or CRC failure
+    the TT ignores it and does not start the downstream transaction. Unlike bulk/control, the TT
+    never locally retries a downstream interrupt transaction error. On an interrupt OUT CSPLIT
+    (CSPLIT + OUT), the TT returns ACK (host advances), NAK (host retries from SSPLIT at the
+    next period), STALL (host halts endpoint), ERR (downstream transaction error) or NYET (not
+    yet finished / no match). On an interrupt IN CSPLIT (CSPLIT + IN), the TT slices received
+    downstream data on microframe boundaries without forwarding the full-/low-speed CRC16: if
+    the downstream packet is still arriving at the microframe boundary, the TT returns NYET when
+    fewer than 3 data bytes have been received (since 2 bytes could be the CRC16) or returns
+    MDATA (with high-speed CRC16) containing the received bytes minus the last 2 bytes when more
+    than 2 data bytes have been received; when the downstream packet completes in a microframe,
+    the TT returns DATA0 or DATA1 (matching the downstream PID) with high-speed CRC16 if the
+    downstream CRC16 passed, or returns ERR (no data) if the downstream CRC16 failed or another
+    downstream transaction error occurred (or NAK or STALL if the device returned those
+    handshakes). Because an interrupt payload is at most 64 bytes (full speed) or 8 bytes (low
+    speed), it spans at most one microframe boundary and needs at most two CSPLITs to return
+    data. Once the host receives ACK, NAK, STALL, ERR or DATA0/DATA1, it stops issuing any
+    remaining scheduled CSPLITs for that transaction. For interrupt IN DATA0/DATA1 with valid
+    high-speed CRC16, the host accepts the data and advances if the PID matches the expected
+    data toggle, or rejects the data and retries from SSPLIT without incrementing err_count on a
+    toggle mismatch. On NYET before the last scheduled CSPLIT, or on MDATA with valid high-speed
+    CRC16, the host proceeds to the next scheduled CSPLIT. On NYET on the last scheduled CSPLIT,
+    or on ERR (which on a second CSPLIT also discards any MDATA payload accepted from the first
+    CSPLIT), the host increments err_count and retries from SSPLIT at the next period while
+    err_count < 3 or halts the endpoint at err_count >= 3. On a high-speed transaction error on
+    CSPLIT itself (timeout, including a TT search timeout, invalid PID or bad high-speed CRC16
+    on MDATA/DATAx), the host increments err_count and immediately retries the CSPLIT while
+    err_count < 3, or halts the endpoint at err_count >= 3.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['402', '404']
+      section: 11.18.4
+    - pages: ['406', '407']
+      section: 11.18.5
+    - pages: ['409', '410']
+      section: 11.18.8
+    - pages: ['410', '422']
+      section: '11.20'
+
+- id: split-isochronous-sequences
+  section: programming-model
+  title: Isochronous split transaction sequences and payload framing
+  claim: >-
+    Full-speed isochronous split transactions never perform local retries on the downstream bus
+    and use asymmetric OUT and IN sequences (low-speed isochronous transactions are not
+    permitted). For isochronous OUT, the host must never schedule a CSPLIT (TT response is
+    undefined); instead, for each microframe in which the full-speed OUT transaction is
+    budgeted, the host schedules an SSPLIT (SSPLIT token + OUT token + DATA0 with high-speed
+    CRC16, no handshake) one microframe before that chunk is budgeted on the full-speed bus,
+    sending up to 188 data bytes (or the remaining payload) per SSPLIT. The SSPLIT S and E bits
+    mark each chunk: S=1, E=1 (all) when a single SSPLIT carries the whole payload (including
+    any zero-length payload, or a <= 187-byte payload whose wire budget spans two microframes so
+    an SSPLIT-end would otherwise carry zero data); otherwise S=1, E=0 (beginning) on the first
+    SSPLIT, S=0, E=0 (middle) on intermediate SSPLITs and S=0, E=1 (end) on the final SSPLIT,
+    each of which must have a non-zero data payload. The TT checks and strips each high-speed
+    CRC16, recombines the chunks into one full-speed DATA0 packet, and generates a single
+    full-speed CRC16. If the first (beginning or all) SSPLIT is missed or fails CRC16, the TT
+    does not start the downstream transaction; after SSPLIT-begin is accepted, if any microframe
+    passes without an SSPLIT for that endpoint before SSPLIT-end, or if a chunk fails high-speed
+    CRC16 or has an out-of-sequence S/E encoding (Bad_IsochOut), the TT forces a bit-stuffing
+    error on the downstream full-speed packet and ignores subsequent middle/end SSPLITs for that
+    endpoint until a non-middle/non-end SSPLIT (or, after a CRC failure, an SSPLIT-end for that
+    endpoint or a start-split for another endpoint) is received. For isochronous IN, the host
+    schedules one SSPLIT (SSPLIT token with S=0, E=0 + IN token, no handshake) in the microframe
+    before the full-speed transaction is budgeted to start, schedules one CSPLIT (CSPLIT + IN)
+    in each microframe following a budgeted microframe (calling the last such microframe L), and
+    schedules extra CSPLITs in L+1 and L+2 when L < Y6, in Y7 plus (unless budgeted to start in
+    Y0) (Y+1)0 when L = Y6, or in (Y+1)0 (unless budgeted to start in Y0) when L = Y7 (up to 8
+    CSPLITs for a 1023-byte packet). In response to each CSPLIT + IN, the TT returns MDATA (with
+    high-speed CRC16, holding received bytes minus the last 2 bytes when > 2 bytes have arrived
+    and the downstream packet is still in progress at the microframe boundary), NYET (when < 3
+    bytes have arrived at the microframe boundary or no pipeline entry matches yet), DATA0
+    (always DATA0, with high-speed CRC16, when the downstream packet finishes in the microframe
+    with a valid full-speed CRC16) or ERR (when the downstream transaction suffers a CRC16 or
+    other transaction error). The host stops issuing remaining CSPLITs for the frame upon
+    receiving DATA0 or ERR; if the host receives ERR, or receives MDATA or NYET on the last
+    scheduled CSPLIT for the frame (HC_cmd.last), it records an error for that frame and
+    advances to the next frame's command without halting the endpoint. On a high-speed
+    transaction error on CSPLIT itself (timeout, invalid PID or bad high-speed CRC16 on
+    MDATA/DATA0), the host increments err_count and immediately retries the CSPLIT while
+    err_count < 3, or abandons the transaction at err_count >= 3.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['230', '231']
+      section: 8.4.2.2
+      table: '8-2'
+    - pages: ['402', '405']
+      section: 11.18.4
+    - pages: ['406', '407']
+      section: 11.18.5
+    - pages: ['422', '432']
+      section: '11.21'
+
+- id: tt-timer-sync-and-error-handling
+  section: programming-model
+  title: TT frame and microframe timer synchronization and downstream EOF rules
+  claim: >-
+    A high-speed hub synchronizes its 125 us microframe timer after receiving high-speed SOFs in
+    two consecutive microframes, and synchronizes its 1 ms downstream frame timer when it
+    receives a zeroth microframe SOF (recognized when two consecutive microframe SOFs increment
+    the 11-bit frame number by 1 modulo 2^11) while its microframe timer is synchronized. While
+    the 1 ms frame timer is synchronized, the TT generates a full-speed SOF on downstream
+    full-speed ports within +/-3 full-speed bit times of each zeroth high-speed SOF (and
+    keep-alives on low-speed ports) and keeps the 1 ms frame timer synchronized every 8
+    microframes even if zeroth microframe SOFs are missed, as long as the 125 us microframe
+    timer stays synchronized. The TT must stop issuing full-speed SOFs after detecting 250 us of
+    high-speed bus idle (so downstream full-/low-speed ports enter suspend within 250 us of the
+    high-speed bus) and must never issue downstream transactions while its upstream port is
+    suspended. Missing three consecutive microframe SOFs causes both the 125 us microframe timer
+    and the 1 ms frame timer to lose synchronization at once; while unsynchronized, the TT (1)
+    responds to periodic CSPLITs with any responses already buffered in the periodic pipeline
+    (at most 1 microframe of CSPLITs), (2) aborts buffered periodic SSPLITs, ignores incoming
+    high-speed periodic SSPLITs and starts no new downstream periodic transactions, (3) stops
+    issuing downstream full-speed SOFs and low-speed keep-alives, and (4) continues responding
+    to high-speed bulk/control SSPLITs and CSPLITs while holding pending bulk/control
+    transactions in their buffers without issuing them downstream until both timers
+    re-synchronize (within 0.250 to 1.250 ms after error-free high-speed SOFs resume) or a
+    Clear_TT_Buffer request clears them. On the downstream bus, before starting a non-periodic
+    transaction the TT must verify that enough time remains before EOF1 assuming the transfer
+    type's maximum allowed payload size for INs; if the TT is still transmitting near EOF1 it
+    forces an abnormal termination sequence and stops transmitting, and if it is still receiving
+    a packet at EOF2 it disables the transmitting downstream port.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '402'
+      section: 11.18.3
+    - pages: ['432', '434']
+      section: '11.22'
+
+- id: tt-hub-class-requests
+  section: programming-model
+  title: Transaction Translator hub class requests
+  claim: >-
+    All four TT-specific hub class requests are mandatory for hubs with a TT, use the
+    port-recipient class bmRequestType (00100011B host-to-device for Clear_TT_Buffer, Reset_TT
+    and Stop_TT; 10100011B device-to-host for Get_TT_State), and take TT_Port in wIndex (the
+    1-based port number of the target TT on a multiple-TT hub, or 1 on a single-TT hub, where
+    Reset_TT and Stop_TT allow a single-TT hub to ignore the port number): (1) Clear_TT_Buffer
+    (bRequest = CLEAR_TT_BUFFER = 8, wLength = 0, no Data stage) clears a bulk or control TT
+    buffer left in a busy state after high-speed errors so it can be reused; it is defined only
+    for non-periodic endpoints (response for a periodic endpoint is undefined), treats clearing
+    a transaction not buffered by the TT as a functional no-operation, and encodes the target
+    full-/low-speed endpoint in wValue (Table 11-18: bits 3..0 Endpoint Number, bits 10..4
+    Device Address, bits 12..11 Endpoint Type, bits 14..13 reserved zero, bit 15 Direction with
+    1 = IN and 0 = OUT). (2) Reset_TT (bRequest = RESET_TT = 9, wValue = 0, wLength = 0, no
+    Data stage) returns the target TT's internal buffers, pipeline and state machines to their
+    post-configuration state without resetting the hub controller, hub repeater or downstream
+    facing ports, so attached full-/low-speed devices do not require re-enumeration. (3)
+    Stop_TT (bRequest = STOP_TT = 11, wValue = 0, wLength = 0, no Data stage) stops normal
+    execution of the TT for debugging so its state can be read via Get_TT_State; the only
+    standardized way to restart a stopped TT is Reset_TT. (4) Get_TT_State (bRequest =
+    GET_TT_STATE = 10, wValue = TT_Flags with bits 7..0 reserved zero and bits 15..8
+    vendor-specific, wLength = TT State Length) requires the TT to have been stopped first via
+    Stop_TT and returns Table 11-23's state block (4-byte TT_Return_Flags at offset 0 with bits
+    15..0 reserved zero and bits 31..16 vendor-specific, followed at offset 4 by
+    implementation-dependent TT_specific_state, truncated to wLength if wLength is smaller and
+    returning only actual length if wLength is larger); the TT's state after processing
+    Get_TT_State is undefined. For all four requests, a nonexistent port in wIndex (or a
+    non-zero wLength on the no-data requests) is a Request Error, and if the hub is not
+    configured its response is undefined.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - pages: ['448', '449']
+      section: 11.24.2
+      table: '11-15'
+    - page: '449'
+      table: '11-16'
+    - pages: ['451', '452']
+      section: 11.24.2.3
+      table: '11-18'
+    - pages: ['460', '461']
+      section: 11.24.2.8
+      table: '11-23'
+    - page: '461'
+      section: 11.24.2.9
+    - page: '462'
+      section: 11.24.2.11
+  todo:
+    check: document
+    text: >-
+      The non-TT request rows of Tables 11-15 and 11-16 (pp. 448-449, covered by
+      hub-class-requests) and their per-request rules in sections 11.24.2.1-11.24.2.2,
+      11.24.2.4-11.24.2.7, 11.24.2.10 and 11.24.2.12-11.24.2.13 are not extracted here.
+
 - id: power-budget
   section: standards
   title: Bus power before and after configuration
@@ -631,3 +1015,63 @@ facts:
       section: 9.4.5
     - page: '271'
       section: 9.1.1.5
+
+- id: clear-tt-buffer-on-async-abort
+  section: gotchas
+  title: Failed bulk or control split transactions leave the TT buffer busy until Clear_TT_Buffer
+  claim: >-
+    When a bulk or control split transaction fails on the high-speed bus, it can leave the
+    associated non-periodic TT transaction buffer in a busy (ready/x) state that prevents the
+    buffer from being reused for other bulk or control split transactions. As part of endpoint
+    halt processing for any full- or low-speed bulk or control endpoint connected via a TT, host
+    software must issue a Clear_TT_Buffer request (bRequest = 8, wValue encoding the target
+    endpoint number in bits 3..0, device address in bits 10..4, endpoint type in bits 12..11 and
+    direction in bit 15, and wIndex = TT_Port: 1 for a single-TT hub or the port number for a
+    multiple-TT hub) to return the buffer to the free state.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '400'
+      section: 11.17.5
+    - pages: ['451', '452']
+      section: 11.24.2.3
+      table: '11-18'
+
+- id: multi-tt-requires-set-interface
+  section: gotchas
+  title: Multi-TT hubs configure into Single-TT mode until SetInterface selects alternate setting 1
+  claim: >-
+    Every high-speed hub must support the single-TT organization, and a multiple-TT hub
+    (bDeviceProtocol = 2) places single-TT operation (bInterfaceProtocol = 1) on interface 0
+    alternate setting 0 and multiple-TT operation (bInterfaceProtocol = 2) on interface 0
+    alternate setting 1. Because SetConfiguration() always initializes every interface to
+    alternate setting 0, a multiple-TT hub operates as a single-TT hub after configuration until
+    host software issues SetInterface() to select alternate setting 1, which must be done while
+    no full- or low-speed transactions are in progress. Note two internal inconsistencies in
+    Chapter 11 of the base specification: Table 11-14 lists GET_INTERFACE and SET_INTERFACE as
+    "Undefined. Hubs are allowed to support only one interface" despite section 11.23.1's
+    alternate interface settings for multiple-TT hubs, and the full-speed hub
+    other_speed_configuration example on pages 437-438 prints bNumInterfaces = 2 and
+    bAlternateSetting = 0 on the second interface descriptor whereas the high-speed multiple-TT
+    configuration on pages 442-443 sets bNumInterfaces = 1 and bAlternateSetting = 1.
+  support:
+  - class: standard
+    doc: usb-2.0.pdf
+    at:
+    - page: '271'
+      section: 9.1.1.5
+    - pages: ['272', '273']
+      section: 9.2.3
+    - page: '287'
+      section: 9.4.10
+    - pages: ['435', '443']
+      section: 11.23.1
+    - page: '447'
+      section: 11.24.1
+      table: '11-14'
+  todo:
+    check: document
+    text: >-
+      The other standard request rows of Table 11-14 and the 50 ms hub request timing limits of
+      section 11.24.1 (p. 447) are not extracted.

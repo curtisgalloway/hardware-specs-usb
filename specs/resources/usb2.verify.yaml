@@ -3,7 +3,7 @@
 format: 2
 spec: usb2
 spec_file: usb2.spec.yaml
-spec_sha256: 744bb85300c800c8adb4cfd16714b46ced7f64243737c2f634f364488d11081a
+spec_sha256: 5eca3f2fff8298147e3c9516ceaa4ed4a950b4aeec6aa098218023781b3e17db
 canonical: fact-v1
 sources:
 - name: usb-2.0.pdf
@@ -13,7 +13,7 @@ sources:
   note: The PDF inside the USB-IF zip download; each reader checked the SHA-256 and extracted page
     text itself with pdftotext.
 summary:
-  pass: 25
+  pass: 35
   fail: 0
   unverifiable: 0
   gap: 0
@@ -432,4 +432,177 @@ verdicts:
       Read the rest of 9.4.5 (pp. 282-284), 9.4.1 and 9.4.7 for qualifications; none restricts these
       statements. 9.4.10 (SetInterface) was not read.'
     contrary_evidence: none-found
+    citation_precision: exact
+  split-token-format:
+    basis: cafd515d2ca35fe27979c88b93dc05a9b42d81c3cb0c07ba799ea85b7c31e99b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 8.3.1 (pp. 223-224, Table 8-1), 8.3.5.1 (p. 226), 8.4.2-8.4.2.3 (pp.
+      227-232, Figures 8-6 to 8-12, Tables 8-2 and 8-3), and 11.14.1.1 (p. 371): 32-bit (4-byte)
+      SPLIT token layout (8-bit PID with type 1000B and complement = 78H on the wire LSb-first,
+      7-bit Hub Addr, 1-bit SC, 7-bit Port 0..127, 1-bit S, 1-bit E/U, 2-bit ET, 5-bit CRC5 over
+      19 bits), S/E/U/ET encodings across control, isochronous, bulk, and interrupt transactions,
+      PRE packet prohibition on HS bus, 3-byte standard token follow-on, and 2/3/4-packet SSPLIT
+      vs. 2/3-packet CSPLIT sequences all match. Omitted siblings: SPLIT tokens must originate
+      only from the host (8.4.2.1, p. 230), and CRC5 uses polynomial X^5 + X^2 + 1 (00101B) with
+      residual 01100B (8.3.5.1, p. 226).'
+    contrary_evidence: found
+    citation_precision: exact
+  tt-architecture-single-vs-multi:
+    basis: e7b45f2bb1cab828d946fad29fcc81ddd44b748eb5de439425ba3d932cf5c59c
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.14.1-11.14.1.3 (pp. 370-372, Figures 11-24 and 11-25), 11.18.2 (p.
+      401), 11.23.1 (pp. 435-444), and 11.23.2.1 Table 11-13 (pp. 445-446): high-speed/FS-LS
+      handler split, separate periodic and non-periodic buffer domains, single-TT vs. multiple-TT
+      organizations, mandatory single-TT support, prohibition on changing TT organization during
+      active FS/LS transactions, all bDeviceClass/bDeviceSubClass/bDeviceProtocol/bInterfaceProtocol
+      values across HS, FS, and device_qualifier descriptors, and wHubCharacteristics bits 6..5
+      (D6...D5) TT Think Time encodings (8/16/24/32 FS bit times) all match; the todo accurately
+      covers the remaining Table 11-13 fields and 11.23.1 descriptor tables. Note on source
+      inconsistency: 11.14.1.3 (p. 372) states that the hub must report its organization in the
+      hub class descriptor, whereas 11.23.1 and Table 11-13 (pp. 435-446) actually report single-
+      vs. multiple-TT organization in the standard device, device_qualifier, and interface
+      descriptors.'
+    contrary_evidence: found
+    citation_precision: exact
+  split-bulk-and-control-sequences:
+    basis: 53a1ed25087caf05c4a19ce92006d9b301782989640f327e9b76adf3d1dfaff6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.14.2.2-11.14.2.3 (pp. 373-374, Figures 11-27 and 11-28), 11.15
+      (pp. 374-376, Figures 11-29 to 11-31), 11.17-11.17.5 (pp. 388-400, Figures 11-47 to 11-59),
+      and 11.19 (p. 410): minimum 2 buffers (2 x (64 data + 4 status) bytes), priority after
+      periodic SSPLITs, round-robin when fitting before EOF1, Compare_buffs matching (direction
+      checked for bulk only, not control), Is_new_SS/Is_old_SS (ACK, ignoring duplicate OUT
+      data)/Is_no_space (NAK, host may skip other bulk/control SSPLITs for that TT until a
+      bulk/control CSPLIT finishes), no-handshake on TT timeout/bad CRC16, 3-strike err_count with
+      hold-off exemption, 3-strike downstream local retry mapping 3 errors to r_stall and never
+      retrying ACK/NAK/STALL, and all CSPLIT responses (NYET, STALL on no_match or unexpected
+      r_ack on IN in Fig. 11-59, ACK, NAK not allowed on SETUP, DATA0/1 toggle match/mismatch, and
+      immediate CSPLIT retry before other bulk/control splits on HS CSPLIT error) all match.
+      Omitted sibling: if a downstream bulk/control transaction is in progress when EOF occurs,
+      the TT follows Section 11.3 on the downstream bus, which increments the downstream error
+      count for that transaction (11.17.3, p. 400).'
+    contrary_evidence: found
+    citation_precision: exact
+  split-periodic-pipeline-and-scheduling:
+    basis: d742fcaecc3909491e91c3e19a6fd10408ee8340e0235565dd4d96042fba5687
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 5.10 (p. 86), 11.18-11.18.8 (pp. 400-410, Figures 11-60 to 11-67),
+      and 11.19 (p. 410): 80% HS periodic allocation, Y0..Y7 framing, 1157-byte best-case budget
+      (188 in Y0..Y5, 29 in Y6, 0 in Y7; raw wire time 187.5 and 32), all 6 host scheduling rules
+      in 11.18.4, buffer bounds in 11.19 (< 752 data bytes / 4 microframes and 16 x 4 status
+      entries < 4 bytes for SSPLIT; 2 x 188 data bytes / 2 microframes and 16 x 2 status entries
+      for CSPLIT), Advance_Pipeline rules (NOW-1 to pending, free NOW-4 or earlier and at EOF
+      except (Y-1)7, free CSPLIT from NOW-2), abort rules at EOF or X+4 for interrupt (IN omits
+      handshake/ignores data, OUT stops data/forces bit-stuffing error, no CSPLIT entry -> NYET),
+      and CSPLIT search timeout (match_busy) and out-of-order skip/free rules (11.18.8) all match.
+      Omitted sibling: the TT must not start a downstream FS/LS periodic transaction unless space
+      is available in the complete-split pipeline stage to hold its result (11.18.6.3, p. 408).'
+    contrary_evidence: found
+    citation_precision: exact
+  split-interrupt-sequences:
+    basis: b1bc3698093bf52ec67aefb0f77fa87286767750d40c61ef97a9de9f57f33e02
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.18.4 (pp. 402-404, Figure 11-63), 11.18.5 (pp. 406-407), 11.18.8
+      (pp. 409-410), and 11.20-11.20.4 (pp. 410-422, Figures 11-68 to 11-82): SSPLIT in B-1,
+      CSPLITs in B+1, B+2, B+3 (or Y7, (Y+1)0 when B = Y6), no HS handshake on SSPLIT, TT ignores
+      damaged SSPLIT, no local downstream retry, OUT and IN CSPLIT responses, microframe data
+      slicing (< 3 bytes -> NYET, > 2 bytes -> MDATA minus last 2 bytes, completion -> DATA0/1 or
+      ERR), max 64B FS / 8B LS spanning at most 1 boundary / 2 CSPLITs, stopping remaining CSPLITs
+      on terminal response, toggle mismatch retry without incrementing err_count, last-CSPLIT NYET
+      and ERR (discarding prior MDATA) 3-strike handling, and immediate CSPLIT retry on HS error
+      all match. Note on internal spec wording: 11.18.8 item 4 (p. 410) loosely writes "more than
+      three errors", whereas the state machines (Figures 11-69, 11-71, 11-73, 11-77, 11-78) and
+      11.17.1 define three strikes as err_count >= 3 (retry while err_count < 3).'
+    contrary_evidence: found
+    citation_precision: exact
+  split-isochronous-sequences:
+    basis: 64b6d62a716c93c509a44c7aa1fbe6ba1fb6b5ebddd99e3b9d157d22da23ff1f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 8.4.2.2 Table 8-2 (pp. 230-231), 11.18.4 (pp. 402-405, Figures 11-62,
+      11-64, 11-65), 11.18.5 (pp. 406-407), and 11.21-11.21.4 (pp. 422-432, Figures 11-83 to
+      11-93, plus Figure 11-39 on p. 383 and Bad_IsochOut in B.3 on p. 589): no local downstream
+      retry, FS only, no CSPLIT for OUT, 188-byte SSPLIT slices 1 microframe ahead, S/E
+      continuation encodings (including zero-length and <= 187-byte 2-microframe-budgeted payloads
+      using SS-all in Figure 11-62), CRC16 stripping/regeneration, missed/bad-CRC/out-of-sequence
+      error handling (forcing bit-stuffing error and ignoring follow-on chunks), IN SSPLIT (S=0,
+      E=0) and CSPLIT scheduling for L < Y6, L = Y6, and L = Y7 (up to 8 CSPLITs for 1023B),
+      MDATA/NYET/DATA0/ERR responses, recording frame error without halting on ERR or last-CSPLIT
+      MDATA/NYET, and 3-strike immediate CSPLIT retry abandoning at err_count >= 3 all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  tt-timer-sync-and-error-handling:
+    basis: d464349983a5bda59a67c6b1e423da87f568c07b581a77003ea990a53821be7d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.18.3 (p. 402) and 11.22-11.22.2 (pp. 432-434, Figure 11-94): 2-SOF
+      microframe sync, zeroth-microframe 1 ms frame sync (frame number increments by 1 mod 2^11),
+      +-3 FS bit-time SOF accuracy, keep-alives on LS ports, maintaining frame sync every 8
+      microframes across missed zeroth SOFs, stopping FS SOFs after 250 us HS idle, no downstream
+      transactions while upstream suspended, losing both timers on 3 missed microframe SOFs, all
+      8 unsynchronized TT behaviors (11.22.2 p. 434), 0.250-1.250 ms resync window, and EOF1/EOF2
+      downstream error handling (11.22 p. 432) all match. Omitted siblings: a hub can synchronize
+      both timers with as few as two SOFs if they are for microframe 7 and microframe 0 (11.22.2,
+      p. 433); in normal repeater operation (11.22.1, p. 433), a hub that loses timer sync does
+      not establish upstream connectivity.'
+    contrary_evidence: found
+    citation_precision: exact
+  tt-hub-class-requests:
+    basis: bd0c8122c06857e40570259c1d639ee0b8707d9c386abfbfc38f3e5cb3acbd5d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.24.2 Tables 11-15 and 11-16 (pp. 448-449), 11.24.2.3 Table 11-18
+      (pp. 451-452), 11.24.2.8 Table 11-23 (pp. 460-461), 11.24.2.9 (p. 461), and 11.24.2.11 (p.
+      462): all 4 requests mandatory, bmRequestType (00100011B / 10100011B), wIndex = TT_Port (1
+      on single-TT, ignored by single-TT on Reset_TT/Stop_TT), bRequest codes (8, 9, 11, 10),
+      Clear_TT_Buffer wValue bitfields (Table 11-18) and no-op/periodic rules, Reset_TT decoupling
+      from repeater/ports/enumeration, Stop_TT restarted only by Reset_TT, Get_TT_State TT_Flags
+      and Table 11-23 format, and Request Error / unconfigured rules all match; the todo
+      accurately scopes out non-TT requests. Omitted sibling: for Get_TT_State, wLength = 0 is
+      explicitly not considered an error (11.24.2.8, p. 461).'
+    contrary_evidence: found
+    citation_precision: exact
+  clear-tt-buffer-on-async-abort:
+    basis: fe281e7c0c61047868a4aceffa2dbf48f7b8380431ea904c0e64b93a2be02dba
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 11.17.5 (p. 400) and 11.24.2.3 Table 11-18 (pp. 451-452), plus Table
+      11-16 (p. 449): busy (ready/x) buffer state after failed bulk/control split transaction,
+      mandatory Clear_TT_Buffer during endpoint halt processing, wValue fields, and wIndex =
+      TT_Port match. Citation precision: the claim states numeric bRequest = 8, which appears in
+      Table 11-16 on page 449 rather than on pages 400 or 451-452 (which use the symbolic name
+      CLEAR_TT_BUFFER); suggest adding page 449 Table 11-16 to at. Omitted siblings: Table 11-18
+      (p. 452) also requires wValue bits 14..13 to be reserved zero, and 11.22.2 item 8 (p. 434)
+      notes Clear_TT_Buffer can also clear a pending bulk/control buffer held while the TT
+      microframe timer has lost synchronization.'
+    contrary_evidence: found
+    citation_precision: imprecise
+  multi-tt-requires-set-interface:
+    basis: b99515b0bdd83207687c5334ebd1c3860512e9a846980b599e8150b1bd541aac
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB 2.0 split-transaction reader
+    note: 'Verified against 9.1.1.5 (p. 271), 9.2.3 (pp. 272-273), 9.4.10 (p. 287), 11.23.1 (pp.
+      435-443), and 11.24.1 Table 11-14 (p. 447): every sub-claim, including the two internal
+      specification inconsistencies in Chapter 11 (Table 11-14 marking GET_INTERFACE/SET_INTERFACE
+      as "Undefined. Hubs are allowed to support only one interface", and the full-speed
+      other_speed_configuration example on pp. 437-438 having bNumInterfaces = 2 and
+      bAlternateSetting = 0 vs. pp. 442-443 having bNumInterfaces = 1 and bAlternateSetting = 1),
+      matches the specification text; the todo accurately names the remaining Table 11-14 rows and
+      50 ms timing limits in 11.24.1.'
+    contrary_evidence: found
     citation_precision: exact
