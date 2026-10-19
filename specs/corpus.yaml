@@ -29,11 +29,12 @@ documents:
   access: public
   subsystem: type-c
   disposition: spec:usb-type-c
-- name: usb-pd-r3.2
+- name: usb-pd-r3.2.pdf
   title: Universal Serial Bus Power Delivery Specification, Revision 3.2
+  sha256: 1a041ab16c7ffcd39569809859fc59e569ade9cf155e4c314a46c9e9b1184027
   access: public
   subsystem: power-delivery
-  disposition: "planned: a USB PD protocol spec"
+  disposition: spec:usb-pd
 - name: usb-tcpci-r2.0.pdf
   title: Universal Serial Bus Type-C Port Controller Interface Specification, Revision 2.0, Version 1.3
   sha256: 0cc82e39b94351e12243f8f9bb978a670a3a2c7f9290fce90ce5e40b336a50ae
@@ -169,7 +170,7 @@ blocks:
 - name: usb-pd-protocol
   title: USB Power Delivery protocol layer
   subsystem: power-delivery
-  disposition: "planned: a USB PD protocol spec"
+  disposition: spec:usb-pd
 - name: tcpci
   title: Type-C Port Controller Interface registers
   subsystem: type-c

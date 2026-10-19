@@ -1,0 +1,523 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb-pd
+spec_file: usb-pd.spec.yaml
+spec_sha256: 24c1838406a2ccdfecfb24e7a93fd6e8a6e0512c04f6d525c65789fa17a84d12
+canonical: fact-v1
+sources:
+- name: usb-pd-r3.2.pdf
+  url: https://www.usb.org/document-library/usb-power-delivery
+  sha256: 1a041ab16c7ffcd39569809859fc59e569ade9cf155e4c314a46c9e9b1184027
+  fetch: ok
+  note: USB_PD_R3_2 V1.2 2026-03.pdf inside the USB-IF zip download; each reader checked the SHA-256
+    and verified page text extracted with pdftotext.
+summary:
+  pass: 23
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  port-power-data-vconn-roles:
+    basis: 537919c91bd2ea3f1e6ce93aedda0eed6facfc9605ab601b7d7761ffc44d8a72
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: Verified against Section 1.2 (page 21) and Sections 1.3.1–1.3.8 (pages 21–22) of usb-pd-r3.2.pdf.
+      Section 1.2 states that each connection has one Source Port (providing power and defaulting
+      at Attachment to DFP and VCONN Source) and one Sink Port (consuming power and defaulting at
+      Attachment to UFP), and that power roles (Source/Sink), data roles (DFP/UFP), and the VCONN
+      Source role can be swapped independently during a connection. Sections 1.3.1–1.3.8 confirm that
+      the Source initiates power negotiations, DFP is associated with the USB Host role and Initiator
+      in Data Role negotiations, UFP is associated with the USB Peripheral role and Responder in Data
+      Role negotiations, DRP ports swap between Source and Sink, DRD ports swap between DFP and UFP
+      even if Source-only or Sink-only for power, a port must be the VCONN Source to communicate with
+      Cable Plugs, and Cable Plugs (embedded e-marker and/or active circuitry powered when VCONN is
+      present) do not initiate communication and only respond to messages addressed to them. Read
+      Sections 1.1–1.6 (pages 21–24) for contrary qualifications; none found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  default-explicit-implicit-contracts:
+    basis: 7bc76d22a6e00160c99f04a5874e7e9eae188e6db60e64a8ecccf5ef49b2b1ed
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 1.4 (pages 22–23) of usb-pd-r3.2.pdf. Section 1.4 defines the
+      three operational contracts between a PD Source and Sink: Default Contract (non-negotiated power
+      contract at initial connection at 5 V up to advertised USB-C current until disconnect or Explicit
+      Contract negotiation), Explicit Contract (normal operational state after PD Power Negotiation
+      where Source offers, Sink requests, and Source accepts; entered before other USB PD messaging
+      between the ports, and where data connections and modes other than USB2 and USB3 may be established),
+      and Implicit Contract (transitory 5 V contract at advertised USB-C current following a Power
+      Role Swap or Fast Role Swap where all data connections and modes are maintained and the Source
+      immediately negotiates an Explicit Contract). Read Sections 1.4–1.5 (pages 22–24) and checked
+      Section 7.13 (page 212, which notes a Source that is also VCONN Source may send SOP'' Discover
+      Identity to a Cable Plug prior to the First Explicit Contract); no contradiction to the Source-Sink
+      contract rules in Section 1.4.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  pd-device-stack-architecture:
+    basis: 54808c8bbdd8bdee980d10285c93ac6285fda1eeeb6eeca49b5a4bb7d46c0009
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: Verified against Section 1.7 (page 24) and Figure 1.1 (page 25) of usb-pd-r3.2.pdf. Section
+      1.7 and Figure 1.1 show that a single Device Policy Manager coordinates USB PD behavior across
+      all ports within the device while each port has its own Policy Engine, Protocol Layer, Physical
+      Layer, USB-C Port Control (on the CC pin), and Power Source/Sink block (on VCONN and VBUS pins),
+      and state the exact responsibilities of each layer. Note that the prose intro in Section 1.7
+      (page 24) says "From lowest to highest, these layers are:" before listing the bullets from Device
+      Policy Manager down to USB-C Port Control, whereas Figure 1.1 (page 25) depicts the physical/control
+      hierarchy with USB-C Port Control and Physical Layer at the bottom (on the CC pin), Protocol
+      Layer in the middle, Policy Engine above them, and Device Policy Manager at the top. Read Section
+      1.7 in full; no contrary evidence found.
+    contrary_evidence: none-found
+    citation_precision: exact
+  spr-vs-epr-power-ranges:
+    basis: 064272d8e173c6e266de5186b68a12b623d5f567da299f469847bea64ce7275f
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 3.1 (page 37), Section 3.2.4 and Tables 3.1–3.2 (pages 38–40),
+      Section 3.2.5.3 and Tables 3.5–3.6 (pages 42–44), and Section 7.30.1 (pages 217–220) of usb-pd-r3.2.pdf.
+      All voltage tiers, PDP brackets (0.5–15 W, >15–27 W, >27–45 W, >45–100 W in SPR; >100–140 W,
+      >140–180 W, >180–240 W in EPR), minimum current formulas (min(3 A, PDP / Voltage) for 5 V/9
+      V/15 V, min(Cable Rating, PDP / 20 V) for 20 V with 5 A cable required for Port Present PDP
+      > 60 W, min(5 A, PDP / Voltage) for 28 V/36 V/48 V, and 20 V Fixed PDO at 5 A when operating
+      in EPR Mode with Port Present PDP >= 100 W), SPR AVS and EPR AVS bounds, and EPR cable verification
+      (Discover Identity Cable VDO Maximum VBUS Voltage = 11b (50 V) and VBUS Current Handling Capability
+      = 10b (5 A) in Section 7.30.1 step 6 on page 220) match the specification. The todo field satisfies
+      #103 for unextracted Tables 3.3, 3.4, and 3.7 and footnotes. Omitted sibling rules noted (contrary_evidence:
+      found): (1) under Section 3.2.4 item 3 (page 38), Table 3.2 (page 40), and Table 3.6 (page 44),
+      when Port Present PDP < Port Maximum PDP on a Managed Capability Port, higher Fixed PDO voltages
+      required by the port''s Port Maximum PDP remain offered at reduced current (Port Present PDP
+      / Voltage) rather than dropping to the lower Port Present PDP voltage tier, becoming optional
+      only when Port Present PDP <= 15 W (for 9 V/15 V/20 V/SPR AVS, Table 3.2 note 3) or <= 27 W
+      / <= 45 W / <= 60 W (for 28 V / 36 V / 48 V, Table 3.6 note 2 and page 44); and (2) under Section
+      3.2.5.3 item 3 (page 42) and Section 3.2.2 item 2.b / Section 3.2.3 item 4.b (pages 38), an
+      EPR-capable Source operating in SPR Mode may advertise < 5 A (< 100 W, e.g., 95 W) on the 20
+      V Fixed PDO for safety-regulation margin. Proposed addition to claim: state that when Port Present
+      PDP < Port Maximum PDP (Tables 3.2 and 3.6), PDO voltage tiers up to the Port Maximum PDP tier
+      remain required at Port Present PDP / Voltage above the optional thresholds (15 W in SPR; 27
+      W, 45 W, and 60 W for 28 V, 36 V, and 48 V in EPR).'
+    contrary_evidence: found
+    citation_precision: exact
+  phy-bmc-framing-and-crc32:
+    basis: d02e09979cfdfb672af1b7300bf949a615763ec92deb5f5de1d644ce0c0e4e6a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 5.1 (page 85), Section 5.3.1 and Figure 5.1 (pages 87–88), Sections
+      5.3.1.1 through 5.3.1.1.5 (pages 88–90), Section 5.3.2 and Figure 5.3 (pages 92–93), Section
+      5.3.4 (page 96), and Sections 5.5.1–5.5.2 Tables 5.9–5.10 (page 110) of usb-pd-r3.2.pdf. Confirmed
+      fBitRate (270 min, 300 nom, 330 max kbps), tUnitInterval (3.03 min, 3.70 max us, defined as
+      1 / fBitRate = 3.33 us nominal), vSwing (1.05 min, 1.125 nom, 1.2 max V), tInterFrameGap (25
+      us min), 64-bit alternating 0/1 Preamble starting with 0 and ending with 1 (BMC encoded without
+      4b5b), 4-symbol (20-bit) SOP* ordered set, 4b5b payload transmission with lower nibble (d3..d0)
+      before upper nibble (d7..d4) and b0 transmitted first, CRC-32 polynomial 04C1_1DB7h, initial
+      value FFFF_FFFFh, complemented remainder, residual C704_DD7Bh, 8-symbol 4b5b LSB-first CRC transmission,
+      EOP K-code 01101b, and the final BMC trailing edge terminating the last bit cell of the frame
+      (Section 5.3.4 item 4, page 96). The todo field satisfies #103 for the remaining electrical
+      parameters in Tables 5.9–5.11. Read Sections 5.1–5.5; no contrary evidence found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  phy-4b5b-kcodes-and-ordered-sets:
+    basis: 700aeb099e0851cd2f3bdea1cb5e4e8b7c62b71d000bc714701e7841fcaa586d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 5.3.1.1.2 Table 5.2 (pages 89–90), Section 5.3.1.1.3 Table 5.3
+      (page 90), Section 5.3.1.2 Figure 5.2 and Table 5.4 (page 91), and Section 5.3.2.2 Table 5.5
+      (page 94) of usb-pd-r3.2.pdf. Confirmed all six 5b K-code symbols (Sync-1 = 11000b, Sync-2 =
+      10001b, Sync-3 = 00110b, RST-1 = 00111b, RST-2 = 11001b, EOP = 01101b), all ten 5b Error symbols
+      (00000b, 00001b, 00010b, 00011b, 00100b, 00101b, 01000b, 01100b, 10000b, 11111b), all five SOP*
+      ordered sets in Table 5.3 (SOP, SOP'', SOP'''', SOP''_Debug, SOP''''_Debug), both reset ordered
+      sets in Table 5.4 (Hard Reset = RST-1, RST-1, RST-1, RST-2; Cable Reset = RST-1, Sync-1, RST-1,
+      Sync-3), the Preamble + 4 K-codes reset packet format without payload/CRC/EOP (Section 5.3.1.2
+      and Figure 5.2), and the 3-of-4 K-code validation rule in Section 5.3.2.2 and Table 5.5. The
+      todo field satisfies #103 for the 16 data-nibble 4b5b mappings in Table 5.2. Read Sections 5.3.1–5.3.2;
+      no contrary evidence found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  collision-avoidance-rp-signaling:
+    basis: bb001665dba9a1b0150c7cc5d3187444a1a928863d72c6f08fb55abf851d78b3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 5.2.2 and Table 5.1 (pages 85–86), Section 7.2 (page 197), Section
+      7.13 (page 212), Section 7.31.13 (pages 232–233), and Section 7.31.19 Table 7.9 (page 237) of
+      usb-pd-r3.2.pdf. Confirmed SinkTxOK (3 A @ 5 V) and SinkTxNG (1.5 A @ 5 V) in Table 5.1 (note
+      that vRd-3.0 and vRd-1.5 are the [USB-C] Sink detection threshold names for those Rp values),
+      tSinkDelay (5 ms max), SinkTxTimer / tSinkTx (16 ms min, 18 ms nom, 20 ms max), tSrcHoldsBus
+      (50 ms max), and the rule in Section 7.2 and Section 7.13 that even when the Sink is the VCONN
+      Source it must not initiate an SOP'' or SOP'''' AMS with a Cable Plug unless Rp is set to SinkTxOK.
+      The todo field satisfies #103 for the remaining timers in Table 7.9. Omitted sibling exception
+      noted (contrary_evidence: found): Section 7.1.1 (page 194) and Section 7.2 Notes (page 197)
+      state that a Sink may initiate a Soft_Reset Message in response to a Protocol Error and may
+      send Hard Reset Signaling at any time regardless of whether Rp is set to SinkTxOK or SinkTxNG.
+      Proposed addition to claim: append "(except that a Sink may send a Soft_Reset Message on a Protocol
+      Error or Hard Reset signaling at any time regardless of Rp)".'
+    contrary_evidence: found
+    citation_precision: exact
+  message-header-and-extended-header-format:
+    basis: 0858abe6ab8f7ce22a27e64f11760f5254d6740fa9d8eea18f768415ef25299d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 6.1.1 (page 112), Section 6.1.2 (page 112), Section 6.1.4 and
+      Figure 6.1 (page 115), Section 6.2.1 Table 6.2 (pages 116–117), Section 6.2.2 Table 6.3 (pages
+      117–118), Section 6.4.1.3.3 Table 6.8 (pages 127–128), Section 6.4.2.1.1 Table 6.19 (page 137),
+      Section 6.5.1 Table 6.48 (pages 172–173), Section 6.5.1.1 Table 6.49 (page 173), Section 6.6
+      Table 6.65 (page 193), Section 7.7 (page 206), and Section 7.10 (page 209) of usb-pd-r3.2.pdf.
+      Confirmed all 16-bit Message Header fields (Extended in Bit 15, Number of Data Objects in Bits
+      14..12, 3-bit per-SOP* MessageID rolling counter in Bits 11..9 and its reset to 0 on Hard Reset,
+      Soft_Reset, and PR_Swap, Port Power Role / Cable Plug in Bit 8, Specification Revision in Bits
+      7..6, Port Data Role / Reserved in Bit 5, and 5-bit Message Type in Bits 4..0), all 16-bit Extended
+      Message Header fields (Chunked in Bit 15, Chunk Number 0..9 in Bits 14..11 with 10..15 invalid
+      and ignored, Request Chunk in Bit 10 with Number of Data Objects = 001b and Data Size = 0 per
+      Figure 6.1 and Table 6.48, Reserved Bit 9, and Data Size 0..260 in Bits 8..0), Unchunked Extended
+      Messages Supported negotiation via Bit 24 of the 5 V Fixed Source PDO (Table 6.8) and Bit 23
+      of the Sink RDO (Table 6.19), Cable Plug chunking rules on SOP''/SOP'''', and MaxExtendedMsgLen
+      = 260, MaxExtendedMsgChunkLen = 26, and MaxExtendedMsgLegacyLen = 26 (Table 6.65). The todo
+      field satisfies #103 for the remaining fields of Tables 6.8, 6.19, and 6.65. Read all cited
+      sections for contrary qualifications; none found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  control-message-types:
+    basis: b9bff500579b2732b7e394dbdd77df3fa3034d02f86ae60b7fa7b20d4c7f0f31
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 6.3 and Table 6.4 (pages 118–124), Section 7.1.2 (page 196), and
+      Section 7.5 Tables 7.4 and 7.5 (pages 199–204) of usb-pd-r3.2.pdf. Confirmed that Control Messages
+      have Extended = 0b and Number of Data Objects = 000b, verified all 24 Control Message 5-bit
+      type codes (00001b GoodCRC through 11000b Get_Revision) and reserved ranges (00000b and 11001b..11111b
+      answered with Not_Supported), and verified each message''s purpose and SOP/SOP''/SOP'''' applicability
+      against Section 6.3, Section 7.1.2 (Data_Reset exiting active modes and cycling VCONN), and
+      Tables 7.4–7.5 (including SOP-only Get_Country_Codes and SOP/SOP'' Active Cable applicability
+      for Get_Revision where Table 7.5 marks SOP'''' Not Allowed while Section 6.3.24 mentions SOP''/SOP'''').
+      The todo field satisfies #103 for the full AMS requirement matrices in Tables 7.4–7.7. Read
+      all cited sections; no contrary evidence found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  data-and-extended-message-types:
+    basis: c63fbe3095e705ab8f891e55f196394cee63f0d9e93940ec17212286ef664728
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 6.4 and Table 6.5 (pages 124–151), Section 6.5 and Table 6.47
+      (pages 171–192), Section 6.5.17 Tables 6.62 and 6.63 (pages 190–191), Section 6.6 Table 6.65
+      (page 193), and Section 7.5 Tables 7.4–7.7 (pages 199–204) of usb-pd-r3.2.pdf. Confirmed all
+      13 Data Message type codes (00001b..01100b, 01111b) and reserved ranges (00000b, 01101b..01110b,
+      10000b..11111b) in Table 6.5, all 19 Extended Message type codes (00001b..10010b, 11110b) and
+      reserved ranges (00000b, 10011b..11101b, 11111b) in Table 6.47, all 4 Extended_Control subtypes
+      (01h EPR_Get_Source_Cap, 02h EPR_Get_Sink_Cap, 03h EPR_Keep_Alive, 04h EPR_Keep_Alive_Ack with
+      Data = 00h, and 00h/05h..FFh invalid answered with Not_Supported) in Tables 6.62–6.63, all data
+      object counts and extended data block byte sizes (SCEDB 25 B, SDB 7 B on SOP / 2 B on SOP''/SOP'''',
+      GBCDB 1 B, GBSDB 1 B, BCDB 9 B, GMIDB 2 B, MIDB 4–26 B, Security_Request/Response and Firmware_Update_Request/Response
+      data blocks defined in [USBC Auth] and [USB DFU] up to MaxExtendedMsgLen = 260 B, PPSSDB 4 B,
+      CIDB 5–26 B, CCDB 4–26 B, SKEDB 24 B, ECDB 2 B, EPR_Source/Sink_Capabilities PDOs 1..7 SPR +
+      8..11 EPR, VDEDB 4–260 B), and SOP/SOP''/SOP'''' applicability across Tables 7.4–7.7. The todo
+      field satisfies #103 for individual informational/extended data block field layouts and the
+      full AMS matrices in Section 7.5. Read all cited sections; no contrary evidence found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  source-capabilities-pdo-ordering-and-encoding:
+    basis: cbeb139e4fa84c92d47922c275525d92520ca9072a8ffb187b12527e10b25fef
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 6.4.1.1 (page 125), Section 6.4.1.3 and Tables 6.6, 6.7, 6.8,
+      6.10, 6.11, 6.12, 6.13, 6.15, and 6.16 (pages 126–134), and Section 6.5.18 Figure 6.8 (pages
+      191–192) of usb-pd-r3.2.pdf. Confirmed the strict 6-tier ordering in Source_Capabilities (Section
+      6.4.1.1), the positions 1..7 SPR (zero-padded with 0000_0000h) and positions 8..11 EPR ordering
+      in EPR_Source_Capabilities (Section 6.5.18 and Figure 6.8), all PDO Type (Bits 31..30, Table
+      6.6) and APDO Type (Bits 29..28, Table 6.7) codes, all capability flags in Bits 29..22 of the
+      5 V Fixed Source PDO (Table 6.8) vs Reserved Bits 29..22 in >5 V Fixed PDOs (Table 6.10), and
+      all bit ranges, scaling units, and allowed value ranges for Fixed (50 mV, 10 mA, 0..500), Battery
+      (50 mV, 250 mW, 0..400), Variable (50 mV with Source Minimum Voltage >= 80% of Maximum Voltage,
+      10 mA, 0..500), SPR PPS Source APDO (100 mV max 110/160/210, 100 mV min 50 required / 33 deprecated,
+      50 mA 0..100), EPR AVS Source APDO (100 mV max 280/360/480, 100 mV min 150, 1 W PDP 0..240),
+      and SPR AVS APDO (10 mA Max Current 15V in Bits 19..10 and Max Current 20V in Bits 9..0, 0..500).
+      The todo field satisfies #103 for Sink PDO tables (Tables 6.9, 6.14, 6.17) and Peak Current
+      encodings (Table 6.18). Read Sections 6.4.1 and 6.5.18; no contrary evidence found.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  request-data-object-rdo-formats:
+    basis: b1ba0d8941151a42cc13111df460f7a1c787db9f0f448c483cb9766f5f4e498b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader A
+    note: 'Verified against Section 6.4.2.1.1 Table 6.19 (page 137), Section 6.4.2.1.2 Table 6.20
+      (page 137), Section 6.4.2.1.3 Table 6.21 (page 138), Section 6.4.2.1.4 Table 6.22 (pages 138–139),
+      Sections 6.4.2.1.5–6.4.2.1.10 (pages 139–140), and Section 6.4.8 Figure 6.3 (pages 146–147)
+      of usb-pd-r3.2.pdf. Confirmed that Request carries 1 RDO for SPR Object Positions 0001b..0111b
+      and EPR_Request carries 2 Data Objects (RDO + copy of requested SPR or EPR PDO for Object Positions
+      0001b..1011b), all shared upper fields in Bits 31..22 (Object Position, GiveBack deprecated/ignored,
+      Capability Mismatch, USB Communications Capable, No USB Suspend, Unchunked Extended Messages
+      Supported, EPR Capable), and all lower fields in Bits 21..0 across Fixed/Variable (Table 6.19),
+      Battery (Table 6.20; note that Table 6.20 B9..0 in the PDF has an obvious editorial typo saying
+      ''equal to "Operating Current"'' where Operating Power is meant), PPS (Table 6.21, 20 mV and
+      50 mA units), and AVS (Table 6.22, 25 mV units with Bits 10..9 = 00b for 100 mV effective step
+      and 50 mA current units). Omitted sibling/boundary rules noted (contrary_evidence: found): (1)
+      Table 3.1 note 2 (page 39) and Table 3.2 note 4 (page 40) state that when the requested voltage
+      from the SPR AVS APDO is 15.0 V, the Sink is allowed to request up to the 20 V Fixed Supply
+      Max Current; (2) Section 6.4.2.1.5 (page 139) states that if Object Position in a Request Message
+      is > 0111b, the Source Shall send Hard Reset Signaling; and (3) Section 7.9.2 (page 208) states
+      that a Source operating in EPR Mode that receives a Request Message (instead of EPR_Request)
+      Shall initiate a Hard Reset. Proposed addition to claim: note that in EPR Mode all requests
+      (including for SPR PDOs 0001b..0111b) must use EPR_Request or the Source initiates a Hard Reset,
+      that Object Position > 0111b in a Request Message triggers a Hard Reset, and that at 15.0 V
+      in SPR AVS the Sink may request up to the 20 V Fixed PDO Maximum Current. Also recommend adding
+      sections 6.4.2.1.6 through 6.4.2.1.10 (pages 139–140) alongside 6.4.2.1.5 in support[0].at.'
+    contrary_evidence: found
+    citation_precision: exact
+  goodcrc-messageid-and-retry-rules:
+    basis: 87084c28c0e3b71bc4c71eda3eef6495f8d77d0290a87f1f7b31855abdedfebc
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.6 Table 6.65 (p. 193: MaxExtendedMsgLegacyLen = 26 bytes), Section
+      7.6.1 Figure 7.1 (p. 204), Section 7.6.2 Figure 7.2 and Table 7.8 (pp. 205–206: Points A–G,
+      including Point E dropping duplicate MessageID retries before Policy Engine and Point F treating
+      wrong-MessageID GoodCRC or non-GoodCRC as CRCReceiveTimer timeout/retry except for Cable Plugs),
+      Section 7.31.1 (p. 224: CRCReceiveTimer started on last bit of transmitted Message EOP and stopped
+      on last bit of received GoodCRC EOP; retry starts within tRetry; receiver sends GoodCRC within
+      tTransmit), Section 7.31.8.1 (p. 229: Soft_Reset completed within tSoftReset after nRetryCount
+      retries fail), Section 7.31.19 Table 7.9 (p. 237: tReceive = 900/1000/1100 us, tRetry = 195
+      us max, tTransmit = 195 us max, tSoftReset = 15 ms max), and Section 7.32.1–7.32.4 with Tables
+      7.11 and 7.12 (pp. 238–241: per-SOP* MessageIDCounter 0..nMessageIDCount where nMessageIDCount
+      = 7, nRetryCount = 2, Soft_Reset exemption from duplicate MessageID drop with MessageID = 0,
+      and non-retry rules for Cable Plugs and unchunked Extended Messages with Data Size > MaxExtendedMsgLegacyLen).
+      Also checked Section 6.1.2 (p. 112) and Section 7.7 (p. 206) for contrary evidence; none found.
+      The todo properly scopes the remaining timer and counter rows in Tables 7.9–7.12 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  protocol-timers-and-counters:
+    basis: f332925572255b0ab1cf6a0b630d4af8068d1caf6bd3f8e41156123daab0cdeb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified every stated timer, parameter name, min/nom/max value, unit, and layer assignment
+      against Section 7.31.16 (pp. 234–235), Section 7.31.19 Table 7.9 (pp. 236–238), and Table 7.10
+      (p. 238): CRCReceiveTimer (tReceive = 900/1000/1100 us, Protocol Layer), tTransmit (195 us max),
+      tRetry (195 us max), tReceiverResponse (15 ms max), SenderResponseTimer (tSenderResponse = 27
+      ms min, 50 ms max, Policy Engine), SourceCapabilityTimer (tTypeCSendSourceCap = 100/150/200
+      ms, Policy Engine), SinkWaitCapTimer (tTypeCSinkWaitCap = 310/465/620 ms, Policy Engine), tFirstSourceCap
+      (250 ms max), PSTransitionTimer (tPSTransition = 450/500/550 ms SPR, 830/925/1020 ms EPR, Policy
+      Engine), PSSourceOffTimer (tPSSourceOff = 750/835/920 ms SPR, 1120/1260/1400 ms EPR, Policy
+      Engine), PSSourceOnTimer (tPSSourceOn = 390/435/480 ms SPR, Policy Engine), SinkPPSPeriodicTimer
+      (tPPSRequest = 10 s max, Policy Engine), SourcePPSCommTimer (tPPSTimeout = 12.0/13.5/15.0 s,
+      Policy Engine), SinkEPREnterTimer (tEnterEPR = 450/500/550 ms, Policy Engine), SinkEPRKeepAliveTimer
+      (tSinkEPRKeepAlive = 250/375/500 ms, Policy Engine), SourceEPRKeepAliveTimer (tSourceEPRKeepAlive
+      = 750/875/1000 ms, Policy Engine), tEPRSourceCableDiscovery (2 s max), PSHardResetTimer (tPSHardReset
+      = 25/30/35 ms, Policy Engine), HardResetCompleteTimer (tHardResetComplete = 4000/4500/5000 us,
+      Protocol Layer), NoResponseTimer (tNoResponse = 4.5/5.0/5.5 s, Policy Engine), ChunkSenderRequestTimer
+      and ChunkSenderResponseTimer (tChunkSenderRequest / tChunkSenderResponse = 24/27/30 ms, Protocol
+      Layer; tChunkReceiverRequest / tChunkReceiverResponse = 15 ms max), and ChunkingNotSupportedTimer
+      (tChunkingNotSupported = 40/45/50 ms, Policy Engine). Verified all six counters in Section 7.32
+      and Tables 7.11 and 7.12 (pp. 238–241): nBusyCount = 5 (with 1 recommended for USB-C Alternate
+      Mode Entry in Section 7.32.8), nCapsCount = 50, nDiscoverIdentityCount = 20, nHardResetCount
+      = 2, nMessageIDCount = 7, and nRetryCount = 2. Checked Section 7.31.1–7.31.18 for contrary evidence;
+      none found. The todo explicitly lists the remaining timers in Tables 7.9 and 7.10 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  spr-power-negotiation-ams:
+    basis: cec35ff886c2c29cfb59fa1f1044cbf453ff05227116562e924215e982923847
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 7.9 (pp. 207–209: Source_Capabilities 1–7 PDOs/APDOs, Request
+      with RDO, Capability Mismatch in Section 7.9.2.1, Accept/Reject/Wait in Sections 7.9.2 and 7.9.2.2,
+      and PS_RDY in Section 7.9.3), Section 7.31.2–7.31.5 (pp. 224–227: SenderResponseTimer, tReceiverResponse,
+      SourceCapabilityTimer, SinkWaitCapTimer, SinkRequestTimer with tSinkRequest, PSTransitionTimer
+      with tPSTransition), Section 7.31.16 (pp. 234–235: SinkPPSPeriodicTimer with tPPSRequest and
+      SourcePPSCommTimer with tPPSTimeout triggering Hard Reset), and Tables 7.9 and 7.10 (pp. 236–238:
+      tSenderResponse = 27–50 ms, tTypeCSendSourceCap = 100–200 ms, tTypeCSinkWaitCap = 310–620 ms,
+      tReceiverResponse = 15 ms max, tPSTransition SPR = 450–550 ms, tSinkRequest = 100 ms min, tPPSRequest
+      = 10 s max, tPPSTimeout = 12.0–15.0 s). Checked Section 7.32.6 (p. 240) and Section 6.4.2.1.5
+      (p. 139) for contrary evidence; none found. The todo properly accounts for other timers in Section
+      7.31 and Tables 7.9–7.10 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  epr-mode-entry-negotiation-and-keepalive:
+    basis: 5616c2d62cf3f5add7d12ebbea4ea027648fc77e3fa2c8c9de15f069343e5bba
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.4.8 Figure 6.3 (pp. 146–147: EPR_Request with 2 Data Objects,
+      RDO plus copy of requested Source PDO), Section 6.4.9 Table 6.28 (pp. 147–148: EPRMDO Bits 31..24
+      Action 01h Enter, 02h Enter Acknowledged, 03h Enter Succeeded, 04h Enter Failed, 05h Exit; Bits
+      23..16 Data 00h–FFh EPR Sink Operational PDP on Enter, and 00h–05h failure causes on Enter Failed),
+      Section 6.5.17 Tables 6.62 and 6.63 (pp. 190–191: Extended_Control Type 3 = EPR_Keep_Alive,
+      Type 4 = EPR_Keep_Alive_Ack), Section 6.5.18 Figure 6.8 (pp. 191–192: EPR_Source_Capabilities
+      with SPR positions 1..7 zero-padded with 00000000h and EPR positions 8..11), Section 7.30 and
+      Figure 7.3 (pp. 217–223: EPR entry preconditions including no CT-VPD, EPR Capable in 5 V Fixed
+      PDO and last RDO, steps 1–8 including Cable VDO verification of Maximum VBUS Voltage = 11b (50
+      V), VBUS Current Handling Capability = 10b (5 A), and EPR Capable = 1b, EPR negotiation, keep-alive,
+      and Commanded Exit in Section 7.30.7.1 requiring a prior SPR Explicit Contract via RDO bit 31
+      = 0 or EPR_Source_Capabilities with no EPR PDOs), Section 7.31.18 (pp. 235–236: SinkEPREnterTimer,
+      SinkEPRKeepAliveTimer, SourceEPRKeepAliveTimer, tEPRSourceCableDiscovery), and Tables 7.9 and
+      7.10 (pp. 237–238: tEnterEPR = 450–550 ms, tEPRSourceCableDiscovery = 2 s max, tFirstSourceCap
+      = 250 ms max, tPSTransition EPR = 830–1020 ms, tSinkEPRKeepAlive = 250–500 ms, tSourceEPRKeepAlive
+      = 750–1000 ms). Checked surrounding clauses in Section 7.30 and 7.31.18 for contrary evidence;
+      none found. All Action and Enter Failed Data codes in Table 6.28 are extracted and the todo
+      scopes Tables 7.9–7.10 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  role-swap-ams-flows:
+    basis: b54a537f1882b141243af73e65d34720a68b6dc29d813c4b47be13fb774b9906
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 4.3.3 and Figure 4.13 (pp. 66–67: PR_Swap VBUS and Rp/Rd transition
+      sequence), Section 7.10 (pp. 209–210: PR_Swap forbidden in EPR Mode and requires EPR Mode Exit
+      first; Accept/Reject/Wait with tPRSwapWait; Rp/Rd swap while DFP/UFP and VCONN Source remain
+      unchanged; Initial Source PS_RDY sets Port Power Role = Sink and Initial Sink sets Port Power
+      Role = Source after receiving Initial Source PS_RDY; Protocol Layer reset of MessageIDCounter
+      and RetryCounter and New Source reset of CapsCounter), Section 7.12 (pp. 210–211: DR_Swap exchanges
+      DFP/UFP leaving VBUS, VCONN, and Rp/Rd unchanged; Hard Reset if Active Modes exist between Port
+      Partners; Cable Plug Active Modes must be exited by DFP before issuing or accepting DR_Swap;
+      Wait uses tDRSwapWait), Section 7.13 (pp. 211–212: VCONN_Swap make-before-break sequencing,
+      PS_RDY within tVconnSourceOn, initial VCONN Source off within tVconnSourceOff, current VCONN
+      Source Shall Not send Reject and Shall send Accept instead of Wait if partner is earlier than
+      R3.2 V1.1, tVconnSwapWait, and tVconnSwapDelayDFP / tVconnSwapDelayUFP), Section 7.31.7.1 (p.
+      229: SwapSourceStartTimer, tSwapSourceStart), Section 7.31.10.3 (p. 230: tDRSwapHardReset),
+      Section 7.31.12 (p. 232: VconnOnTimer and tVconnSourceOff), Tables 7.9 and 7.10 (pp. 236–238:
+      tDRSwapHardReset = 15 ms max, tDRSwapWait = 100 ms min, tPRSwapWait = 100 ms min, tPSSourceOff
+      SPR = 750–920 ms, tPSSourceOn SPR = 390–480 ms, tSwapSourceStart = 20 ms min, tVconnSourceOff
+      = 25 ms max, tVconnSourceOn = 50 ms max, tVconnSourceTimeout = 100–200 ms, tVconnSwapWait =
+      100 ms min, tVconnSwapDelayDFP = 100 ms min, tVconnSwapDelayUFP = 500 ms min), and Section 8.6.1.2.1
+      Note (p. 246: SOP'' and/or SOP'''' Soft_Reset required after becoming VCONN Source via VCONN_Swap).
+      Checked Section 7.30.5 (p. 222: PR_Swap in EPR Mode answered with Reject) and Section 7.31.4
+      (p. 226) for contrary evidence; none found. The todo properly scopes Tables 7.9 and 7.10 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  reset-mechanisms-soft-hard-cable-data:
+    basis: 6999b1b77be485373b5400eed3356e1570c7201f25b3153c5730ad0d95075934
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 4.4 and Figures 4.14–4.15 (pp. 67–69: Hard Reset electrical response,
+      tPSHardReset, tSafe0V, tSrcRecover, tSrcTurnOn, VCONN shutoff), Section 5.3.1.2 Table 5.4 (p.
+      91: Hard Reset and Cable Reset K-code ordered sets), Section 7.1.1–7.1.4 (pp. 194–197: four
+      reset types; Soft Reset scope on SOP vs SOP''/SOP'''' without changing power supply; Data Reset
+      preserving Power Contract and Data Roles, mandatory for USB4-capable ports, disconnecting USB
+      signals, exiting Alternate Modes, power-cycling VCONN, and DFP sending Data_Reset_Complete;
+      Hard Reset resetting power supplies, protocol layers, Cable Plugs, EPR Mode, and Active Modes
+      while preserving Rp/Rd and reverting Data Role and VCONN to Rp=DFP/VCONN-Source and Rd=UFP;
+      Cable Reset generated only by DFP in an Explicit Contract while supplying VCONN, resetting Cable
+      Plugs and exiting Cable Plug Active Modes), Sections 7.7 and 7.8 (p. 206: Soft Reset AMS resetting
+      MessageIDCounter and RetryCounter to 0 and escalating SOP Soft Reset errors to Hard Reset and
+      SOP''/SOP'''' Soft Reset errors to Cable Reset; Data Reset AMS), Sections 7.31.8–7.31.10 (pp.
+      229–230: tSoftReset, tProtErrSoftReset, VCONNDischargeTimer, tDataReset, DataResetFailTimer,
+      DataResetFailUFPTimer, HardResetCompleteTimer, PSHardResetTimer), and Tables 7.9 and 7.10 (pp.
+      236–238: tDataReset = 200–250 ms, tDataResetFail = 300–400 ms, tDataResetFailUFP = 450–550 ms,
+      tProtErrSoftReset = 15 ms max, tPSHardReset = 25–35 ms, tReceiverResponse = 15 ms max, tSoftReset
+      = 15 ms max, tVconnSourceDischarge = 160–240 ms). Checked surrounding text for contrary evidence;
+      none found. The todo explicitly notes omitted Tables 7.1–7.2 and Section 4.6 timings (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  structured-vdm-header-and-discovery:
+    basis: 9ceb9e1656fbe72b132946708b55a8e0f885fb3ba0fd1bafce32134195bd577b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.4.12 and Figure 6.4 (p. 150: Vendor_Defined message carries
+      1–7 VDOs starting with VDM Header), Section 6.4.12.1 Table 6.32 (p. 151: Unstructured VDM Header
+      Bits 31..16 VID, Bit 15 VDM Type = 0, Bits 14..0 vendor-defined), Section 6.4.12.2 Table 6.33
+      (pp. 151–153: Structured VDM Header Bits 31..16 SVID with 0xFF00 = PD SID, Bit 15 VDM Type =
+      1, Bits 14..13 Version Major 00b/01b/10b..11b, Bits 12..11 Version Minor 00b/01b/10b..11b for
+      Commands 0..15 and SVID-defined for Commands 16..31, Bits 10..8 Object Position rules for Commands
+      0..3/7..15, 4..6, and 111b Exit all Active Modes, Bits 7..6 Command Type 00b=REQ/01b=ACK/10b=NAK/11b=BUSY,
+      Bit 5 Reserved, and Bits 4..0 Command 0, 1..6, 7..15, 16..31), Section 6.4.12.3 Figure 6.5 (p.
+      154: Discover Identity ACK layouts including DRD with UFP VDO, 32-bit 0 Pad Object, and DFP
+      VDO), Section 8.5 (p. 243: DFP-only initiation of Enter Mode and Exit Mode), Section 8.6 and
+      Table 8.1 (pp. 244–251: allowed responses per command, BUSY forbidden on Enter/Exit Mode, Discover
+      SVIDs up to 12 SVIDs per ACK terminated by 0000h in Section 8.6.2, Enter/Exit Mode ordering
+      in Sections 8.6.4–8.6.5, and Attention single-REQ completion on GoodCRC in Section 8.6.6), and
+      Section 8.7.1.2 (p. 252: Cable Plug discovery SVDMs sent only to SOP'', never SOP'''', with
+      SOP'' responses applying to SOP''''). Checked for contrary evidence; none found. The todo properly
+      documents unextracted VDO payload tables 6.34–6.46 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  asymmetric-power-vs-data-role-header-verification:
+    basis: 72cbf967d1f0d1b151383c8c39ac1d15c6ca53ef228521fd6512d0cd2b166ae0
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.1.3 (p. 112: 2-bit Specification Revision field of a GoodCRC
+      Message carries no meaning, could be 00b, 01b, 10b, or 11b, and Shall be ignored by the recipient),
+      Section 6.2.1 Table 6.2 (p. 117: Bit 8 Port Power Role on SOP "Shall Not be verified by the
+      receiver and therefore Shall Not lead to Soft Reset, Hard Reset or Error Recovery if it is incorrect";
+      Bit 5 Port Data Role on SOP "If a USB Type-C Port receives a Message with the Port Data Role
+      field set to the same Data Role as its current Data Role, except for the GoodCRC Message, USB
+      Type-C Error Recovery actions as defined in [USB-C] Shall be performed"), Section 7.31.10.6
+      (p. 230: ErrorRecovery State entered within tInitiateErrorRecovery), and Section 7.31.19 Table
+      7.9 (p. 237: tInitiateErrorRecovery = 15 ms max). Checked surrounding sections for contrary
+      evidence; none found. The todo references the facts covering the rest of Table 6.2 and Table
+      7.9 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  avs-rdo-25mv-encoding-with-100mv-step-constraint:
+    basis: 336c6408347cae0fadb66d473d473804a608efa2992d2b178482ed96760e56f2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.4.1.3 (p. 126: "SPR AVS and EPR AVS are used to expose a power
+      supply whose output voltage can be adjusted over the Advertised voltage range but otherwise
+      is equivalent to a Fixed Supply (AVS does not support a programmable Current Limit)"), Section
+      6.4.2.1.3 Table 6.21 (p. 138: PPS RDO Bits 20..9 Output Voltage in 20 mV units), Section 6.4.2.1.4
+      Table 6.22 (pp. 138–139: AVS RDO Bits 20..9 Output Voltage in 25 mV units, with "Bits 10..9
+      Shall be set to 00b, making the effective voltage step size 100mV"), and Section 7.9.2 (p. 208:
+      "Note: A Source in AVS Mode, unlike the SPR Source in PPS Mode, does not support Current Limit;
+      the Sink is responsible not to take more current than it requested"). Checked surrounding RDO
+      sections for contrary evidence; none found. The todo references request-data-object-rdo-formats
+      for the rest of Tables 6.21 and 6.22 (#103).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  epr-request-two-object-layout-and-hard-reset-traps:
+    basis: d94eb54adc4baf2217af1b0a824714cc4a7ab3599ee95fb0e02e2c99399b9ea0
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 6.4.2.1.5 (p. 139: Object Position 0001b..0111b for SPR PDOs/APDOs,
+      1000b..1011b for EPR PDOs/APDOs, and "If the Object Position field in a Request Message contains
+      a value greater than 0111b, the Source Shall send Hard Reset Signaling"), Section 6.4.8 and
+      Figure 6.3 (pp. 146–147: EPR_Request has Number of Data Objects = 2, carrying the Request Data
+      Object followed by a Copy of Requested Source PDO, which may be an EPR or SPR PDO/APDO), Section
+      7.9.2 (p. 208: "A Source operating in EPR Mode that receives a Request Message Shall initiate
+      a Hard Reset"), Section 7.30.3 (pp. 221–222: Source verifies the PDO in EPR_Request exactly
+      matches the PDO in the latest EPR_Source_Capabilities pointed to by Object Position), Section
+      7.30.5 (p. 222: Sink in EPR Mode only sends EPR_Request for either SPR or EPR PDOs/APDOs; if
+      Sink sends Request, Source initiates Hard Reset), and Section 7.30.7.3 (p. 223: critical errors
+      in EPR Mode that "Shall result in Hard Reset being initiated by the Port that detects the error"
+      explicitly include "The PDO or APDO in the EPR_Request Message does not match the PDO or APDO
+      in the latest EPR_Source_Capabilities Message pointed to by the Object Position field in the
+      RDO" and "The Source receives a Request Message"). Note that Section 7.30.3 (p. 222) also mentions
+      under the Reject bullet that "A mismatch between the requested and advertised PDOs is an example
+      of an Invalid Request", whereas Section 7.30.7.3 (p. 223) explicitly mandates Hard Reset when
+      the PDO/APDO copy in EPR_Request does not match the PDO/APDO in the latest EPR_Source_Capabilities
+      pointed to by Object Position.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  cable-plug-no-retries-and-soft-reset-always-msgid-zero:
+    basis: 61655d9054eff971de2167a02a9ee179c8630068968d4cc01cb8a69ceb718cff
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 5.5 (anthropic/claude-opus-5-5), subagent, USB-PD reader B
+    note: 'Verified against Section 7.1.1 (pp. 194–195: after a VCONN Swap, the VCONN Source Shall
+      issue a Soft_Reset Message using SOP'' and/or SOP'''' before communicating with the corresponding
+      Cable Plug to ensure MessageID synchronization), Section 7.7 (p. 206: sender and receiver of
+      Soft_Reset reset MessageIDCounter and RetryCounter to 0 prior to sending Soft_Reset/Accept),
+      Section 7.32.3 (p. 239: receiver duplicate-MessageID drop rule "Shall Not apply to the Soft_Reset
+      Message which always has a MessageID value of zero"), Section 7.32.4 (p. 239: "Cable Plugs Shall
+      Not retry Messages"), Section 8.6.1.2.1 (pp. 245–246: "If a Port does not receive a GoodCRC
+      Message for an SOP'' Discover Identity REQ, it Shall not send an SOP'' Soft Reset, because the
+      Cable or VPD May Not be PD Capable", and Note confirming SOP'' and/or SOP'''' Soft Reset after
+      becoming VCONN Source via VCONN Swap), and Section 8.6.2.1 (p. 247: Cable Plug does not retry
+      Messages if the Initiator''s GoodCRC is corrupted). Checked surrounding sections for contrary
+      evidence; none found.'
+    contrary_evidence: none-found
+    citation_precision: exact

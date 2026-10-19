@@ -1,0 +1,1200 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb-pd
+name: Universal Serial Bus Power Delivery (USB PD) Revision 3.2 protocol
+triggers:
+- usb-pd
+- USB PD
+- USB Power Delivery
+- Power Data Object
+- Request Data Object
+- Extended Power Range
+resources:
+  documents:
+  - name: usb-pd-r3.2.pdf
+    class: standard
+    title: Universal Serial Bus Power Delivery Specification
+    revision: Revision 3.2, Version 1.2, August 2026
+    url: https://www.usb.org/document-library/usb-power-delivery
+    sha256: 1a041ab16c7ffcd39569809859fc59e569ade9cf155e4c314a46c9e9b1184027
+    pages: 418
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the USB Power Delivery Revision 3.2 package publicly
+      without an account; the cited bytes are the Revision 3.2, Version 1.2 specification PDF
+      (August 2026). No page carries a confidentiality marking. The USB 3.0 Promoter Group's
+      copyright and limited license terms remain applicable; the bytes are not redistributed.
+      Printed page numbers equal PDF page numbers throughout the document.
+orientation: >-
+  Terms: a Source supplies power on VBUS and a Sink consumes it; a Dual-Role-Power (DRP) port can
+  operate as either. A Downstream Facing Port (DFP) is the USB host-side data role and an Upstream
+  Facing Port (UFP) is the device-side data role; a Dual-Role-Data (DRD) port can operate as
+  either. The VCONN Source supplies power to electronics in an active or electronically marked
+  cable plug. USB PD messages travel half-duplex over the single active USB Type-C Configuration
+  Channel (CC) wire using Bi-phase Mark Coding (BMC) and 4b5b framing, addressed to the port
+  partner (SOP) or to the near and far cable plugs (SOP' and SOP''). Standard Power Range (SPR)
+  operation covers contracts up to 100 W (20 V, 5 A); Extended Power Range (EPR) operation extends
+  contracts above 100 W up to 240 W (48 V, 5 A). This spec records the protocol and programming
+  model a port controller or policy engine driver acts on: roles and contracts, SPR and EPR power
+  ranges, physical framing and collision avoidance, message headers and message types, Power Data
+  Objects (PDOs) and Request Data Objects (RDOs), GoodCRC acknowledgment, MessageID counters,
+  retries, timers, Atomic Message Sequences (AMS) for power negotiation, EPR keep-alive, role swaps
+  and resets, and Structured Vendor Defined Messages (SVDMs). Mechanical and electrical filter
+  masks, battery/manufacturer/security/firmware-update extended data blocks, and Fast Role Swap
+  electrical signaling are out of its scope so far.
+facts:
+- id: port-power-data-vconn-roles
+  section: standards
+  title: Independent power, data, and VCONN roles and cable plug communication
+  claim: >-
+    Each USB Power Delivery connection has one Source Port (which provides power, defaults at
+    initial connection to Downstream Facing Port (DFP) and VCONN Source, and initiates power
+    negotiations) and one Sink Port (which consumes power and defaults at initial connection to
+    Upstream Facing Port (UFP)). Power roles (Source or Sink; Dual-Role Power (DRP) ports can
+    operate as either and swap between them), data roles (DFP associated with the USB Host role and
+    Initiator in Data Role negotiations, or UFP associated with the USB Peripheral role and
+    Responder in Data Role negotiations; Dual-Role Data (DRD) ports can operate as either and swap
+    between them even if they are Source-only or Sink-only for power), and the VCONN Source role
+    (which supplies VCONN power to Cable Plugs) can be swapped independently during a connection.
+    To communicate with Cable Plugs (embedded electronic marker and/or active cable circuitry
+    powered when VCONN is present), a port must be the VCONN Source; Cable Plugs do not initiate
+    communication and only respond to messages addressed to them.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '21'
+      section: '1.2'
+    - pages: ['21', '22']
+      section: '1.3'
+
+- id: default-explicit-implicit-contracts
+  section: standards
+  title: Default, Explicit, and Implicit operational contracts
+  claim: >-
+    A PD Source and Sink operate in one of three power contracts. A Default Contract is a
+    non-negotiated power contract established at initial connection (as defined in USB Type-C)
+    with a default voltage of 5 V where the Sink may draw up to the advertised USB-C current; the
+    Source remains in the Default Contract until the Sink disconnects or both ports negotiate and
+    establish an Explicit Contract. An Explicit Contract is the normal operational state entered
+    after PD Power Negotiation takes place (where a Source offers power contracts using USB PD
+    messaging, the Sink requests a contract, and the Source accepts it); an Explicit Contract must
+    be entered before other USB PD messaging can occur, and data connections and modes other than
+    USB2 and USB3 may be established in an Explicit Contract. An Implicit Contract is a transitory
+    power contract that follows a Power Role Swap or Fast Role Swap: the available voltage is 5 V
+    with current defined by the advertised USB-C current, all existing data connections and modes
+    are maintained, and the Source in an Implicit Contract immediately negotiates with the Sink to
+    establish an Explicit Contract.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['22', '23']
+      section: '1.4'
+
+- id: pd-device-stack-architecture
+  section: standards
+  title: Per-port protocol stack layers and Device Policy Manager
+  claim: >-
+    A USB PD-capable device is structured as a hierarchy of control layers where each port includes
+    its own USB-C Port Control, Physical Layer, Protocol Layer, Policy Engine, and Power
+    Source/Sink block (connected to the VCONN and VBUS pins), while a single Device Policy Manager
+    coordinates USB PD behavior across all ports within the device based on overall device power
+    and data policy. Within each port, from lowest to highest control layer: USB-C Port Control (on
+    the CC pin) provides mechanisms to execute USB-C state machines, informs the other layers of
+    Attach/Detach events and plug orientation, and sets and detects Type-C current advertisements;
+    the Physical Layer (on the CC pin) handles bit-level transmission and reception on the physical
+    connector and performs error detection on messages using a CRC mechanism; the Protocol Layer
+    constructs and interprets USB PD messages exchanged between ports; and the Policy Engine
+    enforces local power and data policy for the individual port, interacting with the Device
+    Policy Manager, Protocol Layer, USB-C Port Control, and Power Source/Sink block.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['24', '25']
+      section: '1.7'
+      figure: '1.1'
+
+- id: spr-vs-epr-power-ranges
+  section: standards
+  title: Standard Power Range (SPR) and Extended Power Range (EPR) source capability tiers
+  claim: >-
+    USB Power Delivery sources and sinks operate in two power ranges. The Standard Power Range
+    (SPR) covers Port Power Delivery Power (PDP) ratings up to 100 W (up to 20 V at 5 A). Based on
+    Port Maximum PDP (Table 3.1) or Port Present PDP (Table 3.2), SPR Sources must offer Fixed
+    Supply PDOs at progressive voltage tiers: 5 V only for 0.5 W <= PDP <= 15 W; 5 V and 9 V for
+    15 W < PDP <= 27 W; 5 V, 9 V, and 15 V plus an SPR Adjustable Voltage Supply (AVS) APDO (9 V to
+    15 V) for 27 W < PDP <= 45 W; and 5 V, 9 V, 15 V, and 20 V plus an SPR AVS APDO (9 V to 20 V)
+    for 45 W < PDP <= 100 W. Required minimum currents for the 5 V, 9 V, and 15 V SPR Fixed PDOs
+    are capped at 3 A (min(3 A, PDP / Voltage)), whereas the 20 V SPR Fixed PDO current scales up
+    to the cable rating (min(Cable Rating, PDP / 20 V), up to 5 A when a 5 A-capable cable is
+    present, which is required for Port Present PDP > 60 W). For SPR AVS, the 9 V–15 V maximum
+    current equals the 15 V Fixed PDO Maximum Current and the 15 V–20 V maximum current equals the
+    20 V Fixed PDO Maximum Current. The Extended Power Range (EPR) covers PDP ratings above 100 W
+    up to 240 W (up to 48 V at 5 A) and requires both Port Partners to be EPR-capable and connected
+    by an electronically marked EPR-capable cable (50 V, 5 A rating verified via SOP' Discover
+    Identity). In EPR Mode, in addition to the 100 W SPR capabilities (5 V, 9 V, and 15 V Fixed
+    PDOs at 3 A, 20 V Fixed PDO at 5 A, and SPR AVS APDO), an EPR Source must offer Fixed Supply
+    PDOs at 28 V (for 100 W < PDP <= 140 W, current PDP / 28), 28 V at 5 A and 36 V at PDP / 36
+    (for 140 W < PDP <= 180 W), or 28 V at 5 A, 36 V at 5 A, and 48 V at PDP / 48 (for 180 W < PDP
+    <= 240 W), together with an EPR AVS APDO spanning from 15 V to the maximum offered EPR Fixed
+    PDO voltage.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '37'
+      section: '3.1'
+    - pages: ['38', '40']
+      section: 3.2.4
+      table: '3.1'
+    - page: '40'
+      table: '3.2'
+    - pages: ['42', '43']
+      section: 3.2.5.3
+      table: '3.5'
+    - page: '44'
+      table: '3.6'
+    - pages: ['217', '220']
+      section: 7.30.1
+  todo:
+    check: document
+    text: >-
+      Summarizes required SPR and EPR Fixed PDO and AVS APDO tiers from Tables 3.1, 3.2, 3.5, and
+      3.6; worked capability examples (Tables 3.3 and 3.7), optional SPR Programmable Power Supply
+      (PPS) APDO voltage ranges (Table 3.4 in Section 3.2.5.2), and table footnotes on shared
+      capacity and 15.0 V AVS boundary requests are not extracted.
+
+- id: phy-bmc-framing-and-crc32
+  section: programming-model
+  title: BMC signaling rate, packet framing, bit ordering, and CRC-32 calculation
+  claim: >-
+    USB PD communications run half-duplex over the single active USB Type-C CC wire using Bi-phase
+    Mark Coding (BMC) at a nominal bit rate fBitRate of 300 kbps (270 kbps minimum to 330 kbps
+    maximum; unit interval tUnitInterval = 3.03 us minimum, 3.33 us nominal, 3.70 us maximum),
+    transmitter voltage swing vSwing of 1.05 V minimum, 1.125 V nominal, 1.2 V maximum, and
+    minimum inter-frame gap tInterFrameGap of 25 us. Every PD packet other than Hard Reset and
+    Cable Reset consists of five fields in order: first, a 64-bit Preamble of alternating 0s and 1s
+    starting with 0 and ending with 1 (BMC encoded directly without 4b5b encoding) for receiver
+    lock; second, a Start of Packet (SOP*) ordered set of four 5b K-code symbols (20 bits); third,
+    the payload consisting of the 16-bit Message Header followed by optional Data Objects or
+    Extended Message bytes, 4b5b encoded and transmitted least-significant bit (b0) first, with the
+    lower nibble (d3..d0) of each byte sent before the upper nibble (d7..d4); fourth, a 32-bit
+    CRC-32 calculated over all payload bytes (excluding Preamble, SOP*, and EOP) using polynomial
+    04C1_1DB7h, initial value FFFF_FFFFh, and inverted remainder (residual C704_DD7Bh), 4b5b
+    encoded as eight 5b symbols and transmitted LSB first; and fifth, a single 5b End of Packet
+    (EOP) K-code symbol (01101b), followed by one final BMC trailing edge to terminate the final
+    bit cell of the frame.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '85'
+      section: '5.1'
+    - pages: ['87', '88']
+      section: 5.3.1
+      figure: '5.1'
+    - pages: ['88', '90']
+      section: 5.3.1.1
+    - page: '90'
+      section: 5.3.1.1.4
+    - page: '90'
+      section: 5.3.1.1.5
+    - page: '93'
+      section: 5.3.2
+      figure: '5.3'
+    - page: '96'
+      section: 5.3.4
+    - page: '110'
+      section: 5.5.1
+      table: '5.9'
+    - page: '110'
+      section: 5.5.2
+      table: '5.10'
+  todo:
+    check: document
+    text: >-
+      Includes fBitRate, tUnitInterval, tInterFrameGap, and vSwing from Tables 5.9 and 5.10;
+      eye-diagram masks, rise and fall times, receiver impedance, common-mode voltages, and TX/RX
+      electrical filter parameters in Tables 5.9–5.11 are not extracted.
+
+- id: phy-4b5b-kcodes-and-ordered-sets
+  section: programming-model
+  title: 4b5b K-code symbols and SOP*, Hard Reset, and Cable Reset ordered sets
+  claim: >-
+    The Physical Layer uses six 5-bit special K-code symbols (transmitted b0 first): Sync-1 is
+    11000b, Sync-2 is 10001b, Sync-3 is 00110b, RST-1 is 00111b, RST-2 is 11001b, and EOP is
+    01101b (while the ten 5b codes 00000b, 00001b, 00010b, 00011b, 00100b, 00101b, 01000b, 01100b,
+    10000b, and 11111b are Error symbols that must not be used). Seven 4-symbol ordered sets
+    (K-code 1 through K-code 4) frame packets or signal resets: SOP (Port Partner communication) is
+    Sync-1, Sync-1, Sync-1, Sync-2; SOP' (Cable Plug attached to the VCONN Source) is Sync-1,
+    Sync-1, Sync-3, Sync-3; SOP'' (remote Cable Plug) is Sync-1, Sync-3, Sync-1, Sync-3; SOP'_Debug
+    (debug of near Cable Plug) is Sync-1, RST-2, RST-2, Sync-3; SOP''_Debug (debug of far Cable
+    Plug) is Sync-1, RST-2, Sync-3, Sync-2; Hard Reset (resets Port Partner and Cable Plugs) is
+    RST-1, RST-1, RST-1, RST-2; and Cable Reset (resets Cable Plugs only) is RST-1, Sync-1, RST-1,
+    Sync-3. Hard Reset and Cable Reset packets consist solely of the 64-bit Preamble followed by
+    the four K-codes of the ordered set, with no Header, Data Objects, CRC-32, or EOP. When a
+    receiver finds 3 out of 4 K-codes in the correct position (per Table 5.5), it may interpret
+    this as a valid ordered set, and should ensure that all four K-codes are valid to avoid
+    ambiguity in detection.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['89', '90']
+      section: 5.3.1.1.2
+      table: '5.2'
+    - page: '90'
+      section: 5.3.1.1.3
+      table: '5.3'
+    - page: '91'
+      section: 5.3.1.2
+      table: '5.4'
+    - page: '94'
+      section: 5.3.2.2
+      table: '5.5'
+  todo:
+    check: document
+    text: >-
+      All special K-code symbols, Error symbols, and all seven ordered sets from Tables 5.2, 5.3,
+      5.4, and 5.5 are extracted; the 16 data-nibble 4b5b code mappings (0h through Fh) in Table
+      5.2 are not extracted.
+
+- id: collision-avoidance-rp-signaling
+  section: programming-model
+  title: Collision avoidance in an Explicit Contract via Source Rp modulation (SinkTxOK and SinkTxNG)
+  claim: >-
+    Once an Explicit Contract is established, the Source controls bus contention on the
+    half-duplex CC wire by modulating its USB Type-C Rp pull-up termination between two values.
+    SinkTxOK (Rp set to 3.0 A at 5 V, detected by the Sink as vRd-3.0) indicates that the Sink may
+    initiate an Atomic Message Sequence (AMS) and the Source will not initiate an AMS. SinkTxNG
+    (Rp set to 1.5 A at 5 V, detected by the Sink as vRd-1.5) indicates that the Source is about
+    to initiate or is executing an AMS; the Sink must not initiate any AMS once tSinkDelay (5 ms
+    maximum) has elapsed after Rp changes to SinkTxNG. Before sending the first message of a
+    Source-initiated AMS, the Source changes Rp from SinkTxOK to SinkTxNG and waits for
+    SinkTxTimer (tSinkTx = 16 ms minimum, 18 ms nominal, 20 ms maximum) so any Sink message
+    already being prepared can complete first; if a transition into PE_SRC_Ready will immediately
+    transition out of PE_SRC_Ready within tSrcHoldsBus (50 ms maximum), the Source may keep Rp at
+    SinkTxNG to avoid changing Rp unnecessarily. Even when the Sink is the VCONN Source, it is not
+    permitted to initiate an SOP' or SOP'' AMS with a Cable Plug unless Rp is set to SinkTxOK.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['85', '86']
+      section: 5.2.2
+      table: '5.1'
+    - page: '197'
+      section: '7.2'
+    - page: '212'
+      section: '7.13'
+    - pages: ['232', '233']
+      section: 7.31.13
+    - page: '237'
+      section: 7.31.19
+      table: '7.9'
+  todo:
+    check: document
+    text: >-
+      Extracts tSinkTx, tSinkDelay, and tSrcHoldsBus from Table 7.9; other protocol timers in
+      Table 7.9 are extracted in fact protocol-timers-and-counters.
+
+- id: message-header-and-extended-header-format
+  section: programming-model
+  title: 16-bit Message Header and 16-bit Extended Message Header bit fields
+  claim: >-
+    Every USB PD message begins with a 16-bit Message Header (Table 6.2, transmitted b0 first).
+    Bit 15 is Extended (0b for a Control or Data Message, 1b for an Extended Message). Bits 14..12
+    are Number of Data Objects (Table 6.3: 000b for Control Messages where Extended = 0b;
+    001b..111b for 1 to 7 32-bit Data Objects in Data Messages where Extended = 0b and in Chunked
+    Extended Messages where Extended = 1b and Chunked = 1b; and Reserved 000b, ignored by receiver,
+    in Unchunked Extended Messages where Extended = 1b and Chunked = 0b). Bits 11..9 are MessageID,
+    a 3-bit rolling counter (0..7) incremented by the sender on each new message per SOP*
+    communication path and reset to 0 on Hard Reset, Soft_Reset, or PR_Swap. Bit 8 is Port Power
+    Role on SOP (0b Sink, 1b Source) or Cable Plug on SOP' and SOP'' (0b message originates from a
+    DFP or UFP, 1b message originates from a Cable Plug or VPD). Bits 7..6 are Specification
+    Revision (00b Revision 1.0, deprecated and interpreted by receivers as Revision 2.0; 01b
+    Revision 2.0; 10b Revision 3.x; 11b Reserved). Bit 5 is Port Data Role on SOP (0b UFP, 1b DFP)
+    and is Reserved (0b, ignored by receiver) on SOP' and SOP''. Bits 4..0 hold the 5-bit Message
+    Type code, interpreted according to Extended and Number of Data Objects. When Extended is 1b, a
+    16-bit Extended Message Header (Table 6.48) immediately follows the Message Header: Bit 15 is
+    Chunked (Table 6.49: 1b Chunked Extended Message with up to MaxExtendedMsgChunkLen = 26 data
+    bytes per chunk padded with 00h bytes to a 4-byte Data Object boundary; 0b Unchunked Extended
+    Message with up to MaxExtendedMsgLen = 260 data bytes in one packet), Bits 14..11 are Chunk
+    Number (0000b..1001b for chunks 0 to 9 when Chunked is 1b, with 1010b..1111b invalid so the
+    receiver ignores the message; Reserved 0000b when Chunked is 0b), Bit 10 is Request Chunk (0b
+    data chunk payload; 1b chunk request, valid only when Chunked is 1b with Number of Data Objects
+    = 001b and Data Size = 0), Bit 9 is Reserved (0b, ignored by receiver), and Bits 8..0 are Data
+    Size (total bytes in the complete Extended Message Data Block from 0 to 260, or 0 when Request
+    Chunk is 1b). Extended Messages on SOP are sent Chunked unless both Port Partners advertise
+    Unchunked Extended Messages Supported = 1b (bit 24 of the Source's 5 V Fixed Supply PDO in
+    Table 6.8 and bit 23 of the Sink's RDO in Table 6.19); Cable Plugs on SOP' and SOP'' set
+    Chunked = 1b in every Extended Message and chunk Extended Messages whose Data Size exceeds
+    MaxExtendedMsgLegacyLen (26 bytes).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '112'
+      section: 6.1.1
+    - page: '112'
+      section: 6.1.2
+    - page: '115'
+      section: 6.1.4
+      figure: '6.1'
+    - pages: ['116', '117']
+      section: 6.2.1
+      table: '6.2'
+    - pages: ['117', '118']
+      section: 6.2.2
+      table: '6.3'
+    - pages: ['127', '128']
+      section: 6.4.1.3.3
+      table: '6.8'
+    - page: '137'
+      section: 6.4.2.1.1
+      table: '6.19'
+    - pages: ['172', '173']
+      section: 6.5.1
+      table: '6.48'
+    - page: '173'
+      section: 6.5.1.1
+      table: '6.49'
+    - page: '193'
+      section: '6.6'
+      table: '6.65'
+    - page: '206'
+      section: '7.7'
+    - page: '209'
+      section: '7.10'
+  todo:
+    check: document
+    text: >-
+      All fields of Tables 6.2, 6.3, 6.48, and 6.49 are extracted; Tables 6.8, 6.19, and 6.65 are
+      cited only for the Unchunked Extended Messages Supported flag bit positions and the
+      MaxExtendedMsgLen / MaxExtendedMsgChunkLen / MaxExtendedMsgLegacyLen constants.
+
+- id: control-message-types
+  section: programming-model
+  title: Control Message type codes and SOP* applicability
+  claim: >-
+    Control Messages have Extended = 0b and Number of Data Objects = 000b (16-bit Message Header
+    only). Their 5-bit Message Type codes (Bits 4..0, Table 6.4) and valid SOP* packet types
+    (Tables 7.4 and 7.5) are: 00001b GoodCRC (SOP, SOP', SOP''; acknowledges receipt of a message
+    with matching CRC and MessageID), 00010b GotoMin (deprecated; SOP receiver responds with
+    Not_Supported), 00011b Accept (SOP, SOP', SOP''; accepts a Request, EPR_Request, PR_Swap,
+    DR_Swap, VCONN_Swap, FR_Swap, Data_Reset, Enter_USB, or Soft_Reset), 00100b Reject (SOP, plus
+    SOP' and SOP'' when an Active Cable rejects Enter_USB; rejects a Request, EPR_Request,
+    PR_Swap, DR_Swap, VCONN_Swap, Enter_USB, EPR_Get_Source_Cap, or EPR_Get_Sink_Cap), 00101b Ping
+    (deprecated; SOP receiver responds with Not_Supported or ignores, and Cable Plug ignores),
+    00110b PS_RDY (SOP; signals that VBUS or VCONN supply has reached its target operating
+    condition), 00111b Get_Source_Cap (SOP; requests SPR Source_Capabilities), 01000b Get_Sink_Cap
+    (SOP; requests SPR Sink_Capabilities), 01001b DR_Swap (SOP; requests Data Role Swap), 01010b
+    PR_Swap (SOP; requests Power Role Swap), 01011b VCONN_Swap (SOP; requests VCONN Source Swap),
+    01100b Wait (SOP, plus SOP' and SOP'' when an Active Cable defers Enter_USB; defers a Request,
+    EPR_Request, PR_Swap, DR_Swap, VCONN_Swap, or Enter_USB), 01101b Soft_Reset (SOP, SOP', SOP'';
+    resets Protocol Layer counters and state machines without dropping VBUS), 01110b Data_Reset
+    (SOP; resets USB data connection, exits all Active Modes, and cycles VCONN), 01111b
+    Data_Reset_Complete (SOP; sent by DFP to complete a Data Reset AMS), 10000b Not_Supported
+    (SOP, SOP', SOP''; indicates received message is unsupported or unrecognized), 10001b
+    Get_Source_Cap_Extended (SOP; requests Source_Capabilities_Extended), 10010b Get_Status (SOP,
+    SOP', SOP''; requests Status), 10011b FR_Swap (SOP; initiates the PD messaging phase of a Fast
+    Role Swap), 10100b Get_PPS_Status (SOP; requests PPS_Status), 10101b Get_Country_Codes (SOP;
+    requests Country_Codes), 10110b Get_Sink_Cap_Extended (SOP; requests
+    Sink_Capabilities_Extended), 10111b Get_Source_Info (SOP; requests Source_Info), and 11000b
+    Get_Revision (SOP, plus SOP' for Active Cables per Table 7.5 where SOP'' is Not Allowed, though
+    Section 6.3.24 mentions SOP'/SOP''; requests Revision). Codes 00000b and 11001b..11111b are
+    Reserved (receiver responds with Not_Supported).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['118', '124']
+      section: '6.3'
+      table: '6.4'
+    - page: '196'
+      section: 7.1.2
+    - pages: ['199', '204']
+      section: '7.5'
+      table: '7.4'
+    - pages: ['202', '203']
+      table: '7.5'
+  todo:
+    check: document
+    text: >-
+      All Control Message type codes from Table 6.4 are extracted; Tables 7.4 and 7.5 are cited
+      only for Control Message SOP/SOP'/SOP'' applicability (full AMS requirement matrices in
+      Tables 7.4–7.7 are not extracted).
+
+- id: data-and-extended-message-types
+  section: programming-model
+  title: Data Message, Extended Message, and Extended_Control type codes
+  claim: >-
+    Data Messages have Extended = 0b and Number of Data Objects = 001b..111b (1 to 7 32-bit Data
+    Objects). Their 5-bit Message Type codes (Bits 4..0, Table 6.5) are: 00001b
+    Source_Capabilities (SOP; 1–7 SPR PDOs), 00010b Request (SOP; 1 RDO for SPR power negotiation),
+    00011b BIST (SOP, and Receive-only on SOP'/SOP'' per Table 7.7; 1 BDO for PHY test modes),
+    00100b Sink_Capabilities (SOP; 1–7 SPR Sink PDOs), 00101b Battery_Status (SOP; 1 BSDO), 00110b
+    Alert (SOP; 1 ADO signaling status change events), 00111b Get_Country_Info (SOP; 1 CCDO),
+    01000b Enter_USB (SOP, SOP', SOP''; 1 EUDO configuring USB2/USB3/USB4 entry), 01001b EPR_Request
+    (SOP; 2 Data Objects: RDO plus copy of requested PDO), 01010b EPR_Mode (SOP; 1 EPRMDO for EPR
+    entry or exit), 01011b Source_Info (SOP; 2 SIDOs—SIDO1 and SIDO2—reporting Port Type, Port
+    Maximum PDP, Port Present PDP, Port Reported PDP, DPS Port, and Port Guaranteed PDP), 01100b
+    Revision (SOP, plus SOP' for Active Cables per Table 7.5 where SOP'' is Not Allowed; 1 RMDO
+    reporting Major.Minor Revision and Version), and 01111b Vendor_Defined (SOP, SOP', SOP''; 1–7
+    VDOs starting with VDM Header); codes 00000b, 01101b..01110b, and 10000b..11111b are Reserved
+    (respond with Not_Supported). Extended Messages have Extended = 1b with 5-bit Message Type
+    codes (Table 6.47): 00001b Source_Capabilities_Extended (SOP; 25-byte SCEDB), 00010b Status
+    (SOP, SOP', SOP''; 7-byte SDB on SOP or 2-byte SDB on SOP'/SOP''), 00011b Get_Battery_Cap (SOP;
+    1-byte GBCDB), 00100b Get_Battery_Status (SOP; 1-byte GBSDB), 00101b Battery_Capabilities (SOP;
+    9-byte BCDB), 00110b Get_Manufacturer_Info (SOP, plus SOP' per Table 7.5 where SOP'' is Not
+    Allowed; 2-byte GMIDB), 00111b Manufacturer_Info (SOP, plus SOP' per Table 7.5 where SOP'' is
+    Not Allowed; 4–26 byte MIDB), 01000b Security_Request (SOP, plus SOP' per Table 7.5 where SOP''
+    is Not Allowed; security request data block defined in [USBC Auth], up to MaxExtendedMsgLen =
+    260 bytes), 01001b Security_Response (SOP, plus SOP' per Table 7.5 where SOP'' is Not Allowed;
+    security response data block defined in [USBC Auth], up to MaxExtendedMsgLen = 260 bytes),
+    01010b Firmware_Update_Request (SOP, SOP', SOP''; firmware update request data block defined in
+    [USB DFU], up to MaxExtendedMsgLen = 260 bytes), 01011b Firmware_Update_Response (SOP, SOP',
+    SOP''; firmware update response data block defined in [USB DFU], up to MaxExtendedMsgLen = 260
+    bytes), 01100b PPS_Status (SOP; 4-byte PPSSDB), 01101b Country_Info (SOP; 5–26 byte CIDB),
+    01110b Country_Codes (SOP; 4–26 byte CCDB), 01111b Sink_Capabilities_Extended (SOP; 24-byte
+    SKEDB), 10000b Extended_Control (SOP; 2-byte ECDB in Tables 6.62 and 6.63 with Extended Control
+    Type in Byte 0 set to 01h EPR_Get_Source_Cap, 02h EPR_Get_Sink_Cap, 03h EPR_Keep_Alive, or 04h
+    EPR_Keep_Alive_Ack, and Byte 1 Data = 00h, with 00h and 05h..FFh invalid and answered with
+    Not_Supported), 10001b EPR_Source_Capabilities (SOP; PDOs 1..7 SPR plus PDOs 8..11 EPR),
+    10010b EPR_Sink_Capabilities (SOP; PDOs 1..7 SPR plus PDOs 8..11 EPR), and 11110b
+    Vendor_Defined_Extended (SOP, SOP', SOP''; 4–260 byte VDEDB starting with 4-byte VDM Header);
+    codes 00000b, 10011b..11101b, and 11111b are Reserved (respond with Not_Supported).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['124', '151']
+      section: '6.4'
+      table: '6.5'
+    - pages: ['171', '192']
+      section: '6.5'
+      table: '6.47'
+    - pages: ['190', '191']
+      section: 6.5.17
+      table: '6.62'
+    - page: '191'
+      table: '6.63'
+    - page: '193'
+      section: '6.6'
+      table: '6.65'
+    - pages: ['199', '204']
+      section: '7.5'
+  todo:
+    check: document
+    text: >-
+      All Data Message types (Table 6.5), Extended Message types (Table 6.47), and
+      Extended_Control subtypes (Tables 6.62 and 6.63) are extracted; individual field layouts of
+      informational and extended data blocks (BDO, BSDO, ADO, CCDO, EUDO, SIDO1, SIDO2, RMDO,
+      SCEDB, SDB, GBCDB, GBSDB, BCDB, GMIDB, MIDB, PPSSDB, CIDB, CCDB, SKEDB, VDEDB) and the full
+      AMS requirement matrices in Section 7.5 are not extracted.
+
+- id: source-capabilities-pdo-ordering-and-encoding
+  section: programming-model
+  title: Source Power Data Object (PDO and APDO) ordering, bit fields, and scaling units
+  claim: >-
+    Power Data Objects (PDOs) in Source_Capabilities (1–7 32-bit PDOs, Section 6.4.1.1) and
+    EPR_Source_Capabilities (Section 6.5.18, Figure 6.8) must be transmitted in a strict order:
+    first, the mandatory vSafe5V Fixed Supply PDO (5 V) in Object Position 1; second, any remaining
+    SPR Fixed Supply PDOs in ascending voltage order (lowest to highest: 9 V, 15 V, 20 V); third,
+    Battery Supply PDOs in ascending Minimum Voltage order; fourth, Variable Supply (non-Battery)
+    PDOs in ascending Minimum Voltage order; fifth, the SPR Adjustable Voltage Supply (AVS) APDO;
+    and sixth, SPR Programmable Power Supply (PPS) APDOs in ascending Maximum Voltage order. In
+    EPR_Source_Capabilities, Object Positions 1..7 contain the exact SPR Source_Capabilities PDOs
+    padded with 0000_0000h unused objects through position 7, followed in Object Positions 8..11 by
+    EPR Fixed Supply PDOs in ascending voltage order (28 V, 36 V, 48 V) and finally one EPR AVS
+    APDO. Bits 31..30 encode the PDO Type (Table 6.6): 00b Fixed Voltage, 01b Battery, 10b Variable
+    (non-Battery), and 11b Augmented PDO (APDO). In a Fixed Supply PDO (00b), the 5 V Source PDO at
+    Object Position 1 (Table 6.8) carries capability flags in Bits 29..22 (Bit 29 Dual-Role Power,
+    Bit 28 USB Suspend Supported, Bit 27 Unconstrained Power, Bit 26 USB Communications Capable,
+    Bit 25 Dual-Role Data, Bit 24 Unchunked Extended Messages Supported, Bit 23 EPR Capable, Bit 22
+    Reserved 0b; in Fixed PDOs > 5 V at positions 2..N in Table 6.10, Bits 29..22 are Reserved and
+    ignored by the receiver), followed in all Fixed Source PDOs by Bits 21..20 Peak Current, Bits
+    19..10 Voltage in 50 mV units (100 = 5.0 V, 180 = 9.0 V, 300 = 15.0 V, 400 = 20.0 V, 560 =
+    28.0 V, 720 = 36.0 V, 960 = 48.0 V), and Bits 9..0 Maximum Current in 10 mA units (0..500 for
+    0–5.00 A, or 0 when offering no capabilities). In a Battery PDO (01b, Table 6.11), Bits 29..20
+    are Maximum Voltage in 50 mV units, Bits 19..10 Minimum Voltage in 50 mV units, and Bits 9..0
+    Maximum Power in 250 mW units (0..400 for 0–100 W). In a Variable PDO (10b, Table 6.12), Bits
+    29..20 are Maximum Voltage in 50 mV units, Bits 19..10 Minimum Voltage in 50 mV units (at least
+    80% of Maximum Voltage for a Source), and Bits 9..0 Maximum Current in 10 mA units (0..500 for
+    0–5.00 A). In an APDO (11b, Table 6.7), Bits 29..28 select the APDO Type: 00b SPR PPS Source
+    APDO (Table 6.13: Bit 27 PPS Power Limited, Bits 26..25 Reserved, Bits 24..17 Maximum Voltage
+    in 100 mV increments with allowed values 110 = 11 V, 160 = 16 V, 210 = 21 V, Bit 16 Reserved,
+    Bits 15..8 Minimum Voltage in 100 mV increments with 50 = 5 V required and 33 = 3.3 V
+    deprecated, Bit 7 Reserved, Bits 6..0 Maximum Current in 50 mA units from 0..100 for 0–5 A),
+    01b EPR AVS Source APDO (Table 6.16: Bits 27..26 Peak Current, Bits 25..17 Maximum Voltage in
+    100 mV increments with allowed values 280 = 28 V, 360 = 36 V, 480 = 48 V, Bit 16 Reserved, Bits
+    15..8 Minimum Voltage in 100 mV increments with 150 = 15 V, Bits 7..0 Port Present PDP in 1 W
+    increments from 0..240 W), 10b SPR AVS APDO (Table 6.15: Bits 27..26 Peak Current, Bits 25..20
+    Reserved, Bits 19..10 Maximum Current 15V for the 9 V–15 V operating range in 10 mA increments
+    equal to the 15 V Fixed PDO Maximum Current, Bits 9..0 Maximum Current 20V for the 15 V–20 V
+    operating range in 10 mA increments equal to the 20 V Fixed PDO Maximum Current or 0 if maximum
+    voltage supported is 15 V), and 11b Invalid.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '125'
+      section: 6.4.1.1
+    - pages: ['126', '136']
+      section: 6.4.1.3
+      table: '6.6'
+    - page: '127'
+      table: '6.7'
+    - pages: ['127', '128']
+      table: '6.8'
+    - page: '129'
+      table: '6.10'
+    - page: '129'
+      table: '6.11'
+    - page: '130'
+      table: '6.12'
+    - page: '131'
+      table: '6.13'
+    - page: '133'
+      table: '6.15'
+    - page: '134'
+      table: '6.16'
+    - pages: ['191', '192']
+      section: 6.5.18
+      figure: '6.8'
+  todo:
+    check: document
+    text: >-
+      All bit fields and scaling units of Source PDOs and APDOs in Tables 6.6, 6.7, 6.8, 6.10,
+      6.11, 6.12, 6.13, 6.15, and 6.16 are extracted; Sink PDO/APDO bit tables (Tables 6.9, 6.14,
+      and 6.17) and Peak Current overload encodings (Table 6.18) are not extracted.
+
+- id: request-data-object-rdo-formats
+  section: programming-model
+  title: Request Data Object (RDO) bit fields for Fixed/Variable, Battery, PPS, and AVS requests
+  claim: >-
+    A Sink requests power by sending a Request Message (containing one 32-bit RDO for SPR Object
+    Positions 0001b..0111b) or an EPR_Request Message (Section 6.4.8, Figure 6.3, containing two
+    32-bit Data Objects: the RDO in Object 1 and a verbatim copy of the requested SPR or EPR PDO in
+    Object 2, covering Object Positions 0001b..1011b). All four RDO formats share the same upper
+    header fields in Bits 31..22: Bits 31..28 Object Position (1-based index: 0001b..0111b for SPR
+    PDOs/APDOs, 1000b..1011b for EPR PDOs/APDOs), Bit 27 GiveBack (deprecated; receiver Shall
+    ignore this field), Bit 26 Capability Mismatch (1b if the offered Source Capabilities cannot
+    satisfy the Sink's power or voltage requirements while still making a valid request from the
+    offered PDOs; 0b otherwise), Bit 25 USB Communications Capable (1b if the Sink has USB data
+    lines and is capable of USB2, USB3, or USB4 communication), Bit 24 No USB Suspend (1b if the
+    Sink requests to continue its Explicit Contract during USB Suspend), Bit 23 Unchunked Extended
+    Messages Supported (1b if the Sink supports both Chunked and Unchunked Extended Messages), and
+    Bit 22 EPR Capable (1b if the Sink is capable of EPR Mode operation). The lower fields in Bits
+    21..0 depend on the referenced PDO type: for a Fixed and Variable RDO (Table 6.19), Bits 21..20
+    are Reserved (00b), Bits 19..10 are Operating Current in 10 mA units (<= PDO Maximum Current),
+    and Bits 9..0 are Maximum Operating Current (Deprecated in PD R3.2: transmitter Shall set this
+    field equal to Operating Current and receiver should ignore this field); for a Battery RDO
+    (Table 6.20), Bits 21..20 are Reserved (00b), Bits 19..10 are Operating Power in 250 mW units
+    (<= PDO Maximum Power), and Bits 9..0 are Maximum Operating Power (Deprecated in PD R3.2:
+    transmitter Shall set this field equal to Operating Power and receiver should ignore this
+    field); for a Programmable Power Supply (PPS) RDO (Table 6.21), Bit 21 is Reserved (0b), Bits
+    20..9 are Output Voltage at the Source's connector in 20 mV units (between APDO Minimum Voltage
+    and Maximum Voltage), Bits 8..7 are Reserved (00b), and Bits 6..0 are Operating Current in 50
+    mA units (<= APDO Maximum Current); and for an Adjustable Voltage Supply (AVS) RDO (Table
+    6.22), Bit 21 is Reserved (0b), Bits 20..9 are Output Voltage in 25 mV units with Bits 10..9
+    required to be 00b so the effective voltage step size is 100 mV, Bits 8..7 are Reserved (00b),
+    and Bits 6..0 are Operating Current in 50 mA units (for SPR AVS, <= APDO Maximum Current for
+    the selected range; for EPR AVS, <= (PDP field from Source_Capabilities / Output Voltage from
+    this RDO) rounded down to the nearest 50 mA).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '137'
+      section: 6.4.2.1.1
+      table: '6.19'
+    - page: '137'
+      section: 6.4.2.1.2
+      table: '6.20'
+    - page: '138'
+      section: 6.4.2.1.3
+      table: '6.21'
+    - pages: ['138', '139']
+      section: 6.4.2.1.4
+      table: '6.22'
+    - pages: ['139', '140']
+      section: 6.4.2.1.5
+    - pages: ['146', '147']
+      section: 6.4.8
+      figure: '6.3'
+
+- id: goodcrc-messageid-and-retry-rules
+  section: programming-model
+  title: GoodCRC acknowledgment, per-SOP* MessageID rolling counters, and retransmission rules
+  claim: >-
+    Every valid PD packet (except GoodCRC itself, Hard Reset, and Cable Reset) requires a GoodCRC
+    Control Message acknowledgment from the addressed recipient. Each Port maintains an
+    independent 3-bit MessageIDCounter (0..nMessageIDCount, where nMessageIDCount = 7) for each
+    SOP* packet type it uses. Upon transmitting the last bit of a packet's EOP, the sender's
+    Protocol Layer starts CRCReceiveTimer (tReceive = 900 us minimum, 1000 us nominal, 1100 us
+    maximum). If a GoodCRC with a MessageID matching MessageIDCounter arrives before
+    CRCReceiveTimer expires, the transmitter stops CRCReceiveTimer, re-initializes RetryCounter to
+    0, and increments MessageIDCounter modulo 8. If CRCReceiveTimer expires (or a GoodCRC with the
+    wrong MessageID or a non-GoodCRC message arrives), the transmitter increments RetryCounter and
+    retransmits the exact same packet with the same MessageID within tRetry (195 us maximum) up to
+    nRetryCount = 2 retries (3 total transmission attempts); if the nRetryCount retry fails, the
+    Port initiates a Soft_Reset AMS within tSoftReset (15 ms maximum). Two classes of messages are
+    never retried: Cable Plugs never retry any message, and Unchunked Extended Messages (Chunked =
+    0b) with Data Size > MaxExtendedMsgLegacyLen (26 bytes) are not retried (whereas Chunked
+    Extended Messages and Unchunked Extended Messages with Data Size <= 26 bytes are retried
+    normally). On the receive side, each Port stores a per-SOP* copy of the last received MessageID
+    (cleared on Hard Reset, Soft_Reset, or PR_Swap) and returns a GoodCRC carrying the received
+    MessageID within tTransmit (195 us maximum) of receiving a valid packet; if the received
+    MessageID matches the stored MessageID (and the message is not Soft_Reset, which always carries
+    MessageID = 0), the receiver still returns GoodCRC with that MessageID but drops the duplicate
+    message without passing it to the Policy Engine.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '193'
+      section: '6.6'
+      table: '6.65'
+    - page: '204'
+      section: 7.6.1
+      figure: '7.1'
+    - pages: ['205', '206']
+      section: 7.6.2
+      table: '7.8'
+    - page: '224'
+      section: 7.31.1
+    - page: '229'
+      section: 7.31.8.1
+    - page: '237'
+      section: 7.31.19
+      table: '7.9'
+    - pages: ['238', '240']
+      section: '7.32'
+      table: '7.11'
+    - page: '241'
+      table: '7.12'
+  todo:
+    check: document
+    text: >-
+      Covers tReceive, tRetry, tTransmit, tSoftReset, nMessageIDCount, and nRetryCount from Tables
+      7.9–7.12; remaining timer and counter values are extracted in fact
+      protocol-timers-and-counters.
+
+- id: protocol-timers-and-counters
+  section: programming-model
+  title: Protocol Layer and Policy Engine timer parameters and counter limits
+  claim: >-
+    Core Protocol Layer and Policy Engine timing parameters (Tables 7.9 and 7.10) are:
+    CRCReceiveTimer (tReceive = 900 us min, 1000 us nom, 1100 us max; Protocol Layer wait for
+    GoodCRC), tTransmit and tRetry (195 us max; PHY delay to send GoodCRC or retransmit a packet),
+    tReceiverResponse (15 ms max; target Policy Engine time to begin transmitting a response
+    message after sending GoodCRC EOP), SenderResponseTimer (tSenderResponse = 27 ms min, 50 ms
+    max; initiator Policy Engine wait for a response message after receiving GoodCRC EOP),
+    SourceCapabilityTimer (tTypeCSendSourceCap = 100 ms min, 150 ms nom, 200 ms max; interval
+    between Source_Capabilities advertisements before an Explicit Contract), SinkWaitCapTimer
+    (tTypeCSinkWaitCap = 310 ms min, 465 ms nom, 620 ms max; Sink wait for Source_Capabilities
+    before issuing a Hard Reset), tFirstSourceCap (250 ms max; time from attach, reset, or EPR
+    mode transition to Source_Capabilities / EPR_Source_Capabilities), PSTransitionTimer
+    (tPSTransition = 450–550 ms with 500 ms nom in SPR Mode, 830–1020 ms with 925 ms nom in EPR
+    Mode; Sink wait for PS_RDY after Accept), PSSourceOffTimer (tPSSourceOff = 750–920 ms with 835
+    ms nom in SPR Mode, 1120–1400 ms with 1260 ms nom in EPR Mode; wait for Initial Source PS_RDY
+    during PR_Swap), PSSourceOnTimer (tPSSourceOn = 390–480 ms with 435 ms nom in SPR Mode; wait
+    for New Source PS_RDY during PR_Swap or FR_Swap), SinkPPSPeriodicTimer (tPPSRequest = 10 s max;
+    Sink periodic re-request interval in PPS Mode), SourcePPSCommTimer (tPPSTimeout = 12.0 s min,
+    13.5 s nom, 15.0 s max; Source timeout in PPS Mode before Hard Reset), SinkEPREnterTimer
+    (tEnterEPR = 450 ms min, 500 ms nom, 550 ms max), SinkEPRKeepAliveTimer (tSinkEPRKeepAlive =
+    250 ms min, 375 ms nom, 500 ms max), SourceEPRKeepAliveTimer (tSourceEPRKeepAlive = 750 ms min,
+    875 ms nom, 1000 ms max), tEPRSourceCableDiscovery (2 s max), PSHardResetTimer (tPSHardReset =
+    25 ms min, 30 ms nom, 35 ms max; Source delay after Hard Reset before driving VBUS to vSafe0V),
+    HardResetCompleteTimer (tHardResetComplete = 4000 us min, 4500 us nom, 5000 us max),
+    NoResponseTimer (tNoResponse = 4.5 s min, 5.0 s nom, 5.5 s max), ChunkSenderRequestTimer and
+    ChunkSenderResponseTimer (tChunkSenderRequest / tChunkSenderResponse = 24 ms min, 27 ms nom,
+    30 ms max; tChunkReceiverRequest / tChunkReceiverResponse = 15 ms max), and
+    ChunkingNotSupportedTimer (tChunkingNotSupported = 40 ms min, 45 ms nom, 50 ms max). The six
+    protocol counter parameters (Tables 7.11 and 7.12) are: nBusyCount = 5 (VDMBusyCounter max; 1
+    recommended for USB-C Alternate Mode Entry), nCapsCount = 50 (CapsCounter max
+    Source_Capabilities attempts), nDiscoverIdentityCount = 20 (DiscoverIdentityCounter max SOP'
+    Discover Identity attempts without GoodCRC), nHardResetCount = 2 (HardResetCounter max Hard
+    Reset retries), nMessageIDCount = 7 (MessageIDCounter max value for 3-bit rolling counter
+    0..7), and nRetryCount = 2 (RetryCounter max packet retries).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['234', '235']
+      section: 7.31.16
+    - pages: ['236', '238']
+      section: 7.31.19
+      table: '7.9'
+    - page: '238'
+      table: '7.10'
+    - pages: ['238', '240']
+      section: '7.32'
+      table: '7.11'
+    - page: '241'
+      table: '7.12'
+  todo:
+    check: document
+    text: >-
+      All six counter parameters in Tables 7.11 and 7.12 and the core protocol, power transition,
+      PPS, EPR, Hard Reset, and chunking timers from Tables 7.9 and 7.10 are extracted;
+      tACTempUpdate, BIST, tCableMessage, tCapabilitiesMismatchResponse, Data Reset, Enter_USB,
+      role-swap wait, VCONN swap, and VDM timers in Tables 7.9 and 7.10 are not extracted here.
+
+- id: spr-power-negotiation-ams
+  section: programming-model
+  title: Standard Power Range (SPR) Power Negotiation Atomic Message Sequence
+  claim: >-
+    Standard Power Range (SPR) Power Negotiation is a Source-initiated Atomic Message Sequence
+    (AMS) that establishes or updates an Explicit Contract. First, the Source sends a
+    Source_Capabilities Data Message (acknowledged by the Sink with GoodCRC) advertising 1 to 7
+    SPR PDOs/APDOs, and starts SenderResponseTimer (tSenderResponse = 27–50 ms); before an
+    Explicit Contract exists, the Source repeats Source_Capabilities every tTypeCSendSourceCap
+    (100–200 ms), while an attached Sink runs SinkWaitCapTimer (tTypeCSinkWaitCap = 310–620 ms)
+    and issues Hard Reset signaling if it expires without seeing Source_Capabilities. Second, the
+    Sink evaluates the offered PDOs and responds within tReceiverResponse (15 ms max) with a
+    Request Data Message containing one RDO referencing an SPR Object Position (0001b..0111b),
+    setting Capability Mismatch = 1b in the RDO if none of the offered PDOs satisfy its full power
+    needs. Third, if the Request is valid and can be met, the Source replies with an Accept
+    Control Message (causing the Sink to start PSTransitionTimer, tPSTransition = 450–550 ms) and
+    transitions VBUS to the negotiated voltage and current limits; if the Source cannot meet the
+    Request, it replies with Reject (keeping any prior Explicit Contract or returning to vSafe5V
+    if none existed) or Wait (after which the Sink uses SinkRequestTimer and must wait at least
+    tSinkRequest = 100 ms min before sending a new Request). Fourth, once the Source's power supply
+    reaches the target operating condition, the Source sends a PS_RDY Control Message, and
+    reception of the Sink's GoodCRC for PS_RDY completes the Explicit Contract. When the negotiated
+    contract selects an SPR PPS APDO, the Sink must re-send a Request message at least every
+    tPPSRequest (10 s max) or the Source's SourcePPSCommTimer (tPPSTimeout = 12.0–15.0 s) expires
+    and triggers Hard Reset signaling.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['207', '209']
+      section: '7.9'
+    - pages: ['224', '227']
+      section: '7.31'
+    - pages: ['234', '235']
+      section: 7.31.16
+    - pages: ['236', '238']
+      section: 7.31.19
+      table: '7.9'
+    - page: '238'
+      table: '7.10'
+  todo:
+    check: document
+    text: >-
+      Cites SPR negotiation and PPS timers from Section 7.31 and Tables 7.9 and 7.10; other timers
+      in Section 7.31 and Tables 7.9 and 7.10 are covered in fact protocol-timers-and-counters.
+
+- id: epr-mode-entry-negotiation-and-keepalive
+  section: programming-model
+  title: Extended Power Range (EPR) Mode entry, negotiation, keep-alive, and exit flows
+  claim: >-
+    Entering and operating in Extended Power Range (EPR) Mode (>100 W up to 240 W) requires an
+    established SPR Explicit Contract in which both Port Partners advertised EPR Capable = 1b (bit
+    23 of the Source's 5 V Fixed PDO and bit 22 of the Sink's RDO) and are not connected through a
+    Charge Through VPD. First, the Sink initiates EPR Mode Entry by sending an EPR_Mode Data
+    Message (Table 6.28) with Action = Enter (01h) and Data = EPR Sink Operational PDP (00h–FFh in
+    1 W units, Bits 23..16), and starts SinkEPREnterTimer (tEnterEPR = 450–550 ms). Second, the
+    Source verifies EPR Capable in the RDO and 5 V PDO, replies with EPR_Mode (Action = Enter
+    Acknowledged, 02h), and verifies (if not already discovered prior to or within
+    tEPRSourceCableDiscovery = 2 s max of entering the First Explicit Contract, performing a
+    VCONN_Swap first if it is not currently the VCONN Source) via SOP' Discover Identity that the
+    attached cable's Cable VDO reports Maximum VBUS Voltage = 11b (50 V), VBUS Current Handling
+    Capability = 10b (5 A), and EPR Capable = 1b; the Source then sends EPR_Mode (Action = Enter
+    Succeeded, 03h) or EPR_Mode (Action = Enter Failed, 04h, with Data set to 00h Unknown cause,
+    01h Cable not EPR Capable, 02h Source failed to become VCONN Source, 03h EPR Capable bit not
+    set in RDO, 04h Source unable to enter EPR Mode, or 05h EPR Capable bit not set in PDO). Third,
+    upon Enter Succeeded both partners enter EPR Mode and the Source sends EPR_Source_Capabilities
+    (Extended Message Type 10001b, Figure 6.8, containing SPR PDOs in positions 1..7 padded with
+    0000_0000h and EPR PDOs/APDO in positions 8..11) within tFirstSourceCap (250 ms max); the Sink
+    responds with an EPR_Request Data Message (Figure 6.3) carrying 2 Data Objects (the RDO in
+    Object 1 selecting any SPR or EPR position 0001b..1011b, plus a verbatim copy of the selected
+    PDO in Object 2), and the Source replies with Accept and then PS_RDY once VBUS settles (within
+    tPSTransition EPR = 830–1020 ms). Fourth, while in EPR Mode (PE_SRC_Ready / PE_SNK_Ready), the
+    Sink runs SinkEPRKeepAliveTimer (tSinkEPRKeepAlive = 250–500 ms, stopped and re-initialized on
+    every GoodCRC received from the Source) and sends an Extended_Control (EPR_Keep_Alive, Type =
+    03h, Tables 6.62 and 6.63) message whenever it expires, to which the Source responds with
+    Extended_Control (EPR_Keep_Alive_Ack, Type = 04h); the Source runs SourceEPRKeepAliveTimer
+    (tSourceEPRKeepAlive = 750–1000 ms, stopped on any GoodCRC sent to or received from the Sink)
+    and issues Hard Reset signaling if it expires. To perform a Commanded Exit from EPR Mode, the
+    Port Partners must first be in an Explicit Contract with an SPR PDO or APDO (via the Sink
+    negotiating an SPR PDO with bit 31 of the RDO Object Position field set to 0, or the Source
+    sending EPR_Source_Capabilities with no EPR PDOs), after which either partner sends EPR_Mode
+    (Action = Exit, 05h) and the Source sends Source_Capabilities within tFirstSourceCap.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['146', '147']
+      section: 6.4.8
+      figure: '6.3'
+    - pages: ['147', '148']
+      section: 6.4.9
+      table: '6.28'
+    - pages: ['190', '191']
+      section: 6.5.17
+      table: '6.62'
+    - page: '191'
+      table: '6.63'
+    - pages: ['191', '192']
+      section: 6.5.18
+      figure: '6.8'
+    - pages: ['217', '223']
+      section: '7.30'
+      figure: '7.3'
+    - pages: ['235', '236']
+      section: 7.31.18
+    - pages: ['236', '238']
+      section: 7.31.19
+      table: '7.9'
+    - page: '238'
+      table: '7.10'
+  todo:
+    check: document
+    text: >-
+      All five EPR_Mode Action codes (01h–05h) and all six Enter Failed Data reason codes
+      (00h–05h) from Table 6.28 are extracted; Tables 7.9 and 7.10 are cited only for EPR-specific
+      timers.
+
+- id: role-swap-ams-flows
+  section: programming-model
+  title: Power Role Swap (PR_Swap), Data Role Swap (DR_Swap), and VCONN Swap (VCONN_Swap) AMS rules
+  claim: >-
+    Role Swap Atomic Message Sequences allow Port Partners in an Explicit Contract to exchange
+    power, data, or VCONN roles independently. A Power Role Swap (PR_Swap) may be initiated by
+    either partner in SPR Mode (PR_Swap is forbidden in EPR Mode; EPR Mode must be exited first,
+    and a PR_Swap received in EPR Mode is answered with Reject), and the responder replies with
+    Accept, Reject, or Wait (the requester waits at least tPRSwapWait = 100 ms min after Wait
+    before retrying). On Accept, both partners enter an Implicit Contract: the Initial Source
+    ramping down VBUS transitions its CC termination from Rp to Rd and sends PS_RDY with Port Power
+    Role = 0b (Sink) before PSSourceOffTimer (tPSSourceOff = 750–920 ms in SPR Mode) expires; the
+    Initial Sink then switches its CC termination from Rd to Rp, turns on VBUS to vSafe5V, and
+    sends PS_RDY with Port Power Role = 1b (Source) before PSSourceOnTimer (tPSSourceOn = 390–480
+    ms) expires. Both partners then reset their Protocol Layers (MessageIDCounter = 0,
+    RetryCounter = 0), and the New Source resets CapsCounter, waits at least tSwapSourceStart (20
+    ms min, SwapSourceStartTimer), and sends Source_Capabilities to establish a new Explicit
+    Contract while DFP/UFP Data Roles and VCONN Source remain unchanged. A Data Role Swap (DR_Swap)
+    exchanges DFP (USB Host) and UFP (USB Device) roles while leaving VBUS Source, VCONN Source,
+    and CC Rp/Rd terminations unchanged (responder replies with Accept, Reject, or Wait with
+    tDRSwapWait = 100 ms min); if any Active Modes exist between Port Partners when DR_Swap is
+    received, a Hard Reset must be performed (within tDRSwapHardReset = 15 ms max), and if a Cable
+    Plug has any Active Modes the DFP must not issue DR_Swap and must exit all Cable Plug Active
+    Modes before accepting DR_Swap. A VCONN Swap (VCONN_Swap) exchanges the VCONN Source role using
+    make-before-break power sequencing while leaving VBUS Source, DFP/UFP Data Roles, and CC Rp/Rd
+    terminations unchanged: on Accept, the New VCONN Source turns on VCONN and sends PS_RDY within
+    tVconnSourceOn (50 ms max; monitored by VconnOnTimer, tVconnSourceTimeout = 100–200 ms), after
+    which the Initial VCONN Source stops sourcing VCONN within tVconnSourceOff (25 ms max) of the
+    PS_RDY EOP (and after losing VCONN Source due to an incoming VCONN_Swap, a port must wait at
+    least tVconnSwapDelayDFP = 100 ms min or tVconnSwapDelayUFP = 500 ms min before initiating
+    another VCONN_Swap). A port that is currently the VCONN Source must never send Reject in
+    response to VCONN_Swap (and must respond with Accept rather than Wait if the partner's
+    Revision/Version is earlier than R3.2 V1.1, while a requester receiving Wait waits at least
+    tVconnSwapWait = 100 ms min), and a port that becomes VCONN Source via VCONN_Swap must issue an
+    SOP' (and/or SOP'') Soft_Reset before otherwise communicating with the Cable Plugs.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['66', '67']
+      section: 4.3.3
+      figure: '4.13'
+    - pages: ['209', '210']
+      section: '7.10'
+    - pages: ['210', '211']
+      section: '7.12'
+    - pages: ['211', '212']
+      section: '7.13'
+    - page: '229'
+      section: 7.31.7.1
+    - page: '230'
+      section: 7.31.10.3
+    - page: '232'
+      section: 7.31.12
+    - pages: ['236', '237']
+      section: 7.31.19
+      table: '7.9'
+    - page: '238'
+      table: '7.10'
+    - pages: ['245', '246']
+      section: 8.6.1.2.1
+  todo:
+    check: document
+    text: >-
+      Cites PR_Swap, DR_Swap, and VCONN_Swap timers from Tables 7.9 and 7.10; other timers in
+      Tables 7.9 and 7.10 are covered in fact protocol-timers-and-counters.
+
+- id: reset-mechanisms-soft-hard-cable-data
+  section: programming-model
+  title: Soft Reset, Hard Reset, Cable Reset, and Data Reset mechanisms and scope
+  claim: >-
+    USB Power Delivery defines four reset mechanisms with distinct scopes. First, a Soft Reset
+    (Soft_Reset Control Message) recovers from Protocol Errors on SOP (resetting the Port Partner
+    only) or on SOP'/SOP'' (resetting the targeted Cable Plug only) without affecting power supply
+    operation: the sender resets its MessageIDCounter and RetryCounter for that SOP* path to 0
+    before sending Soft_Reset (which always carries MessageID = 0, sent within tSoftReset = 15 ms
+    max of CRCReceiveTimer expiration or tProtErrSoftReset = 15 ms max of a Protocol Error), and
+    the receiver resets its own MessageIDCounter and RetryCounter to 0 before replying with Accept
+    within tReceiverResponse (15 ms max); a Port Partner observing a Protocol Error during an SOP
+    Soft Reset initiates a Hard Reset, whereas a DFP observing a Protocol Error during an
+    SOP'/SOP'' Soft Reset initiates a Cable Reset. Second, a Hard Reset (Hard Reset ordered set in
+    Table 5.4) is issued by either Port Partner on unrecoverable protocol or timer failure
+    (regardless of Rp value): it resets both Port Partners and all Cable Plugs, exits EPR Mode and
+    all Active Modes, leaves Rp/Rd assertions unchanged, returns Data Roles and VCONN to attach
+    defaults (the port asserting Rp becomes DFP and supplies VCONN; the port asserting Rd becomes
+    UFP and turns off VCONN), and cycles VBUS (starting tPSHardReset = 25–35 ms after Hard Reset
+    signaling, the Source stops VCONN, drives VBUS to vSafe0V within tSafe0V, waits tSrcRecover,
+    and restores vSafe5V within tSrcTurnOn). Third, a Cable Reset (Cable Reset ordered set in Table
+    5.4) is generated only by a DFP within an Explicit Contract while supplying VCONN (turning on
+    VCONN or performing a VCONN_Swap first if needed): it resets the Protocol Layers of both the
+    sender and the Cable Plugs, causes the Cable Plugs to perform the equivalent of a power cycle,
+    and exits all Active Modes in the Cable Plugs without resetting the Port Partner contract.
+    Fourth, a Data Reset (Data_Reset Control Message) may be sent by either the DFP or UFP (mandatory
+    for USB4-capable ports) to reset the USB data connection and exit all Alternate Modes while
+    preserving the VBUS Power Contract and DFP/UFP Data Roles: the responder replies with Accept,
+    both partners disconnect USB data lines, exit Alternate Modes, and power-cycle VCONN to reset
+    the cable (using VCONNDischargeTimer, tVconnSourceDischarge = 160–240 ms, and completing within
+    tDataReset = 200–250 ms; monitored by DataResetFailTimer, tDataResetFail = 300–400 ms, and
+    DataResetFailUFPTimer, tDataResetFailUFP = 450–550 ms), and the DFP always completes the AMS by
+    sending Data_Reset_Complete to the UFP regardless of which partner initiated Data_Reset.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['67', '69']
+      section: '4.4'
+      figure: '4.14'
+    - page: '69'
+      section: 4.4.1
+      figure: '4.15'
+    - page: '91'
+      section: 5.3.1.2
+      table: '5.4'
+    - pages: ['194', '197']
+      section: '7.1'
+    - page: '206'
+      section: '7.7'
+    - page: '206'
+      section: '7.8'
+    - pages: ['229', '230']
+      section: 7.31.8
+    - pages: ['229', '230']
+      section: 7.31.9
+    - page: '230'
+      section: 7.31.10
+    - pages: ['236', '238']
+      section: 7.31.19
+      table: '7.9'
+    - page: '238'
+      table: '7.10'
+  todo:
+    check: document
+    text: >-
+      Summarizes the four reset mechanisms in Section 7.1 and their timers in Sections
+      7.31.8–7.31.10 and Tables 7.9 and 7.10; incoming-message response matrices in Tables 7.1 and
+      7.2 (p. 195) and Chapter 4 VCONN power-cycle electrical timings (Section 4.6) are not
+      extracted.
+
+- id: structured-vdm-header-and-discovery
+  section: programming-model
+  title: Structured VDM (SVDM) header layout, commands, and partner/cable discovery rules
+  claim: >-
+    A Vendor_Defined Data Message (Message Type = 01111b) carries 1 to 7 32-bit Vendor Data
+    Objects (VDOs), where the first VDO is the VDM Header. When Bit 15 (VDM Type) is 0b, the
+    message is an Unstructured VDM (Table 6.32: Bits 31..16 = 16-bit USB-IF Vendor ID, Bit 15 = 0b,
+    Bits 14..0 = vendor-defined). When Bit 15 (VDM Type) is 1b, the message is a Structured VDM
+    (SVDM, Table 6.33) with header fields: Bits 31..16 Standard or Vendor ID (SVID: FF00h is the
+    USB PD SID used for Discovery Identity and Discovery SVIDs commands), Bit 15 VDM Type (1b),
+    Bits 14..13 Structured VDM Version Major (01b = Version 2.x for USB PD Revision 3.x; 00b =
+    Version 1.0 deprecated; 10b..11b invalid, receiver uses 01b), Bits 12..11 Structured VDM
+    Version Minor (for standard commands 0..15: 00b = Version 2.0 prior to PD R3.1 V1.6, 01b =
+    Version 2.1 starting with PD R3.1 V1.6, 10b..11b invalid; for SVID commands 16..31: defined by
+    SVID), Bits 10..8 Object Position (000b for commands 0..3 and 7..15; 001b..110b 1-based index
+    into the Discover Modes VDO list for Enter Mode, Exit Mode, and Attention; 111b Exit all Active
+    Modes, valid only with Exit Mode), Bits 7..6 Command Type (00b REQ from Initiator, 01b ACK
+    from Responder, 10b NAK from Responder, 11b BUSY from Responder, where BUSY is forbidden on
+    Enter Mode and Exit Mode per Table 8.1), Bit 5 Reserved (0b, ignored), and Bits 4..0 Command:
+    1 (00001b) Discover Identity (returns ID Header VDO, Cert Stat VDO, Product VDO, and 0–3
+    Product Type VDOs; for a DRD on SOP in Figure 6.5, returns UFP VDO, a 0000_0000h 32-bit Pad
+    Object, and DFP VDO), 2 (00010b) Discover SVIDs (returns up to 12 16-bit SVIDs per ACK packed
+    two per VDO, terminated by 0000h), 3 (00011b) Discover Modes (returns 1–6 Mode VDOs for the
+    SVID), 4 (00100b) Enter Mode (DFP only; responder enters mode before sending ACK, initiator
+    enters mode on receiving ACK), 5 (00101b) Exit Mode (DFP only; responder exits mode before
+    sending ACK), 6 (00110b) Attention (single REQ message completed upon GoodCRC with no SVDM
+    response message), 16..31 SVID-Specific Commands, and 0 or 7..15 Invalid (responder returns
+    NAK). Cable Plug discovery (Discover Identity, Discover SVIDs, Discover Modes) is addressed
+    only to SOP'; responses from SOP' apply to both SOP' and SOP'', and an initiator must never
+    send discovery SVDM REQs to SOP''.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - pages: ['150', '151']
+      section: 6.4.12.1
+      table: '6.32'
+    - pages: ['151', '154']
+      section: 6.4.12.2
+      table: '6.33'
+    - page: '154'
+      section: 6.4.12.3
+      figure: '6.5'
+    - pages: ['243', '244']
+      section: '8.5'
+    - pages: ['244', '251']
+      section: '8.6'
+      table: '8.1'
+    - pages: ['251', '252']
+      section: 8.7.1
+  todo:
+    check: document
+    text: >-
+      All fields of the Unstructured and Structured VDM Headers (Tables 6.32 and 6.33) and command
+      response rules (Table 8.1) are extracted; individual VDO bit layouts for ID Header, Cert
+      Stat, Product, UFP, DFP, Passive/Active Cable, VPD, and SVID VDOs (Tables 6.34–6.46 on pp.
+      154–170) are not extracted.
+
+- id: asymmetric-power-vs-data-role-header-verification
+  section: gotchas
+  title: Receiver never verifies Port Power Role (Bit 8) but must verify Port Data Role (Bit 5)
+  claim: >-
+    In the 16-bit Message Header of SOP packets (Table 6.2), the two role bits have opposite
+    receiver validation rules. Bit 8 (Port Power Role) must never be verified by the receiver
+    (Table 6.2: "Shall Not be verified by the receiver and therefore Shall Not lead to Soft Reset,
+    Hard Reset or Error Recovery if it is incorrect"); enforcing a check on Bit 8 of incoming SOP
+    packets breaks PR_Swap handshakes while power roles are transitioning. By contrast, Bit 5 (Port
+    Data Role) must be verified on every received SOP packet except GoodCRC (Table 6.2): if a USB
+    Type-C port receives any non-GoodCRC SOP message whose Port Data Role field is set to the same
+    Data Role as its own current Data Role (both DFP or both UFP), the port must perform USB Type-C
+    Error Recovery actions within tInitiateErrorRecovery (15 ms maximum, Section 7.31.10.6 and
+    Table 7.9). In addition, in GoodCRC messages, Bits 7..6 (Specification Revision) carry no
+    meaning (the value received could be 00b, 01b, 10b, or 11b) and must be ignored by the
+    recipient (Section 6.1.3).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '112'
+      section: 6.1.3
+    - page: '117'
+      section: 6.2.1
+      table: '6.2'
+    - page: '230'
+      section: 7.31.10.6
+    - page: '237'
+      section: 7.31.19
+      table: '7.9'
+  todo:
+    check: document
+    text: >-
+      Cites Table 6.2 for Bit 8 and Bit 5 receiver validation rules and Table 7.9 for
+      tInitiateErrorRecovery; full Message Header and timer tables are covered in
+      message-header-and-extended-header-format and protocol-timers-and-counters.
+
+- id: avs-rdo-25mv-encoding-with-100mv-step-constraint
+  section: gotchas
+  title: AVS RDO Output Voltage uses 25 mV bit weighting but requires Bits 10..9 = 00b (100 mV step) and no Source current limit
+  claim: >-
+    In an Adjustable Voltage Supply (AVS) Request Data Object (Table 6.22, used for both SPR AVS
+    and EPR AVS APDO requests), Bits 20..9 (Output Voltage) is encoded in 25 mV units (unlike PPS
+    RDOs in Table 6.21, which use 20 mV units in Bits 20..9, and Fixed or Variable PDOs, which use
+    50 mV units). However, even though the least-significant bit of Bits 20..9 has a 25 mV weight,
+    Table 6.22 requires Bits 10..9 to be set to 00b, making the effective voltage step size 100 mV
+    (the 12-bit field value must be a multiple of 4, such as 360 = 0168h for 9.0 V or 600 = 0258h
+    for 15.0 V). Furthermore, unlike an SPR Source in PPS Mode, a Source operating in AVS Mode does
+    not support a programmable Current Limit (Sections 6.4.1.3 and 7.9.2); the Sink is responsible
+    for not drawing more current than it requested.
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '126'
+      section: 6.4.1.3
+    - page: '138'
+      section: 6.4.2.1.3
+      table: '6.21'
+    - pages: ['138', '139']
+      section: 6.4.2.1.4
+      table: '6.22'
+    - page: '208'
+      section: 7.9.2
+  todo:
+    check: document
+    text: >-
+      Cites Tables 6.21 and 6.22 for the Output Voltage field encoding in PPS and AVS RDOs; full
+      RDO bit tables are covered in request-data-object-rdo-formats.
+
+- id: epr-request-two-object-layout-and-hard-reset-traps
+  section: gotchas
+  title: EPR_Request requires two Data Objects (RDO plus PDO copy) and standard Request in EPR Mode triggers Hard Reset
+  claim: >-
+    Power negotiation in EPR Mode has strict message-format rules that trigger immediate Hard Reset
+    signaling when violated. First, unlike a standard Request message (which carries 1 Data
+    Object), an EPR_Request message (Message Type = 01001b, Section 6.4.8, Figure 6.3) always
+    carries two 32-bit Data Objects (Number of Data Objects = 010b): Data Object 1 is the RDO
+    (referencing any SPR Object Position 0001b..0111b or EPR Object Position 1000b..1011b) and Data
+    Object 2 is a copy of the 32-bit PDO/APDO from EPR_Source_Capabilities being requested; the
+    Source verifies that the PDO in EPR_Request exactly matches the PDO in the latest
+    EPR_Source_Capabilities pointed to by Object Position, and initiates a Hard Reset if they do
+    not match (Sections 7.30.3 and 7.30.7.3). Second, even when an EPR Sink requests an SPR PDO
+    (such as 5 V at Object Position 1 prior to exiting EPR Mode), it must use EPR_Request while in
+    EPR Mode; a Source operating in EPR Mode that receives a standard Request message (Message Type
+    = 00010b) must initiate a Hard Reset (Sections 7.9.2, 7.30.5, and 7.30.7.3). Third, if a Source
+    in SPR Mode receives a standard Request message whose RDO Object Position field (Bits 31..28)
+    contains a value greater than 0111b (7), the Source must send Hard Reset signaling (Section
+    6.4.2.1.5).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '139'
+      section: 6.4.2.1.5
+    - pages: ['146', '147']
+      section: 6.4.8
+      figure: '6.3'
+    - page: '208'
+      section: 7.9.2
+    - pages: ['221', '223']
+      section: '7.30'
+
+- id: cable-plug-no-retries-and-soft-reset-always-msgid-zero
+  section: gotchas
+  title: Soft_Reset is exempt from duplicate MessageID filtering (always MessageID = 0) and Cable Plugs never retry
+  claim: >-
+    Two Protocol Layer rules require special-case handling in firmware. First, the receiver
+    duplicate-detection rule (acknowledging with GoodCRC and dropping any incoming message whose
+    MessageID matches the stored MessageID for that SOP* path) explicitly does not apply to
+    Soft_Reset (Section 7.32.3): because the sender resets its MessageIDCounter to 0 before
+    transmitting Soft_Reset (Section 7.7), a Soft_Reset message always carries MessageID = 0, so a
+    receiver whose stored MessageID is already 0 must still process Soft_Reset and reply with
+    Accept rather than dropping it as a duplicate. Second, Cable Plugs do not retry messages when a
+    GoodCRC from the VCONN Source is corrupted or lost (Section 7.32.4 and Section 8.6.2.1). In
+    addition, when a port becomes VCONN Source via VCONN_Swap, it must send an SOP' (and/or SOP'')
+    Soft_Reset before otherwise communicating with the Cable Plugs to synchronize MessageID
+    (Sections 7.1.1 and 8.6.1.2.1), whereas if an initial SOP' Discover Identity REQ receives no
+    GoodCRC response, the VCONN Source must not send an SOP' Soft_Reset because the cable may be
+    passive and not PD-capable (Section 8.6.1.2.1).
+  support:
+  - class: standard
+    doc: usb-pd-r3.2.pdf
+    at:
+    - page: '194'
+      section: 7.1.1
+    - page: '206'
+      section: '7.7'
+    - page: '239'
+      section: 7.32.3
+    - page: '239'
+      section: 7.32.4
+    - pages: ['245', '246']
+      section: 8.6.1.2.1
+    - page: '247'
+      section: 8.6.2.1
