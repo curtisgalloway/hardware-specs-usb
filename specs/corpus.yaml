@@ -70,11 +70,12 @@ documents:
   access: public
   subsystem: protocol
   disposition: "planned: no eUSB2 consumer yet"
-- name: usb-bc-1.2
-  title: Battery Charging Specification, Revision 1.2
+- name: usb-bc-1.2.pdf
+  title: Universal Serial Bus Battery Charging Specification, Revision 1.2 (with Errata through March 15, 2012)
+  sha256: f76a1d13545a9e6ff78cdf7b100f16d96b6218e1038b4f54f6d57d54aa481bd9
   access: public
   subsystem: power-delivery
-  disposition: "planned: charger detection, after the Type-C spec"
+  disposition: spec:usb-bc
 - name: ehci-1.0
   title: Enhanced Host Controller Interface Specification for Universal Serial Bus, Revision 1.0
   access: public
@@ -141,3 +142,7 @@ blocks:
   title: UCSI connector system software interface
   subsystem: type-c
   disposition: "planned: after the Type-C and PD specs"
+- name: usb-bc
+  title: USB Battery Charging (BC 1.2) port detection
+  subsystem: power-delivery
+  disposition: spec:usb-bc

@@ -1,0 +1,911 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb-bc
+name: USB Battery Charging (BC 1.2) port detection
+triggers:
+- usb-bc
+- BC 1.2
+- USB Battery Charging
+- charger detection
+- SDP CDP DCP
+resources:
+  documents:
+  - name: usb-bc-1.2.pdf
+    class: standard
+    title: Universal Serial Bus Battery Charging Specification
+    revision: Revision 1.2 (with Errata through March 15, 2012)
+    url: https://www.usb.org/document-library/battery-charging-v12-spec-and-adopters-agreement
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/BCv1.2_070312_0.zip
+    sha256: f76a1d13545a9e6ff78cdf7b100f16d96b6218e1038b4f54f6d57d54aa481bd9
+    pages: 72
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      The USB-IF document library serves the Battery Charging 1.2 package as a public zip download
+      without an account; the cited bytes are "BC1.2 plus errata 2012-3-15.pdf" inside it (the zip
+      also holds the October 2010 BC 1.2 PDF, redlines, errata and the adopters agreement). No page
+      carries a confidentiality marking. The USB-IF copyright and license terms remain applicable;
+      the bytes are not redistributed. Locators are PDF page numbers, which equal the printed page
+      numbers plus 11 in the numbered chapters (printed page 1 is PDF page 12).
+orientation: >-
+  Terms: a Portable Device (PD) is a USB 2.0-compliant device that can draw charging current from
+  USB. A Downstream Port is either a Standard Downstream Port (SDP, a normal USB 2.0 host or hub
+  port) or a Charging Downstream Port (CDP, a host or hub port that also supports the BC 1.2
+  handshake and higher current). A Dedicated Charging Port (DCP) supplies power through a USB
+  connector without enumerating a device and shorts D+ to D-. An Accessory Charger Adapter (ACA, in
+  Micro ACA and Standard ACA forms) and an ACA-Dock supply charging power while the PD acts as host
+  or peripheral via the Micro-AB ID pin. A Charging Port is a DCP, CDP, ACA-Dock or ACA. This spec
+  records the BC 1.2 port types, voltage and current limits, the Dead Battery Provision (DBP), the
+  PD charger detection sequence (VBUS Detect, Data Contact Detect, Primary Detection, Secondary
+  Detection, ACA Detection), CDP and DCP port behavior, and renegotiation rules. How a particular SoC
+  or PMIC exposes BC 1.2 detection registers belongs in that chip's spec.
+facts:
+- id: port-types
+  section: standards
+  title: Downstream Port and Charging Port types (SDP, CDP, DCP, ACA-Dock and ACA)
+  claim: >-
+    BC 1.2 groups ports into Standard Downstream Ports (SDPs) and Charging Ports. A Downstream Port
+    is an SDP or a Charging Downstream Port (CDP). An SDP complies with the USB 2.0 host or hub
+    definition, pulls D+ and D- to ground through two 15 kOhm (typical) resistors (RDP_DWN and
+    RDM_DWN, each 14.25 to 24.8 kOhm), can enumerate a connected downstream device, and requires a
+    connected PD (with a Good Battery) to draw less than 2.5 mA average (ISUSP) when unconnected or
+    suspended, up to 100 mA (IUNIT) when connected, unconfigured and not suspended, and up to
+    500 mA (ICFG_MAX) when configured for 500 mA and not suspended. A Charging Port is a DCP, CDP,
+    ACA-Dock or ACA; a PD attached to any Charging Port may draw up to IDEV_CHG (1.5 A) without
+    having to be configured or follow USB suspend rules. A CDP is a USB 2.0-compliant host or hub
+    downstream port that also supports the CDP detection handshake and current (ICDP). A DCP (used
+    in a USB Charger such as a wall or car adapter) outputs power (IDCP at an average voltage of
+    VCHG) through a USB connector, cannot enumerate a downstream device, and shorts D+ to D-. An
+    ACA-Dock is a docking station with one upstream port (a captive Micro-A plug capable of
+    sourcing ICDP to a PD) and zero or more downstream ports. An ACA is an adapter with an OTG Port
+    (captive cable terminating in a Micro-A plug), an Accessory Port (Micro-AB receptacle on a
+    Micro ACA, Standard-A receptacle on a Standard ACA) and a Charger Port (labeled "Charger Only",
+    supporting power from a Charging Port but no USB data communication), allowing a single OTG port
+    to attach to a charger and another device at the same time.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '12'
+      section: '1.2'
+    - pages: ['13', '14']
+      section: '1.4'
+    - pages: ['17', '18']
+      section: '3.1'
+    - page: '57'
+      table: '5-3'
+    - pages: ['60', '61']
+      section: '6.1'
+  todo:
+    check: document
+    text: >-
+      The remaining resistance rows of Table 5-3 (p. 57) beyond RDP_DWN and RDM_DWN are covered in
+      dcp-electrical-requirements and aca-and-aca-dock-id-detection, or omitted (ACA switch and
+      ground resistances).
+
+- id: attach-versus-connect-and-battery-thresholds
+  section: standards
+  title: Attach versus connect and Dead, Weak and Good Battery thresholds
+  claim: >-
+    A downstream device is attached to an upstream port when a physical cable joins them; it is
+    connected when it is attached and has pulled either D+ or D- high through a 1.5 kOhm resistor
+    (RDP_UP, 900 to 1575 Ohm to VDP_UP, 3.0 to 3.6 V) to enter Low-Speed, Full-Speed or High-Speed
+    signaling. The Dead Battery Threshold is the maximum battery charge level below which a device
+    is assured of not being able to power up successfully; the Weak Battery Threshold is the
+    minimum battery charge level above which a device is assured of being able to power up
+    successfully. A Dead Battery is below the Dead Battery Threshold, a Weak Battery is above the
+    Dead Battery Threshold and below the Weak Battery Threshold (and may or may not be able to
+    power up the device successfully), and a Good Battery is above the Weak Battery Threshold. A PD
+    with a Dead Battery cannot distinguish a PC from an OTG A-device and treats both the same; an
+    OTG A-device is under no obligation to supply more current than it normally would to a device
+    on its Targeted Peripheral List (TPL) and may stop driving VBUS after TA_WAIT_BCON (defined in
+    the OTG 2.0 Supplement) if the B-device does not connect.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['13', '15']
+      section: '1.4'
+    - page: '15'
+      section: '1.6'
+    - page: '55'
+      table: '5-1'
+    - page: '57'
+      table: '5-3'
+  todo:
+    check: document
+    text: >-
+      Only VDP_UP from Table 5-1 (p. 55) and RDP_UP from Table 5-3 (p. 57) are cited here; the exact
+      value of TA_WAIT_BCON in the OTG and Embedded Host Supplement Revision 2.0 is external to
+      this document and not extracted.
+
+- id: current-limits-and-superspeed
+  section: standards
+  title: Current limits across port types and USB 3.0 SuperSpeed adjustments
+  claim: >-
+    When attached to an SDP, a PD is limited to suspend current ISUSP of at most 2.5 mA (averaged
+    over 1 s) when unconnected or suspended (a compound PD may draw ISUSP plus an additional ISUSP
+    for each downstream port while attached but not connected or during suspend), unit load current
+    IUNIT of at most 100 mA (averaged over 250 ms) when unconfigured, and maximum configured
+    current ICFG_MAX of at most 500 mA when configured and not suspended. USB 3.0 SuperSpeed ports
+    may implement BC 1.2 charger detection; when a PD detects that it is attached to a SuperSpeed
+    port, IUNIT increases to 150 mA (averaged over 250 ms) and ICFG_MAX increases to 900 mA. The
+    Rated Current (current a Charging Port can output while keeping VBUS within VCHG) is ICDP of
+    1.5 A minimum to 5.0 A maximum for a CDP or ACA-Dock, and IDCP of 0.5 A minimum to 5.0 A
+    maximum for a DCP; the 5.0 A maximum on ICDP and IDCP is a USB 2.0 section 7.2.1.2.1 safety
+    limit, and the output current of a Charging Port must not exceed ICDP max (5.0 A) under any
+    condition. A PD must not draw more than IDEV_CHG max (1.5 A) from a Charging Port; on a CDP it
+    may draw up to IDEV_CHG (1.5 A) during High-Speed chirp and traffic as well as Low- and
+    Full-Speed operation, provided any PD drawing more than ICFG_MAX from a CDP and any host port
+    granting the CDP handshake support LS, FS, HS and chirp signaling with a local-to-remote ground
+    offset up to VGND_OFFSET max (375 mV, expanding the USB 2.0 common-mode range).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '14'
+      section: 1.4.11
+    - page: '15'
+      section: '1.7'
+    - page: '15'
+      section: '2.1'
+    - page: '47'
+      section: '3.5'
+    - page: '48'
+      section: 4.1.2
+    - page: '53'
+      section: 4.6.1
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+  todo:
+    check: document
+    text: >-
+      Table 5-2's DCP load-step current ranges (IDCP_LOW, IDCP_MID, IDCP_HI) are covered in
+      charging-port-voltage-and-operating-ranges, and its detection currents (IDP_SRC, IDP_SINK,
+      IDM_SINK, IID_LKG_CONT) are covered in the detection facts; other rows of Table 5-1 (p. 55)
+      beyond VGND_OFFSET are covered in the voltage and detection facts.
+
+- id: charging-port-voltage-and-operating-ranges
+  section: standards
+  title: Charging Port output voltage, operating ranges, undershoot, overshoot and shutdown
+  claim: >-
+    A Charging Port's normal output voltage VCHG is 4.75 V to 5.25 V, averaged over TVBUS_AVG (at
+    most 250 ms). Across all Charging Ports (CDP, ACA-Dock, DCP and ACA): the output voltage must
+    never exceed VCHG_OVRSHT (6.0 V max) for any load-current step or when powering on or off; must
+    remain within VCHG_FAIL (-0.3 V to 9.0 V) under any single-point failure; in a multi-port
+    device each Charging Port must stay within its Required Operating Range regardless of the other
+    ports; and when a PD's current draw drives a Charging Port outside its Required Operating
+    Range, any form of shutdown is allowed (including turning off VBUS, constant-current limiting
+    or foldback current limiting). A CDP and an ACA-Dock share the same Required Operating Range
+    and undershoot rules: they must output VCHG (4.75 to 5.25 V) for all currents below ICDP min
+    (1.5 A), may shut down for load currents above ICDP min, and must keep output voltage at or
+    above VCHG_UNDSHT (4.1 V min) for any step change in load current below ICDP min; if a CDP
+    shuts down on a current overload, it must recover and output VCHG within TSHTDWN_REC (at most
+    2 min) after the overload is removed. A DCP must output VCHG for all currents below IDCP min
+    (0.5 A), must not shut down when load current is below IDEV_CHG (1.5 A) and load voltage is
+    above VDCP_SHTDWN (2.0 V max), and may shut down for load currents above IDEV_CHG max (1.5 A)
+    or load voltages below VDCP_SHTDWN (2.0 V max). For DCP load steps from IDCP_LOW (at most
+    30 mA) to IDCP_MID (30 to 100 mA) or from IDCP_MID to IDCP_HI (at least 100 mA, occurring at
+    least TDCP_LD_STP = 20 ms min after the low-to-mid transition), DCP output voltage must stay at
+    or above VCHG_UNDSHT (4.1 V min) for an undershoot duration of TDCP_UNDSHT (at most 10 ms); for
+    a direct step from IDCP_LOW to IDCP_HI, a DCP's output voltage may drop to the attached PD's
+    load voltage for TDCP_UNDSHT (at most 10 ms) and must then be at VCHG for load currents below
+    IDCP min. A PD must not draw more than IDEV_CHG max (1.5 A) from a Charging Port, must not pull
+    a Charging Port's output voltage below VDCP_SHTDWN max (2.0 V), and when drawing power through
+    an ACA must limit its current so VBUS_OTG remains above VACA_OPR min (4.1 V; VACA_OPR is 4.1 to
+    6.0 V).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '48'
+      section: '4.1'
+    - pages: ['49', '50']
+      section: '4.2'
+    - page: '50'
+      section: '4.3'
+    - pages: ['51', '52']
+      section: '4.4'
+    - page: '53'
+      section: 4.6.1
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '59'
+      table: '5-5'
+    - page: '62'
+      section: 6.2.2
+    - pages: ['69', '70']
+      section: 6.3.1
+  todo:
+    check: document
+    text: >-
+      Section 4.5.1's dependence of ACA OTG Port voltage on RACA_CHG_OTG and Accessory Port current
+      (p. 52), Figure 4-3 Note 1 on cable IR drop to 4.50 V at 500 mA (p. 53), and the detection
+      voltage and timing rows of Tables 5-1, 5-2 and 5-5 (covered in the detection facts) are not
+      repeated here.
+
+- id: dead-battery-provision-unconfigured
+  section: programming-model
+  title: Dead Battery Provision — Unconfigured Clause (before SetConfiguration)
+  claim: >-
+    Only devices that can operate stand-alone from internal battery power are allowed to use the
+    Dead Battery Provision (DBP). Under the DBP Unconfigured Clause—which covers both the time a PD
+    is attached and not connected and the time it is connected and not yet configured (until it
+    receives a SET_CONFIGURATION command from the host)—a PD with a Dead or Weak Battery may draw
+    up to IUNIT (100 mA max averaged over 250 ms, or 150 mA on a SuperSpeed port) from a Downstream
+    Port, provided it meets four conditions: (1) while attached and not connected, it enables
+    VDP_SRC (0.5 to 0.7 V) on D+ within TDBP_ATT_VDPSRC (at most 1 s) of attach and connects within
+    TDBP_VDPSRC_CON (at most 1 s) of disabling VDP_SRC (PDs are required to drive D+ to VDP_SRC
+    whenever they draw more than ISUSP while attached and not connected, allowing an SDP that
+    senses VDP_SRC to manage its power states); (2) if the PD is not ready to connect and be
+    enumerated within TSVLD_CON_WKB (at most 45 min) after attach, it reduces its current draw to
+    ISUSP (2.5 mA max averaged over 1 s); (3) it uses the current to power up and enumerate, or
+    reach the Weak Battery Threshold and enumerate, as soon as possible, and does not use DBP
+    current for unrelated tasks (such as charging beyond the Weak Battery Threshold, making a phone
+    call, playing a song, video or game, or establishing a wireless connection); and (4) it passes
+    the USB-IF compliance inrush test.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '14'
+      section: 1.4.13
+    - pages: ['15', '16']
+      section: '2.2'
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VDP_SRC from Table 5-1 (p. 55), IUNIT and ISUSP from Table 5-2 (p. 56), and
+      TDBP_ATT_VDPSRC, TDBP_VDPSRC_CON and TSVLD_CON_WKB from Table 5-5 (p. 59) are cited here;
+      other rows of those tables are covered in other facts.
+
+- id: dead-battery-provision-configured
+  section: programming-model
+  title: Dead Battery Provision — Configured Clause (after SetConfiguration)
+  claim: >-
+    Under the DBP Configured Clause, a PD with a Dead or Weak Battery that has been configured by
+    an SDP may draw its configured current (up to ICFG_MAX: 500 mA on USB 2.0, 900 mA on SuperSpeed)
+    without having to pass USBCV compliance tests, provided it meets seven requirements: (1) it
+    responds to any USB tokens addressed to it with a NAK or any other valid USB response; (2) upon
+    receiving a USB reset, it reduces its current to IUNIT (or disconnects, in which case it may
+    use the DBP Unconfigured Clause); (3) upon receiving a USB suspend, it either remains connected
+    and reduces its current to ISUSP, or disconnects (and while disconnected may use the DBP
+    Unconfigured Clause); (4) after TDBP_FUL_FNCTN (at most 15 min) from attach, it either remains
+    connected and able to pass USBCV, or disconnects (and while disconnected may use the DBP
+    Unconfigured Clause); (5) it uses the current to reach the Weak Battery Threshold and provide
+    full USB functionality as soon as possible, without performing unrelated tasks (charging beyond
+    the Weak Battery Threshold, making a phone call, playing a song, video or game, or establishing
+    a wireless connection); (6) it provides full USB functionality immediately upon reaching the
+    Weak Battery Threshold if that occurs before TDBP_FUL_FNCTN after attach; and (7) it informs
+    the user within TDBP_INFORM (at most 1 min) of attach that it is charging and not available for
+    other functions.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['16', '17']
+      section: '2.3'
+    - page: '56'
+      table: '5-2'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only ICFG_MAX, IUNIT and ISUSP from Table 5-2 (p. 56) and TDBP_FUL_FNCTN and TDBP_INFORM from
+      Table 5-5 (p. 59) are cited here; other rows of those tables are covered in other facts.
+
+- id: vbus-detect-and-comparator-thresholds
+  section: programming-model
+  title: VBUS session-valid detection (`VOTG_SESS_VLD`), internal comparator thresholds and connect time
+  claim: >-
+    Each PD must have a session-valid comparator that detects when VBUS exceeds its internal
+    session-valid threshold, which must lie within VOTG_SESS_VLD (0.8 V to 4.0 V). Likewise, a PD's
+    internal comparator thresholds for data detection and logic levels must lie within VDAT_REF
+    (0.25 V to 0.4 V) and VLGC (0.8 V to 2.0 V, separating VLGC_LOW of 0 to 0.8 V from VLGC_HI of
+    2.0 to 3.6 V); in the detection algorithms the PD compares VBUS, D+ and D- against its own
+    internal thresholds rather than against the minimum or maximum limits of VOTG_SESS_VLD,
+    VDAT_REF or VLGC. A powered-up peripheral must connect to a USB host within TSVLD_CON_PWD (at
+    most 1 s) of detecting VBUS above VOTG_SESS_VLD (and a PD attached to a DCP must enable VDP_SRC
+    or pull D+ high through RDP_UP within TSVLD_CON_PWD of attach), whereas a PD with a Weak
+    Battery reaching the end of the Good Battery Algorithm may delay for up to TSVLD_CON_WKB (at
+    most 45 min) before connecting or applying a bus reset on every exit except the direct DCP/CDP
+    connect branch.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '19'
+      section: 3.2.2
+    - page: '20'
+      section: 3.2.3.1
+    - pages: ['39', '40']
+      section: 3.3.1
+    - pages: ['41', '42']
+      section: 3.3.2
+    - pages: ['46', '47']
+      section: 3.4.2
+    - page: '55'
+      table: '5-1'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VOTG_SESS_VLD, VDAT_REF, VLGC, VLGC_LOW and VLGC_HI from Table 5-1 (p. 55) and
+      TSVLD_CON_PWD and TSVLD_CON_WKB from Table 5-5 (p. 59) are cited here; other rows of those
+      tables are covered in other facts.
+
+- id: data-contact-detect
+  section: programming-model
+  title: Data Contact Detect (DCD) current source (`IDP_SRC`), debounce (`TDCD_DBNC`) and timeout (`TDCD_TIMEOUT`)
+  claim: >-
+    Because USB power pins make contact before data pins during plug insertion (delays over 200 ms
+    have been observed), running Primary Detection before data contact would cause a PD to
+    misclassify a DCP as an SDP and limit itself to ISUSP while waiting for an enumeration that
+    never arrives. Upon detecting VBUS above VOTG_SESS_VLD, every PD must start a DCD timer of
+    TDCD_TIMEOUT (300 ms to 900 ms). Implementing the DCD current source IDP_SRC (7 to 13 uA on D+)
+    is optional: a PD without DCD waits at least TDCD_TIMEOUT min (300 ms) after attach before
+    starting Primary Detection. To run DCD, the PD enables IDP_SRC on D+ and enables either RDM_DWN
+    (14.25 to 24.8 kOhm pull-down) or IDM_SINK (25 to 175 uA) on D-. While nothing is attached to
+    D+, IDP_SRC is sized to hold D+ at VLGC_HI (2.0 to 3.6 V) against worst-case PD data-line
+    leakage (modeled as RDAT_LKG of at least 300 kOhm to VDAT_LKG of 0 to 3.6 V); once the data
+    pins make contact with an SDP or CDP, the upstream port's RDP_DWN (14.25 to 24.8 kOhm) pulls D+
+    down to VLGC_LOW (0 to 0.8 V) against IDP_SRC and worst-case leakage. When D+ has remained at
+    VLGC_LOW for TDCD_DBNC (at least 10 ms)—or when ID has been non-floating (ID != RID_FLOAT) for
+    TDCD_DBNC on a PD supporting ACA Detection, or when TDCD_TIMEOUT expires first—the PD turns off
+    IDP_SRC and the D- pull-down/sink and proceeds to Primary Detection (or directly to an ACA
+    state if ID != RID_FLOAT for TDCD_DBNC).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['20', '24']
+      section: 3.2.3
+    - pages: ['41', '42']
+      section: 3.3.2
+    - pages: ['43', '45']
+      section: 3.4.1
+    - pages: ['53', '54']
+      section: 4.6.2
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '57'
+      table: '5-3'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VDAT_LKG, VLGC, VLGC_HI, VLGC_LOW and VOTG_SESS_VLD from Table 5-1 (p. 55), IDP_SRC,
+      IDM_SINK and ISUSP from Table 5-2 (p. 56), RDAT_LKG, RDP_DWN, RDM_DWN and RID_FLOAT from
+      Table 5-3 (p. 57), and TDCD_DBNC and TDCD_TIMEOUT from Table 5-5 (p. 59) are cited here;
+      other rows of those tables are covered in other facts.
+
+- id: primary-detection
+  section: programming-model
+  title: Primary Detection (sourcing `VDP_SRC` on D+ and comparing D- to `VDAT_REF`)
+  claim: >-
+    Primary Detection is mandatory for every PD and distinguishes an SDP from a Charging Port. The
+    PD enables VDP_SRC (0.5 V to 0.7 V; able to source at least 250 uA when D+ is between 0.5 V and
+    0.7 V, and required not to pull D+ below 2.2 V when D+ is pulled to VDP_UP through RDP_UP) on
+    D+ and IDM_SINK (25 to 175 uA; required to pull D- to VDAT_SINK of at most 0.15 V for source
+    currents below IDM_SINK min, and not sink more than IDM_SINK max for D- voltages below VLGC
+    max) on D-, keeps VDP_SRC enabled for TVDPSRC_ON (at least 40 ms), and compares the D- voltage
+    against VDAT_REF (0.25 V to 0.4 V). On an SDP, RDM_DWN pulls D- below VDAT_REF, so with ID =
+    RID_FLOAT the PD classifies the port as an SDP (limiting draw to ISUSP until enumerated). On a
+    DCP (which shorts D+ to D- through RDCP_DAT of at most 200 Ohm) or a CDP (which drives VDM_SRC
+    of 0.5 to 0.7 V on D-), D- rises above VDAT_REF, so with ID = RID_FLOAT the PD classifies the
+    port as a DCP or CDP and may draw up to IDEV_CHG (1.5 A). When ID = RID_FLOAT, a PD may
+    optionally also compare D- against VLGC (0.8 V to 2.0 V) and require VDAT_REF < D- < VLGC to
+    classify a port as DCP/CDP (treating D- > VLGC as an SDP): this prevents drawing IDEV_CHG from
+    a PS/2 port (which pulls D+ and D- high), at the expense of treating proprietary chargers that
+    pull D+ and D- high as SDPs.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['25', '29']
+      section: 3.2.4
+    - pages: ['41', '42']
+      section: 3.3.2
+    - pages: ['46', '47']
+      section: 3.4.2
+    - pages: ['53', '54']
+      section: 4.6.2
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '57'
+      table: '5-3'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VDP_SRC, VDM_SRC, VDAT_REF, VDAT_SINK, VDP_UP and VLGC (and Notes 1-2) from Table 5-1
+      (p. 55), IDM_SINK, IDEV_CHG and ISUSP (and Note 3) from Table 5-2 (p. 56), RDCP_DAT, RDM_DWN,
+      RDP_UP and RID_FLOAT from Table 5-3 (p. 57), and TVDPSRC_ON from Table 5-5 (p. 59) are cited
+      here; other rows of those tables are covered in other facts.
+
+- id: secondary-detection
+  section: programming-model
+  title: Secondary Detection (sourcing `VDM_SRC` on D- and comparing D+ to `VDAT_REF` to separate DCP and CDP)
+  claim: >-
+    Secondary Detection distinguishes a DCP from a CDP after Primary Detection reports a DCP/CDP
+    with ID = RID_FLOAT. A PD that is ready to be enumerated within TSVLD_CON_PWD (at most 1 s) of
+    detecting VBUS may bypass Secondary Detection and immediately connect; a PD that is not ready
+    to be enumerated within TSVLD_CON_PWD is required to implement and run Secondary Detection. To
+    perform Secondary Detection, the PD disables VDP_SRC and IDM_SINK, enables VDM_SRC (0.5 V to
+    0.7 V; able to source at least 250 uA at 0.5 to 0.7 V, and required not to pull D- below 2.2 V
+    when D- is pulled to VDP_UP through RDP_UP) on D- and IDP_SINK (25 to 175 uA; pulls D+ to
+    VDAT_SINK of at most 0.15 V for source currents below IDP_SINK min, and sinks at most IDP_SINK
+    max below VLGC max) on D+, waits TVDMSRC_ON (at least 40 ms), and compares D+ against VDAT_REF
+    (0.25 V to 0.4 V); comparing D+ to VLGC is not required during Secondary Detection. If D+ >
+    VDAT_REF (because a DCP shorts D+ to D- through RDCP_DAT), the PD is attached to a DCP: it
+    disables VDM_SRC, enables either VDP_SRC or RDP_UP (to VDP_UP) on D+ within TSVLD_CON_PWD (1 s
+    max) of attach while maintaining D+ > VDAT_REF as long as VBUS is asserted, and may draw up to
+    IDEV_CHG (1.5 A). If D+ < VDAT_REF (because a CDP does not short D+ to D- and pulls D+ low
+    through RDP_DWN), the PD is attached to a CDP: it disables VDM_SRC (and VDP_SRC), leaves both
+    D+ and D- low until it is ready to connect and be enumerated, and may draw up to IDEV_CHG
+    (1.5 A).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['33', '36']
+      section: 3.2.5
+    - pages: ['41', '42']
+      section: 3.3.2
+    - pages: ['46', '47']
+      section: 3.4.2
+    - pages: ['53', '54']
+      section: 4.6.2
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '57'
+      table: '5-3'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VDM_SRC, VDP_SRC, VDAT_REF, VDAT_SINK, VDP_UP and VLGC from Table 5-1 (p. 55), IDP_SINK,
+      IDM_SINK and IDEV_CHG from Table 5-2 (p. 56), RDCP_DAT, RDP_DWN, RDP_UP and RID_FLOAT from
+      Table 5-3 (p. 57), and TVDMSRC_ON and TSVLD_CON_PWD from Table 5-5 (p. 59) are cited here;
+      other rows of those tables are covered in other facts.
+
+- id: cdp-detection-signaling-and-timing
+  section: programming-model
+  title: Charging Downstream Port (CDP) detection signaling modes and timing
+  claim: >-
+    A CDP has a Standard-A receptacle and must never output VDM_SRC on D- from the time a
+    peripheral connects until the peripheral disconnects. While no peripheral is connected, a CDP
+    must operate in one of two modes: (1) always-on while disconnected, in which the CDP enables
+    VDM_SRC (0.5 to 0.7 V) on D- within TCP_VDM_EN (at most 200 ms) of a disconnect and disables
+    VDM_SRC within TCP_VDM_DIS (at most 10 ms) of a connect, without needing to enable IDP_SINK or
+    compare D+ to VDAT_REF; or (2) D+-gated during Primary Detection, in which the CDP compares D+
+    against VDAT_REF (0.25 to 0.4 V) and VLGC (0.8 to 2.0 V) (with IDP_SINK enabled on D+), enables
+    VDM_SRC on D- within TVDMSRC_EN (at most 20 ms) when D+ rises into the range VDAT_REF < D+ <
+    VLGC, disables VDM_SRC within TVDMSRC_DIS (at most 20 ms) when D+ falls below VDAT_REF or rises
+    above VLGC (and within TCP_VDM_DIS = 10 ms max on connect), and disables IDP_SINK within
+    TCON_IDPSNK_DIS (at most 10 ms) of detecting that the PD has connected. Comparing D+ against
+    VLGC is mandatory in mode 2 so the CDP turns off VDM_SRC when the PD pulls D+ high to connect.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '13'
+      section: 1.4.4
+    - pages: ['27', '28']
+      section: 3.2.4.2
+    - pages: ['46', '47']
+      section: 3.4.2
+    - page: '50'
+      section: 4.2.4
+    - page: '50'
+      section: 4.2.5
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VDM_SRC, VDAT_REF and VLGC from Table 5-1 (p. 55), IDP_SINK from Table 5-2 (p. 56), and
+      TCP_VDM_EN, TCP_VDM_DIS, TVDMSRC_EN, TVDMSRC_DIS and TCON_IDPSNK_DIS from Table 5-5 (p. 59)
+      are cited here; other rows of those tables are covered in other facts.
+
+- id: dcp-electrical-requirements
+  section: programming-model
+  title: Dedicated Charging Port (DCP) data-line short (`RDCP_DAT`), leakage and capacitance
+  claim: >-
+    A DCP has either a Standard-A receptacle or a captive cable terminating in a Micro-B plug (in a
+    captive-cable DCP, the cable may omit D+ and D- wires and short the D+ and D- pins inside the
+    Micro-B plug). Across D+ and D-, a DCP must present a resistance of RDCP_DAT (at most 200 Ohm).
+    The leakage current on the D+ and D- pins of a DCP must not exceed the leakage that would flow
+    from two resistances of RDAT_LKG (at least 300 kOhm each) tied to a voltage of VDAT_LKG (0 V to
+    3.6 V), and the capacitance from D+ or D- to VBUS or GND in a DCP must be CDCP_PWR (at most
+    1 nF).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '14'
+      section: 1.4.7
+    - pages: ['17', '18']
+      section: '3.1'
+    - page: '25'
+      section: 3.2.4.1
+      figure: '3-6'
+    - page: '52'
+      section: 4.4.3
+    - page: '52'
+      section: 4.4.4
+    - page: '55'
+      table: '5-1'
+    - page: '57'
+      table: '5-3'
+    - page: '58'
+      table: '5-4'
+  todo:
+    check: document
+    text: >-
+      Table 5-4's remaining two rows—Micro ACA VBUS capacitance CMACA_VBUS (10 to 100 nF) and
+      Standard ACA VBUS capacitance CSACA_VBUS (10 to 100 nF), p. 58, for OTG 2.0 Attach Detection
+      Protocol (ADP)—and the non-DCP rows of Tables 5-1 and 5-3 are not extracted in this fact.
+
+- id: aca-and-aca-dock-id-detection
+  section: programming-model
+  title: ACA and ACA-Dock detection via ID pin resistances (`RID_A`, `RID_B`, `RID_C`, `RID_GND`, `RID_FLOAT`) and D-
+  claim: >-
+    ACA Detection is optional and supported only by PDs with a Micro-AB receptacle; a PD that
+    supports ACA Detection must implement the Good Battery Algorithm and monitor the ID pin
+    resistance throughout the entire time VBUS is above VOTG_SESS_VLD, accounting for ground-drop
+    offsets across ROTG_ACA_GND (at most 100 mOhm between OTG ground and ACA ground when IDEV_CHG
+    or ICFG_MAX flows) and up to IID_LKG_CONT (-1 to +1 uA) of ID pin contamination leakage. Five
+    ID resistance ranges to ground (measured by the ACA when VBUS_CHG is at VACA_OPR of 4.1 to
+    6.0 V for RID_A/B/C or at VBUS_LKG of at most 0.7 V for RID_FLOAT/GND, and when ID_OTG is at
+    VDAT_LKG of 0 to 3.6 V) are distinguished: RID_GND (at most 1 kOhm: B-device attached directly
+    or via an uncharged ACA; PD acts as A-device and drives VBUS), RID_C (36 to 37 kOhm, nominal
+    36.5 kOhm: Micro ACA with a Charging Port and a powered A-device on its Accessory Port; PD acts
+    as B-device, may draw up to IDCP/IDEV_CHG, may connect, and must not initiate SRP), RID_B (67
+    to 69 kOhm, nominal 68 kOhm: Micro ACA with a Charging Port and either nothing or an unpowered
+    A-device on its Accessory Port; PD acts as B-device, may draw up to IDCP/IDEV_CHG, may initiate
+    SRP, and must not connect / assert D+), RID_A (122 to 126 kOhm, nominal 124 kOhm: ACA-Dock, or
+    Micro ACA with a Charging Port and a B-device, or Standard ACA with a Charging Port; PD acts as
+    A-device/host while drawing charging current from VBUS), and RID_FLOAT (at least 220 kOhm: ID
+    floating). If ID is not RID_FLOAT for TDCD_DBNC (at least 10 ms), the PD may leave DCD early,
+    and if ID is RID_B or RID_C it may proceed directly to the ACA-B or ACA-C state without running
+    Primary Detection or asserting VDP_SRC. When ID is RID_A, the PD must run Primary Detection
+    after attach and before connect and compare D- against both VDAT_REF (0.25 to 0.4 V) and VLGC
+    (0.8 to 2.0 V): D- < VDAT_REF indicates an ACA-A with a Full-Speed (or High-Speed or no)
+    B-device on its Accessory Port (current budget IDCP shared with the accessory); VDAT_REF < D- <
+    VLGC indicates an ACA-Dock (which pulls D+ to VDP_UP of 3.0 to 3.6 V through RDP_UP of 900 to
+    1575 Ohm when VBUS > VOTG_SESS_VLD, enables VDM_SRC on D- after D+/- have been at idle J for
+    TCP_VDM_EN of at most 200 ms, and disables VDM_SRC within TCP_VDM_DIS of at most 10 ms of any
+    D+/- activity; current budget ICDP); and D- > VLGC indicates an ACA-A with a Low-Speed B-device
+    (which pulls D- to VLGC_HI) on its Accessory Port (current budget IDCP shared with the
+    accessory).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '13'
+      section: '1.4'
+    - pages: ['30', '31']
+      section: 3.2.4.4
+    - pages: ['32', '33']
+      section: 3.2.4.5
+    - pages: ['36', '38']
+      section: 3.2.6
+    - pages: ['41', '42']
+      section: 3.3.2
+    - page: '50'
+      section: '4.3'
+    - pages: ['52', '53']
+      section: '4.5'
+    - pages: ['53', '54']
+      section: '4.6'
+    - page: '55'
+      table: '5-1'
+    - page: '56'
+      table: '5-2'
+    - page: '57'
+      table: '5-3'
+    - page: '59'
+      table: '5-5'
+    - page: '64'
+      section: 6.2.4
+      table: '6-2'
+    - page: '71'
+      section: 6.3.3
+      table: '6-4'
+  todo:
+    check: document
+    text: >-
+      Table 5-3's internal ACA VBUS switch resistances (RACA_CHG_ACC <= 400 mOhm, RACA_OTG_ACC <=
+      200 mOhm, RADP_OTG_ACC <= 25 Ohm and Note 5, RACA_CHG_OTG <= 200 mOhm; p. 57) and the full
+      per-row switch-state matrices of Table 6-1 (p. 62), Table 6-2 (p. 64), Table 6-3 (p. 70) and
+      Table 6-4 (p. 71) beyond PD-visible ID_OTG and role outcomes are not extracted.
+
+- id: pd-aca-state-machine
+  section: programming-model
+  title: Portable Device 7-state machine for OTG, ACA and ACA-Dock operation
+  claim: >-
+    A PD that supports ACA Detection tracks VBUS, ID resistance and D- across seven states (Figure
+    6-4): State 1 (!Chg & !Acc, !VBUS, RID_FLOAT) when unattached or attached to a partner that
+    neither drives VBUS nor pulls ID low; State 2 (Chg & Dock, VBUS, RID_A, VDM_SRC on D-) when
+    attached to a powered ACA-Dock, returning to State 1 if detached or if the ACA-Dock removes
+    VBUS; State 3 (!Chg & A, VBUS, RID_FLOAT) when attached directly to an A-device (SDP, CDP or
+    DCP) or to a Micro ACA with a powered A-device on its Accessory Port and no charger on its
+    Charger Port, drawing current from the A-device (up to IDEV_CHG if it is a CDP or DCP); State 4
+    (Chg & A, VBUS, RID_C) when attached to a Micro ACA with a Charging Port on its Charger Port
+    and a powered A-device on its Accessory Port (PD acts as B-device, may connect, must not do
+    SRP, and charges from the Charger Port); State 5 (Chg & !Acc, VBUS, RID_B) when attached to a
+    Micro ACA with a Charging Port on its Charger Port and nothing or an unpowered A-device on its
+    Accessory Port (PD acts as B-device, must not connect, may initiate SRP, and charges from the
+    Charger Port); State 6 (Chg & B, VBUS, RID_A without VDM_SRC) when attached to a Micro ACA with
+    a Charging Port and a B-device on its Accessory Port, or a Standard ACA with a Charging Port
+    (PD acts as A-device/host while drawing power from VBUS, limiting its draw so VBUS_OTG stays
+    above VACA_OPR min of 4.1 V); and State 7 (!Chg & B, !VBUS from partner, RID_GND) when attached
+    directly to a B-device or to an ACA with no Charging Port and a B-device (or a Standard ACA
+    with no Charging Port). State 7 is the only state in which the PD is required to output power
+    on VBUS; in States 2 through 6 the PD draws power from VBUS.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '62'
+      section: 6.2.2
+    - page: '64'
+      section: 6.2.4
+      table: '6-2'
+    - pages: ['67', '68']
+      section: 6.2.7
+      figure: '6-4'
+    - page: '71'
+      section: 6.3.3
+      table: '6-4'
+  todo:
+    check: document
+    text: >-
+      The ACA-internal VBUS_ACC, ID_ACC, Charger Switch and Accessory Switch columns (including
+      ADP-pass) of Table 6-2 (p. 64) and Table 6-4 (p. 71) are not extracted.
+
+- id: detection-renegotiation-and-repeat
+  section: programming-model
+  title: Charger detection renegotiation via VBUS cycling and PD repeat detection
+  claim: >-
+    A downstream port is allowed to act as an SDP, CDP or DCP and change between those roles. To
+    force an attached PD to repeat the charger detection procedure, the downstream port must stop
+    driving VBUS, allow VBUS to fall below VBUS_LKG (0.7 V max), wait for at least TVBUS_REAPP
+    (100 ms min) with VBUS below VBUS_LKG, and then start driving VBUS again. To detect this drop in
+    VBUS, a PD must discharge its VBUS input below VBUS_LKG (0.7 V max) within TVLD_VLKG (at most
+    500 ms from when VBUS is no longer driven) whenever VBUS is removed. A PD is also allowed to
+    disconnect and repeat the charger detection process multiple times while remaining attached,
+    provided it waits at least TCP_VDM_EN max (200 ms) between disconnecting and restarting the
+    charger detection process.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '48'
+      section: 4.1.3
+    - page: '54'
+      section: 4.6.3
+    - page: '55'
+      table: '5-1'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VBUS_LKG from Table 5-1 (p. 55) and TVBUS_REAPP, TVLD_VLKG and TCP_VDM_EN from Table 5-5
+      (p. 59) are cited here; other rows of those tables are covered in other facts.
+
+- id: weak-battery-detection-algorithm
+  section: programming-model
+  title: Weak Battery charger detection algorithm
+  claim: >-
+    A PD with a Weak Battery may implement the optional Weak Battery Algorithm (Figure 3-14), any
+    other algorithm that complies with the Dead Battery Provision (DBP), or the Good Battery
+    Algorithm subject to DBP rules. In the Weak Battery Algorithm, once VBUS exceeds VOTG_SESS_VLD,
+    the PD drives D+ to VDP_SRC, starts a timer for TSVLD_CON_WKB (45 min max; required under DBP
+    to enable VDP_SRC within TDBP_ATT_VDPSRC of at most 1 s of attach), and checks whether D- >
+    VDAT_REF (optionally also requiring D- < VLGC to avoid charging from PS/2 ports and some
+    proprietary chargers) or, if ACA Detection is supported, ID != RID_FLOAT. If that condition
+    holds, the PD classifies the port as a Charging Port and may draw up to IDEV_CHG (1.5 A;
+    labeled IDCP in Figure 3-14 and IDEV_CHG in section 3.3.1's text). Otherwise it treats the port
+    as an SDP and draws up to IUNIT (100 mA, or 150 mA on SuperSpeed) while waiting to become ready
+    to connect: if it becomes ready to connect before TSVLD_CON_WKB expires, it transitions to the
+    Good Battery Algorithm; if TSVLD_CON_WKB expires first, it must reduce its current draw to
+    ISUSP (2.5 mA max).
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['15', '16']
+      section: '2.2'
+    - pages: ['39', '40']
+      section: 3.3.1
+      figure: '3-14'
+    - page: '41'
+      section: 3.3.2
+
+- id: dcd-timeout-mandatory-without-dcd
+  section: gotchas
+  title: The DCD timeout (`TDCD_TIMEOUT`) is mandatory even when DCD hardware is omitted or fails
+  claim: >-
+    Although the Data Contact Detect current source (IDP_SRC) is optional for a PD, the DCD timeout
+    timer (TDCD_TIMEOUT, 300 ms to 900 ms) is mandatory for all PDs. A PD that omits IDP_SRC must
+    wait at least TDCD_TIMEOUT min (300 ms) after attach before starting Primary Detection, and a
+    PD that implements IDP_SRC must still proceed to Primary Detection within TDCD_TIMEOUT max
+    (900 ms) after attach if pin contact is not detected on D+ (D+ < VLGC for TDCD_DBNC) or ID (ID
+    != RID_FLOAT for TDCD_DBNC)—because DCD cannot pull D+ low when attached to an ACA-Dock, a DCP
+    with excessive leakage current, an ACA with a charger and a Full-Speed or High-Speed B-device
+    on its Accessory Port, a PS/2 port that pulls D+ high, or a proprietary charger that pulls D+
+    high.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '20'
+      section: 3.2.3.1
+    - pages: ['41', '42']
+      section: 3.3.2
+    - pages: ['43', '45']
+      section: 3.4.1
+      figure: '3-18'
+    - pages: ['53', '54']
+      section: 4.6.2
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only TDCD_TIMEOUT and TDCD_DBNC from Table 5-5 (p. 59) are cited here; other timing rows of
+      Table 5-5 are covered in other facts.
+
+- id: pd-must-hold-dp-high-on-dcp-but-low-on-cdp
+  section: gotchas
+  title: After Secondary Detection, a PD must drive D+ high on a DCP but keep D+ and D- low on a CDP until connecting
+  claim: >-
+    At the end of Secondary Detection a PD must always disable VDM_SRC on D-, but the required idle
+    state of D+ before USB connection is opposite on a DCP and a CDP: when Secondary Detection
+    identifies a CDP (D+ < VDAT_REF), the PD must turn off both VDP_SRC and VDM_SRC and leave both
+    D+ and D- low until it is ready to connect (pulling D+ or D- high through RDP_UP) and be
+    enumerated; when Secondary Detection (or Primary Detection) identifies a DCP, the PD must
+    enable VDP_SRC or pull D+ to VDP_UP through RDP_UP within TSVLD_CON_PWD (1 s max) of attach and
+    maintain D+ > VDAT_REF for the entire time VBUS remains asserted. Any vendor-specific detection
+    branches added after the final BC 1.2 detection step must also keep D+ > VDAT_REF while
+    attached to a DCP.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['34', '35']
+      section: 3.2.5.1
+    - pages: ['35', '36']
+      section: 3.2.5.2
+    - pages: ['41', '42']
+      section: 3.3.2
+      figure: '3-15'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only TSVLD_CON_PWD from Table 5-5 (p. 59) is cited here; other timing rows of Table 5-5 are
+      covered in other facts.
+
+- id: repeat-detection-requires-cdp-recovery-wait
+  section: gotchas
+  title: Repeating charger detection without waiting `TCP_VDM_EN` max or discharging VBUS can miss a CDP
+  claim: >-
+    A PD that disconnects and repeats charger detection while remaining attached must wait at least
+    TCP_VDM_EN max (200 ms) between disconnecting and restarting charger detection; restarting
+    sooner can catch a disconnect-gated CDP before it has re-enabled VDM_SRC on D- (which takes up
+    to TCP_VDM_EN = 200 ms after disconnect), causing the PD to misclassify the CDP as an SDP.
+    Conversely, when a downstream port initiates renegotiation by turning off VBUS until VBUS <
+    VBUS_LKG (0.7 V max) for TVBUS_REAPP (100 ms min), a PD that fails to discharge its own VBUS
+    input below VBUS_LKG within TVLD_VLKG (500 ms max) may not see VBUS drop below VOTG_SESS_VLD
+    and fail to re-run charger detection.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - page: '27'
+      section: 3.2.4.2
+    - page: '48'
+      section: 4.1.3
+    - page: '54'
+      section: 4.6.3
+    - page: '55'
+      table: '5-1'
+    - page: '59'
+      table: '5-5'
+  todo:
+    check: document
+    text: >-
+      Only VBUS_LKG and VOTG_SESS_VLD from Table 5-1 (p. 55) and TCP_VDM_EN, TVBUS_REAPP and
+      TVLD_VLKG from Table 5-5 (p. 59) are cited here; other rows of those tables are covered in
+      other facts.
+
+- id: aca-dock-unpowered-id-and-dp-bias-hazards
+  section: gotchas
+  title: An unpowered ACA-Dock must float ID (`RID_FLOAT`), and PD `VDP_SRC` must not pull an ACA-Dock's D+ below 2.2 V
+  claim: >-
+    An ACA-Dock presents RID_A (122 to 126 kOhm) on ID only while it is powered and driving VBUS,
+    and must present RID_FLOAT (at least 220 kOhm) when it is not powered; if an unpowered ACA-Dock
+    instead grounded ID while not driving VBUS, an attached PD would enter State 7 (!Chg & B) and
+    attempt to drive VBUS into the ACA-Dock. Furthermore, because a powered ACA-Dock pulls D+ to
+    VDP_UP (3.0 to 3.6 V) through RDP_UP (900 to 1575 Ohm) and disables VDM_SRC on D- within
+    TCP_VDM_DIS (10 ms max) of any activity on D+ or D-, a PD's VDP_SRC on D+ (and VDM_SRC on D-)
+    must not pull the line below 2.2 V (above VLGC_HI min of 2.0 V) when the line is pulled to
+    VDP_UP through RDP_UP; otherwise turning on VDP_SRC during Primary Detection would look like D+
+    activity to the ACA-Dock and cause it to turn off VDM_SRC before the PD samples D-.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['30', '31']
+      section: 3.2.4.4
+    - page: '55'
+      table: '5-1'
+    - page: '57'
+      table: '5-3'
+    - page: '59'
+      table: '5-5'
+    - pages: ['67', '68']
+      section: 6.2.7
+      figure: '6-4'
+  todo:
+    check: document
+    text: >-
+      Only VDP_UP, VDP_SRC, VDM_SRC and VLGC_HI (and Notes 1-2) from Table 5-1 (p. 55), RID_A,
+      RID_FLOAT and RDP_UP from Table 5-3 (p. 57), and TCP_VDM_DIS from Table 5-5 (p. 59) are cited
+      here; other rows of those tables are covered in other facts.
+
+- id: aca-charger-port-ground-offset-and-usb-reset
+  section: gotchas
+  title: An ACA must keep its Charger Switch closed across ground-offset dips on `DN_CHG` and CDP bus resets
+  claim: >-
+    When a Micro ACA or Standard ACA detects VBUS_CHG asserted on its Charger Port, it outputs
+    VDP_SRC on DP_CHG and closes its Charger Switch if DN_CHG > VDAT_REF (because it does not check
+    whether DN_CHG < VLGC, an ACA attached to a PS/2 port can draw more than ICFG_MAX from the PS/2
+    port). Once the Charger Switch is closed, if the Charger Port is attached to a CDP, charging
+    currents can drop the CDP ground below the ACA ground enough to pull DN_CHG below the ACA's
+    VDAT_REF, or the CDP can issue a USB reset; the ACA must ignore both conditions and keep its
+    Charger Switch closed for as long as VBUS_CHG remains above VOTG_SESS_VLD, re-checking DN_CHG >
+    VDAT_REF only after VBUS_CHG drops below VOTG_SESS_VLD.
+  support:
+  - class: standard
+    doc: usb-bc-1.2.pdf
+    at:
+    - pages: ['65', '66']
+      section: 6.2.6
+    - page: '72'
+      section: 6.3.5
