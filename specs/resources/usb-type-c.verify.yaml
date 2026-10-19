@@ -3,7 +3,7 @@
 format: 2
 spec: usb-type-c
 spec_file: usb-type-c.spec.yaml
-spec_sha256: 349bc5d0fed8bc809d97003f93f5a7acc8b92f96129077418eb06e930e05be22
+spec_sha256: 4f4be301079c4428a12b5c0d57f04f9e7bb926b6a61f4adc63c1de968c1885a4
 canonical: fact-v1
 sources:
 - name: usb-type-c-2.5.pdf
@@ -13,7 +13,7 @@ sources:
   note: The PDF inside the USB-IF zip download; each reader checked the SHA-256 and extracted page
     text itself with pdftotext.
 summary:
-  pass: 24
+  pass: 36
   fail: 0
   unverifiable: 0
   gap: 0
@@ -454,4 +454,226 @@ verdicts:
       a resistor Rd once able to do PD, without taking CC outside the connection band (Table 4-28
       Note 1, p. 245)."'
     contrary_evidence: found
+    citation_precision: exact
+  accessory-sink-states:
+    basis: 41c7deb1f66709a9fd2c23aeefe91fd3f075ea255d7390cbca93135b05cd97f6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Sections 4.5.2.2.14 (p. 191), 4.5.2.2.15 (p. 191), 4.5.2.2.20 (pp. 193-194),
+      4.5.2.2.21 (p. 194), and Table 4-32 (p. 247, Section 4.11.2). Confirmed Unattached.Accessory
+      equivalence to Unattached.SRC except Attached.SRC is not supported, no VBUS or VCONN driven,
+      Rp per Table 4-27 on CC1 and CC2, transition to AttachWait.Accessory within
+      tOnePortToggleConnect on SRC.Ra + SRC.Rd, and exit to Unattached.SNK within tDRPTransition
+      after dcSRC.DRP * tDRP or when directed. Confirmed AttachWait.Accessory exits to
+      Unattached.SNK on SRC.Open for tCCDebounce or to Powered.Accessory on concurrent SRC.Rd +
+      SRC.Ra for tCCDebounce. Confirmed Powered.Accessory orientation detection on entry from
+      SRC.Rd, 1.5 A or 3.0 A Rp advertisement, VCONN supplied within tVCONNON-PA (0 to 100 ms,
+      Table 4-32), no VBUS driven, initial USB PD Source/DFP role, VPA Alternate Mode entry vs SOP'
+      VPD identity query, and exits to Unattached.SNK, Try.SNK, Unsupported.Accessory (on
+      tAMETimeout), or CTUnattached.SNK, ceasing VCONN within tVCONNOFF (at most 35 ms, Table 4-32)
+      unless entering CTUnattached.SNK. Confirmed Unsupported.Accessory Default USB Power Rp, no
+      VBUS/VCONN, user notification, and exit to Unattached.SNK on SRC.Open.
+    contrary_evidence: none-found
+    citation_precision: exact
+  liquid-corrosion-mitigation:
+    basis: 99c8f8c9c720218ba46ed54ae3dc631818c6140ad9ca261ee5f6a7b4cb4bc1bc
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Appendix A.1 (p. 352) and A.2 (pp. 352-353), Section 4.5.2.2.2.2 (p. 180), Section
+      4.5.2.2.16 (pp. 191-192), and Table 4-29 (p. 246). Confirmed Liquid Corrosion Mitigation Mode
+      is an optional normative mode replacing Audio Adapter Accessory Mode on Ra/Ra that reduces
+      corrosion by forcing bias voltages as close to 0 V as possible, enters CorrosionMitigation
+      via ErrorRecovery after tErrorRecovery when directed, and exits back to ErrorRecovery when
+      liquid is no longer detected. Confirmed CorrosionMitigation requirements (no VBUS or VCONN,
+      non-CC pins open or pulled low, and either pulling both CC1 and CC2 low with resistance <=
+      Maximum Impedance of Ra = 1.2 kOhm in Table 4-29, preferably stronger than Ra, or pulling one
+      CC pin low while keeping the other above zOPEN and swapping on SNK.Rp) and partner Source/DRP
+      behavior keeping VBUS and VCONN at 0 V.
+    contrary_evidence: none-found
+    citation_precision: exact
+  debug-accessory-target-states:
+    basis: 3e80cad973fa126b2cc838b21aecdcb718c837ba3276d2e73501315b47b9ccff
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Sections 4.5.2.2.4.2 (p. 182), 4.5.2.2.8.2 (p. 186), 4.5.2.2.17 (p. 192),
+      4.5.2.2.18 (pp. 192-193), 4.5.2.2.19 (p. 193), B.2.3.1 (p. 362), and B.2.4.1 (p. 365).
+      Confirmed DAM is for debug only and never for commercial products, VCONN is never driven by
+      any DTS or TS in any state, and Rp/Rp or Rd/Rd detection requires a DTS plug (captive cable
+      or direct-attach device) and a TS receptacle because a standard cable passes only one CC
+      wire. Confirmed UnorientedDebugAccessory.SRC, OrientedDebugAccessory.SRC, and
+      DebugAccessory.SNK entry conditions, CC terminations, VBUS rules, orientation and signal
+      connection ordering, initial DFP/Source USB PD role once VBUS reaches vSafe5V in
+      OrientedDebugAccessory.SRC, and detach transitions.
+    contrary_evidence: none-found
+    citation_precision: exact
+  debug-accessory-dts-and-orientation:
+    basis: e29d8985090661c89af828b9e876cd9f425b0972ce798e98c64ea5d955c381e6
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Section B.2.2 and Table B-1 (p. 362), Section B.2.3 (p. 362), Section B.2.4.1 (pp.
+      365-369), Section B.2.4.2 and Table B-2 (pp. 369-371), Section B.2.4.3 and Table B-3 (p.
+      371), and Section B.2.6 (p. 380). Confirmed all 8 DTS states in Table B-3, DTS DRP preference
+      for Source via TryDeb.SRC from AttachWaitDeb.SNK, Table B-1 non-functional combinations and
+      Note 1, Table B-2 asymmetric Rp values on CC1 and CC2 (3 A + 1.5 A for Default USB Power, 1.5
+      A + Default for 1.5 A @ 5 V, 3 A + Default for 3 A @ 5 V), TS Sink power sub-states
+      (PowerDefaultDeb.SNK, Power1.5Deb.SNK, Power3.0Deb.SNK) with tRpValueChange and tSinkAdj, TS
+      Source equal Rp rule, DTS Sink Section 4.5.2.3 sub-states, and B.2.6.1.1/B.2.6.1.2
+      orientation detection (DTS two-step Rd/Rd then <= Ra on B5/CC2 in AttachedDeb.SNK, TS
+      selecting the CC pin with the greater voltage).
+    contrary_evidence: none-found
+    citation_precision: exact
+  vpa-and-vpd-operation:
+    basis: 25c6e42236d6db7896d53f0da7de51cd375fa48e390e4a2450f5b67b3e305ef7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Table 4-7 (p. 156), Table 4-8 (p. 157), Sections 4.5.2.2.4.2 (p. 182), 4.5.2.2.5.1
+      (pp. 182-183), 4.5.2.2.5.2 (p. 183), 4.5.2.2.9.1 (p. 187), and 4.10/4.10.1/4.10.2 (p. 243).
+      Confirmed VPA and VPD direct-attach Sink operation on VCONN alone, Ra on VCONN and Rd on CC,
+      AttachWait.SNK to Attached.SNK transition on VCONN or VBUS without waiting tCCDebounce, VPD
+      detach requiring both VBUS < vSinkDisconnect and VCONN < vVCONNDisconnect, Source VBUS
+      removal in Attached.SRC when a VPD is discovered on SOP', VPA Alternate Mode / tAMETimeout /
+      Billboard rules and Table 4-7 power limits, VPD UFP / SOP'-only / Hard Reset and Cable Reset
+      rules and Table 4-8 power limits, and shared electrical and timing parameters (vVCONNValid
+      3.0 to 5.5 V, 10 uF inrush, iRaDetect = 10 mA, tRaWeaken <= 1.2 s, vVCONNDisconnect 1.0 to
+      2.4 V, vRaReconnect >= 800 mV, vVCONNDischarge <= 800 mV, tVCONNDischarge <= 230 ms).
+    contrary_evidence: none-found
+    citation_precision: exact
+  ctvpd-device-states:
+    basis: 8b21a8b3ed4d777a66ca94d504516547eab82564bcdcf01892d3f876ae1df512
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Sections 4.5.2.2.3 (pp. 180-181), 4.5.2.2.4 (pp. 181-182), 4.5.2.2.5 (pp. 182-184),
+      4.5.2.2.22 (pp. 194-195), 4.5.2.2.23 (pp. 195-196), 4.5.2.2.24 (p. 196), 4.5.2.2.25 (p. 197),
+      Section 4.10.2 and Tables 4-25 and 4-26 (pp. 243-244), Table 4-33 (p. 249), and Table 4-34
+      (p. 250). Confirmed initial host attach through Unattached.SNK, AttachWait.SNK, and
+      Attached.SNK, Charge-Through Support Timer and tAMETimeout Billboard requirement, exit to
+      CTUnattached.VPD after SNK.Open for tVPDCTDD (30 us to 5 ms, Table 4-34), CTUnattached.VPD
+      and CTAttachWait.VPD requirements (ICCS/ICCSH VBUS monitoring, 3.0 A Rp on Host-side CC, SOP'
+      Discover Identity responder meeting cReceiver, Rd on Charge-Through CC1/CC2, CCTB 1 to 10 uF
+      in Table 4-26), CTAttached.VPD ordered 5-step sequence within tVPDDetach minimum (10 ms,
+      Table 4-33) with RccCON <= 15 Ohm enabled / >= zOPEN disabled (Table 4-25), return to
+      CTUnattached.VPD on VBUS < vSinkDisconnect and SNK.Open for tVPDCTDD, and VCONN <
+      vVCONNDisconnect transitions to Unattached.SNK or CTDisabled.VPD (tVPDDisable >= 25 ms, Table
+      4-34).
+    contrary_evidence: none-found
+    citation_precision: exact
+  ctvpd-unsupported-states:
+    basis: c8fc4ab2472a51746f40016b83b3f22f2fe474ec00f6858d9be1fc56958b4cc5
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    note: >-
+      Verified against Figure 4-18 (p. 178), Section 4.5.2.2.22.2 (p. 195), Section 4.5.2.2.28 (pp.
+      198-199), Section 4.5.2.2.29 (p. 199), Section 4.5.2.2.30 (pp. 199-200), Section 4.5.2.2.31
+      (p. 200), and Section 4.5.3.1.8 Case 6 (p. 221). Confirmed CTVPD does not support Sinks or
+      DAM on its Charge-Through port, toggles between CTUnattached.VPD and CTUnattached.Unsupported
+      using tDRP, dcSRC.DRP, and tDRPTransition, transitions through CTAttachWait.Unsupported and
+      CTTry.SNK (tDRPTry, tTryCCDebounce, tDRPTryWait) to either CTAttached.VPD or
+      CTAttached.Unsupported (which presents Default USB Power Rp on Charge-Through CC1/CC2 and a
+      USB Billboard interface), returns to CTUnattached.VPD on SRC.Open on both Charge-Through CC
+      pins or SRC.Open + SRC.Ra, and returns to Unattached.SNK from all four states when VCONN
+      falls below vVCONNDisconnect or is removed.
+    contrary_evidence: none-found
+    citation_precision: exact
+  ctvpd-host-states-and-limits:
+    basis: 80b5e60ec6a8caf56f9ac09c2fda63dc33b048abc0f14a5d9afb6174e58628cf
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    note: >-
+      Verified against Sections 4.5.2.2.5.2 (pp. 183-184), 4.5.2.2.9.2 (p. 188), 4.5.2.2.20.2 (p.
+      194), 4.5.2.2.26 (p. 197), 4.5.2.2.27 (pp. 197-198), Section 4.6.2.5 and Tables 4-21 and 4-22
+      (pp. 230-231), Section 4.10.2 (pp. 243-244), and Table 4-33 (p. 249). Confirmed entry to
+      CTUnattached.SNK from Attached.SRC or Powered.Accessory on SOP' Discover Identity (and
+      Attached.SNK exit via TryWait.SRC or Unattached.SRC/Unattached.Accessory), CTUnattached.SNK
+      requirements and direct transition to CTAttached.SNK on VBUS detection (no intermediate
+      CTAttachWait.SNK because the CTVPD already debounced the passed-through CC pin) or exit to
+      Unattached.SNK after tVPDDetach (10 to 20 ms, Table 4-33), CTAttached.SNK Sink Power
+      Sub-States, detach thresholds, USB PD and BC 1.2 restrictions, and Section 4.6.2.5 / Tables
+      4-21 and 4-22 current-limit formulas using VPD_GND_DCR (1-mOhm steps) and VPD_VBUS_DCR
+      (2-mOhm steps) with Icable = 3 A or 5 A (when a USB PD Source Capability PDO > 3 A is
+      received).
+    contrary_evidence: none-found
+    citation_precision: exact
+  emarker-requirements-and-discovery:
+    basis: d17fcb780a556548a0044b538725848922fbccd1a0b3cacd770738e9178f3a8d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    note: >-
+      Verified against Sections 3.4.1.1 (p. 83), 3.4.2.1 (p. 84), 3.4.3 (p. 84), 3.4.4 (p. 85),
+      3.11.2 (p. 148), Table 4-6 (p. 155), Section 4.9 (pp. 239-242), Section 4.9.1 and Table 4-24
+      (p. 242), Section 4.9.2 (pp. 242-243), Section 6.1.1 (p. 278), and Section 6.2.3.1 (p. 316).
+      Confirmed mandatory eMarker rules for Full-Featured Type-C cables, USB 2.0 cables rated > 3 A
+      (optional at <= 3 A), EPR (50 V, 5 A) cables, active cables, and captive-cable or thumb-drive
+      devices (Sink, UFP or DRP) sinking > 3 A or supporting USB4. Confirmed SOP' Discover Identity
+      and Active Cable VDO / Get_Status rules on SOP' and SOP'', pre-contract Sourcing Device SOP'
+      discovery vs post-contract VCONN Source exclusivity, VCONN-only cable power (except OIACs in
+      Section 6.3) and switching from VBUS to VCONN within tVCONNSwitch <= teMarkerReady (50 ms
+      max, Table 4-24), and VCONN isolation elements vs dual-end SOP' eMarkers (Figures 4-42 and
+      4-43).
+    contrary_evidence: none-found
+    citation_precision: exact
+  emarker-and-ra-state-machines:
+    basis: ac0b3edbe08af2652b4533286a8890ad42431f23f6308ac68140aa7b54d35490
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Table 4-6 and accompanying prose (p. 155), Section 4.5.2.4 (pp. 202-204), Section
+      4.5.2.5 (pp. 204-205), Section 4.9 (pp. 239-242), and Section 4.9.1 / Table 4-24 (p. 242).
+      Confirmed Cable eMarker State Machine (eMarker Power On to eMarker Communications Ready
+      within teMarkerReady <= 50 ms, fixed non-dynamic SOP'/SOP'' assignment, and return to eMarker
+      Power On on Hard Reset, Cable Reset, or Power On Reset when VCONN < vVCONNDisconnect or a
+      direct-connect device becomes unattached), Cable Ra Management State Machine (independent per
+      plug end, Ra Applied within tRaReconnect <= 1 ms, transition to Ra Weakened after VCONN >
+      vVCONNDisconnect for tRaWeaken of 21 ms to 1.2 s, and return to Ra Applied when VCONN <
+      vVCONNDisconnect), and Table 4-6 electrical and power limits (vVCONNValid 3.0 to 5.5 V, 10 uF
+      inrush, iRaDetect = 10 mA, 20 mW passive cable limit after tRaWeaken and 75 mW during
+      tRaWeaken, vVCONNDischarge <= 800 mV, tVCONNDischarge <= 230 ms).
+    contrary_evidence: none-found
+    citation_precision: exact
+  dam-equal-rp-no-orientation:
+    basis: 278b239d6ca5b00838e7f358799b4fb8749d4b71ea47dd78b03f2ecec6d937a8
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Sections 4.5.2.2.17 (p. 192), 4.5.2.2.18 (pp. 192-193), Section 4.5.2.6 / Table 4-18
+      (p. 205), Section B.2.3 (p. 362), Section B.2.4.2.1 / Table B-2 (p. 369), and Section B.2.6
+      (p. 380). Confirmed that DAM orientation detection relies on asymmetric CC voltages (Table
+      B-2 distinct Rp values from a DTS Source, or <= Ra pull-down on B5/CC2 in AttachedDeb.SNK
+      from a DTS Sink against a TS Source's equal standard Rp values), and that without this
+      asymmetry a TS Source remains in UnorientedDebugAccessory.SRC where orientation-sensitive
+      debug signals cannot be connected and USB PD communication is not permitted.
+    contrary_evidence: none-found
+    citation_precision: exact
+  vconn-shutoff-and-swap-rules:
+    basis: 1b87f5e2e2192607cd3135a19055612e27188c541e6c2181e5e24779b5bf7da9
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    note: >-
+      Verified Section 4.4.3 and Tables 4-4 and 4-5 (pp. 153-154), Section 4.5.2.2.5.1 (pp.
+      182-183), Section 4.5.2.2.9.1 (p. 187), Section 4.11.2 and Table 4-32 (p. 247), and Section
+      6.2.4 (p. 316). Confirmed all conditions under which a Source may remove VCONN (no Ra after
+      tCCDebounce, no GoodCRC to SOP' Discover Identity, or per Table 4-4 after reading the eMarker
+      for a >3 A Source without TX/RX or VPD support at 100 mW min, or when the eMarker shows the
+      cable is not a VPD and Cable Termination Type is 00b for a Source with TX/RX or VPD support
+      at 1 W / 1.5 W), make-before-break VCONN_Swap timing (tVCONNON <= 2 ms, tVCONNOFF <= 35 ms),
+      PR_Swap and DR_Swap preserving the VCONN source, and Fast Role Swap dropping active-cable USB
+      3.2 signaling if VCONN is not maintained.
+    contrary_evidence: none-found
     citation_precision: exact

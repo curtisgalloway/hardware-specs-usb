@@ -36,13 +36,17 @@ orientation: >-
   Terms: a Source supplies VBUS power and a Sink consumes it; a DRP (Dual-Role-Power port) can
   be either. The two CC (Configuration Channel) pins, CC1 and CC2, carry the terminations that
   detect attach and orientation: the Source's pull-up Rp (or current source), the Sink's
-  pull-down Rd and a powered cable's Ra. VCONN powers electronics in a cable plug. vRd is the
-  voltage a Sink sees across its Rd. This spec records the generic connection-detection model of
-  the standard: the CC terminations and their values, the CC pin states, the main Source, Sink
-  and DRP states, their timing and the Sink's current tracking. USB Power Delivery messaging
-  over CC, accessory and Charge-Through VPD states, cable eMarkers and the connector's
-  mechanical and electrical requirements are out of its scope so far. How a particular board
-  wires a Type-C port (which controller, which TCPC, which pins) belongs in that board's spec.
+  pull-down Rd and a powered cable's Ra. VCONN powers electronics in a cable plug or a
+  VCONN-Powered Device (VPD). vRd is the voltage a Sink sees across its Rd. This spec records
+  the generic connection-detection and state-machine model of the standard: the CC terminations
+  and their values, the CC pin states, the main Source, Sink and DRP states, their timing and
+  the Sink's current tracking, Accessory Modes (Audio Adapter and Powered Accessories), Liquid
+  Corrosion Mitigation Mode, Debug Accessory Mode (DAM and DTS), VCONN-Powered and
+  Charge-Through VCONN-Powered Devices (VPDs and CTVPDs), and electronically marked cable
+  (eMarker) and Ra management. Detailed USB Power Delivery wire-protocol framing and the
+  connector's mechanical and high-speed signal-integrity requirements are out of its scope. How
+  a particular board wires a Type-C port (which controller, which TCPC, which pins) belongs in
+  that board's spec.
 facts:
 - id: cc-purposes
   section: standards
@@ -496,6 +500,550 @@ facts:
       power row, the Rdch range, and the cable-side VCONN characteristics of Table 4-6 (p. 155)
       are not extracted.
 
+- id: accessory-sink-states
+  section: programming-model
+  title: Sink accessory states (Unattached.Accessory, AttachWait.Accessory, Powered.Accessory and Unsupported.Accessory)
+  claim: >-
+    A Sink with accessory support uses Unattached.Accessory (functionally equivalent to
+    Unattached.SRC in a DRP, except that Attached.SRC is not supported) and AttachWait.Accessory
+    to detect VCONN-Powered Accessories (VPAs): in both states it drives neither VBUS nor VCONN
+    and sources current independently on CC1 and CC2 with Rp per Table 4-27. From
+    Unattached.Accessory, a VPA-supporting port moves to AttachWait.Accessory within at most
+    tOnePortToggleConnect when one CC pin is SRC.Ra and the other is SRC.Rd; otherwise it
+    returns to Unattached.SNK within tDRPTransition after dcSRC.DRP times tDRP, or when
+    directed. From AttachWait.Accessory it returns to Unattached.SNK if either CC pin is
+    SRC.Open for at least tCCDebounce, and enters Powered.Accessory if it supports VPAs and one
+    CC pin is SRC.Rd while the other is SRC.Ra concurrently for at least tCCDebounce. In
+    Powered.Accessory (powering a VPA or VCONN-Powered USB Device), the port determines
+    orientation only on entry from the SRC.Rd pin, advertises 1.5 A or 3.0 A Rp on that pin and
+    monitors it, drives no VBUS, supplies VCONN on the unused CC pin within tVCONNON-PA (0 to
+    100 ms), and initially operates as a USB PD Source with a DFP data role—using USB PD either
+    to establish an explicit contract and Structured VDMs to identify a VPA and enter an
+    Alternate Mode, or to query a VPD's identity on SOP'. It leaves Powered.Accessory for
+    Unattached.SNK on SRC.Open on the monitored CC pin, for Try.SNK if the partner is not a VPA
+    or VPD, for Unsupported.Accessory if a VPA has not entered an Alternate Mode within
+    tAMETimeout, or (when Charge-Through VPD is supported) for CTUnattached.SNK once Discover
+    Identity identifies a Charge-Through VPD (which may be delayed for further SOP'
+    communication), stopping VCONN within tVCONNOFF (0 to 35 ms) unless entering
+    CTUnattached.SNK. In Unsupported.Accessory it drives neither VBUS nor VCONN, advertises
+    Default USB Power Rp on the single SRC.Rd pin and monitors it, notifies the user that the
+    attached accessory or device is not recognized or supported, and returns to Unattached.SNK
+    when SRC.Open is detected on the monitored CC pin.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '191'
+      section: 4.5.2.2.14
+    - page: '191'
+      section: 4.5.2.2.15
+    - pages: ['193', '194']
+      section: 4.5.2.2.20
+    - page: '194'
+      section: 4.5.2.2.21
+    - page: '247'
+      section: 4.11.2
+      table: '4-32'
+  todo:
+    check: document
+    text: >-
+      The remaining rows of Table 4-32 (tVBUSON, tVBUSOFF, tVsafe0V, tBulkDischarge, tVCONNON
+      and tSinkAdj, p. 247) are covered by other facts or not repeated here.
+
+- id: liquid-corrosion-mitigation
+  section: programming-model
+  title: Liquid Corrosion Mitigation Mode (CorrosionMitigation state and Appendix A)
+  claim: >-
+    Liquid Corrosion Mitigation Mode (Appendix A, which replaced the deprecated Audio Adapter
+    Accessory Mode on Ra/Ra) is an optional normative mode that reduces electrolytic pin
+    corrosion when liquid bridges connector pins by removing or pulling bias voltages as close
+    to 0 V as possible. When liquid is detected, a port is directed into CorrosionMitigation by
+    first passing through ErrorRecovery (exiting ErrorRecovery to CorrosionMitigation after
+    tErrorRecovery when directed, and exiting CorrosionMitigation back to ErrorRecovery when
+    directed once liquid is no longer detected). In CorrosionMitigation the port reconfigures
+    its pins per Appendix A, drives neither VBUS nor VCONN, keeps non-CC pins open or pulled
+    low, and implements one of two CC behaviors: (1) pull both CC1 and CC2 low with a resistance
+    at or below the maximum impedance of Ra in Table 4-29 (1.2 kOhm, and preferably stronger
+    than Ra), or (2) pull only one CC pin low while keeping the other open (above zOPEN),
+    monitoring the open CC pin and swapping the pull-down and open between CC1 and CC2 whenever
+    SNK.Rp is detected on the open pin. A Source or DRP partner connected to a port in
+    CorrosionMitigation moves to AttachWait.SRC (two Ra detected), stays in Unattached.SRC
+    (Source seeing one Ra), or continues DRP toggling (DRP seeing one Ra), keeping VBUS and
+    VCONN at 0 V until the partner leaves CorrosionMitigation.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '180'
+      section: 4.5.2.2.2.2
+    - pages: ['191', '192']
+      section: 4.5.2.2.16
+    - pages: ['352', '353']
+      section: A.1
+    - pages: ['352', '353']
+      section: A.2
+  todo:
+    check: document
+    text: >-
+      The example liquid-detection methods (leakage, pulsed and impedance measurements, Table
+      A-1) and non-normative connector liquid-detection pin/pad placement guidance of Sections
+      A.3 and A.4 (pp. 354-361) are not extracted.
+
+- id: debug-accessory-target-states
+  section: programming-model
+  title: Target System Debug Accessory Mode states (UnorientedDebugAccessory.SRC, OrientedDebugAccessory.SRC and DebugAccessory.SNK)
+  claim: >-
+    Debug Accessory Mode (DAM, Appendix B) is for debug only and must not be used for
+    communicating with commercial products; neither a Debug and Test System (DTS) nor a Target
+    System (TS) drives VCONN in any state, and because a standard Type-C cable passes only one
+    CC wire, detecting Rp/Rp or Rd/Rd requires the DTS to be a captive cable or direct-attach
+    plug mated to a TS receptacle. A DAM-capable TS Source or DRP enters
+    UnorientedDebugAccessory.SRC from AttachWait.SRC when VBUS is at vSafe0V and SRC.Rd is
+    detected on both CC1 and CC2 for at least tCCDebounce: it provides Rp (Table 4-27) on both
+    CC1 and CC2, supplies VBUS at the current its Rp advertises, drives no VCONN, may connect
+    non-orientation-specific debug signals only after entry, and moves to
+    OrientedDebugAccessory.SRC if orientation is required and detected per Section B.2.6.1.2. In
+    OrientedDebugAccessory.SRC the TS connects orientation-specific debug signals (keeping
+    non-orientation-specific signals connected) and, if needed, initiates USB PD as initial
+    DFP/Source only after entry and once VBUS reaches vSafe5V; both UnorientedDebugAccessory.SRC
+    and OrientedDebugAccessory.SRC exit to Unattached.SRC (for a Source) or Unattached.SNK (for
+    a DRP) when SRC.Open is detected on either CC1 or CC2. A DAM-capable TS Sink or DRP enters
+    DebugAccessory.SNK from AttachWait.SNK when both CC1 and CC2 are SNK.Rp for at least
+    tCCDebounce and VBUS is detected (riding through brief USB PD SNK.Open pulses on one CC pin
+    up to tPDDebounce): it drives neither VBUS nor VCONN, provides Rd (Table 4-28) on both CC1
+    and CC2, determines orientation if supported per Section B.2.6.1.1 and connects debug
+    signals only after entry, and exits to Unattached.SNK when VBUS is no longer present.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '182'
+      section: 4.5.2.2.4.2
+    - page: '186'
+      section: 4.5.2.2.8.2
+    - page: '192'
+      section: 4.5.2.2.17
+    - pages: ['192', '193']
+      section: 4.5.2.2.18
+    - page: '193'
+      section: 4.5.2.2.19
+    - page: '362'
+      section: B.2.3.1
+    - page: '365'
+      section: B.2.4.1
+  todo:
+    check: document
+    text: >-
+      The non-DAM exit rules of AttachWait.SNK (4.5.2.2.4.2, p. 182) and AttachWait.SRC
+      (4.5.2.2.8.2, p. 186) are covered by the general Sink and Source attach facts and not
+      repeated here.
+
+- id: debug-accessory-dts-and-orientation
+  section: programming-model
+  title: DTS state machine, asymmetric Rp current table and DAM orientation detection
+  claim: >-
+    A Debug and Test System (DTS) port uses the UnattachedDeb.SRC, AttachWaitDeb.SRC,
+    AttachedDeb.SRC, UnattachedDeb.SNK, AttachWaitDeb.SNK, AttachedDeb.SNK, TryDeb.SRC and
+    TryWaitDeb.SNK states (Table B-3), with a DTS DRP entering TryDeb.SRC from AttachWaitDeb.SNK
+    so that it favors the Source role when connected to a TS DRP; a DTS Source to TS Source
+    connection and a DTS Sink to TS Sink (with or without accessory support) connection are
+    non-functional and must not harm either port (Table B-1). A DTS Source presents asymmetric
+    Rp values on its plug's CC1 and CC2 pins (weaker resistance on CC2) per Table B-2 both to
+    indicate orientation and to advertise VBUS current: Rp for 3 A on CC1 and Rp for 1.5 A on
+    CC2 for Default USB Power, Rp for 1.5 A on CC1 and Rp for Default on CC2 for 1.5 A at 5 V,
+    and Rp for 3 A on CC1 and Rp for Default on CC2 for 3.0 A at 5 V. A TS Sink in
+    DebugAccessory.SNK tracks these advertisements in PowerDefaultDeb.SNK, Power1.5Deb.SNK and
+    Power3.0Deb.SNK after both vRd voltages are stable for tRpValueChange (reducing consumption
+    within tSinkAdj when the advertisement drops), whereas a TS Source instead presents the same
+    standard Rp value on both CC1 and CC2 (tracked by a DTS Sink using the normal Sink Power
+    Sub-States of Section 4.5.2.3). When optional normative orientation detection is used, the
+    DTS always initiates it: as a Source via the asymmetric Rp pair of Table B-2, or as a Sink
+    by first presenting Rd/Rd to enter DAM and then, upon entering AttachedDeb.SNK, presenting a
+    resistance to ground of at most Ra on B5 (CC2). The TS (in DebugAccessory.SNK after both vRd
+    voltages are stable for tRpValueChange, or in OrientedDebugAccessory.SRC after SRC.Ra is
+    detected on one CC pin) selects the CC pin with the greater voltage as the plug CC pin and
+    the USB PD CC communication wire, and must not perform USB PD communication or connect
+    orientation-sensitive debug signals until orientation is determined.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '362'
+      section: B.2.2
+      table: B-1
+    - page: '362'
+      section: B.2.3
+    - pages: ['365', '369']
+      section: B.2.4.1
+    - pages: ['369', '371']
+      section: B.2.4.2
+      table: B-2
+    - page: '371'
+      section: B.2.4.3
+      table: B-3
+    - page: '380'
+      section: B.2.6
+  todo:
+    check: document
+    text: >-
+      The step-by-step DTS-to-TS and DTS-to-non-DAM-TS interoperability walkthroughs (Section
+      B.2.5, pp. 371-380), the DTS ErrorRecovery fallback details (B.2.4.1.1, p. 365) and the
+      security/privacy certification assertions (Section B.3, pp. 380-381) are not extracted.
+
+- id: vpa-and-vpd-operation
+  section: programming-model
+  title: Direct-attach VCONN-Powered Accessories (VPAs) and VCONN-Powered USB Devices (VPDs)
+  claim: >-
+    VCONN-Powered Accessories (VPAs) and VCONN-Powered USB Devices (VPDs) are direct-attach
+    Sinks that can operate from VCONN alone, exposing at most Ra to ground on their VCONN pin
+    and Rd on their CC pin. In AttachWait.SNK either may transition to Attached.SNK as soon as
+    VCONN or VBUS is detected without waiting tCCDebounce; when VBUS is absent they treat the
+    application of VCONN as attach and the removal of VCONN as detach (a VPD in Attached.SNK
+    returns to Unattached.SNK only when VBUS is below vSinkDisconnect and VCONN is below
+    vVCONNDisconnect, and a Source in Attached.SRC that discovers a VPD on SOP' may remove VBUS
+    and discharge it to vSafe0V while staying in Attached.SRC with VCONN applied). A VPA
+    implements an Alternate Mode, responds to USB PD on SOP, and when powered only by VCONN must
+    negotiate an Alternate Mode within tAMETimeout or its partner removes VCONN (when VBUS is
+    supplied, it must present a USB Billboard Device Class interface if Alternate Mode
+    negotiation fails); under Table 4-7 it draws at most 35 mW before Alternate Mode entry (75
+    mW max for the first 500 ms after VCONN is applied, reduced 5 s after VCONN is applied if no
+    Alternate Mode entry has occurred). A VPD implements a USB UFP endpoint, responds only to
+    USB PD messaging on SOP' (plus Hard Reset and Cable Reset signaling) and never on SOP, and
+    therefore cannot enter Alternate Modes or negotiate PR_Swap, DR_Swap or VCONN_Swap; under
+    Table 4-8 it draws at most 35 mW before USB enumeration (75 mW max for the first 500 ms) and
+    at most 500 mW (USB 2.0) or 750 mW (USB 3.2) when active, exposing only a low-power USB
+    interface. Both require vVCONNValid of 3.0 to 5.5 V, present at most 10 uF inrush
+    capacitance, draw at most iRaDetect = 10 mA below vVCONNValid, weaken or remove Ra within
+    tRaWeaken (at most 1.2 s) after VCONN enters vVCONNValid, detect VCONN disconnect at
+    vVCONNDisconnect (1.0 to 2.4 V), reapply Ra when VCONN falls below vRaReconnect (800 mV
+    min), and discharge VCONN below vVCONNDischarge (800 mV max) within tVCONNDischarge (230 ms
+    max) on disconnect.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '156'
+      table: '4-7'
+    - page: '157'
+      table: '4-8'
+    - pages: ['182', '183']
+      section: 4.5.2.2.4.2
+    - pages: ['182', '183']
+      section: 4.5.2.2.5.1
+    - page: '183'
+      section: 4.5.2.2.5.2
+    - page: '187'
+      section: 4.5.2.2.9.1
+    - page: '243'
+      section: '4.10'
+    - page: '243'
+      section: 4.10.1
+    - page: '243'
+      section: 4.10.2
+  todo:
+    check: document
+    text: >-
+      VPA charge-through re-regulation (4.10.1, p. 243) and the non-VPD rules of Sections
+      4.5.2.2.4, 4.5.2.2.5 and 4.5.2.2.9 are covered by other facts or not extracted here.
+
+- id: ctvpd-device-states
+  section: programming-model
+  title: Charge-Through VPD device-side state machine and host-port Rd/Rp switching
+  claim: >-
+    For initial host attach, a Charge-Through VCONN-Powered USB Device (CTVPD) uses
+    Unattached.SNK, AttachWait.SNK and Attached.SNK (entering Attached.SNK after its Host-side
+    CC pin is SNK.Rp for at least tCCDebounce and host-side VCONN or VBUS is detected): in
+    Attached.SNK it isolates its Host-side and Charge-Through ports, presents Rd on Host-side CC
+    and above zOPEN on Charge-Through CC1 and CC2, responds only to SOP' queries, and starts a
+    Charge-Through Support Timer (presenting a USB Billboard interface if it does not exit
+    Attached.SNK within tAMETimeout). Once VCONN is present and the Host-side CC pin is SNK.Open
+    for tVPDCTDD (30 us to 5 ms, Table 4-34) because the Charge-Through-capable host removed
+    VBUS and switched to Rd, the CTVPD enters CTUnattached.VPD: it isolates both ports (powered
+    by VCONN and drawing at most ICCS for USB 3.2 or ICCSH for USB 2.0 from VBUS for
+    monitoring), removes Rd on Host-side CC and applies an Rp advertising 3.0 A (signaling
+    continued connection without advertising VBUS current), responds only to SOP' Discover
+    Identity on Host-side CC (meeting cReceiver), terminates Charge-Through CC1 and CC2 to
+    ground through Rd, and provides CCTB (1 to 10 uF, Table 4-26) bypass capacitance on
+    Charge-Through VBUS. When SNK.Rp is detected on exactly one Charge-Through CC pin (debug
+    accessories are not supported on the Charge-Through port), the CTVPD enters CTAttachWait.VPD,
+    keeping its 3.0 A Rp on Host-side CC and Rd on Charge-Through CC1 and CC2 and completing any
+    active SOP' query; it returns to CTUnattached.VPD if both Charge-Through CC pins are
+    SNK.Open for at least tPDDebounce, or enters CTAttached.VPD once one Charge-Through CC pin
+    has been SNK.Rp for at least tCCDebounce and Charge-Through VBUS is detected. On entering
+    CTAttached.VPD, within tVPDDetach minimum (10 ms, Table 4-33) and in exact order, the CTVPD:
+    (1) reduces additional Host-side CC capacitance to at most twice the maximum cCablePlug_CC,
+    (2) disables its 3.0 A Rp on Host-side CC, (3) passively multiplexes the connected
+    Charge-Through CC pin to Host-side CC with impedance below RccCON (at most 15 Ohm when
+    enabled, at least zOPEN when disabled, Table 4-25), (4) disables Rd on Charge-Through CC1
+    and CC2, and (5) connects Charge-Through VBUS to Host-side VBUS; while in CTAttached.VPD it
+    does not respond to any USB PD communication, and returns to CTUnattached.VPD when VBUS
+    falls below vSinkDisconnect and the passed-through CC pin is SNK.Open for tVPDCTDD
+    (reapplying the 3.0 A Rp on Host-side CC within tVPDCTDD). If VCONN falls below
+    vVCONNDisconnect, the CTVPD transitions directly to Unattached.SNK from CTUnattached.VPD, or
+    to CTDisabled.VPD from CTAttachWait.VPD or CTAttached.VPD—where it isolates both ports,
+    presents above zOPEN on Host-side CC and Charge-Through CC1 and CC2 while powered entirely
+    by VBUS, and transitions to Unattached.SNK after tVPDDisable (at least 25 ms, Table 4-34).
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['180', '184']
+      section: 4.5.2.2.3
+    - pages: ['181', '182']
+      section: 4.5.2.2.4
+    - pages: ['182', '184']
+      section: 4.5.2.2.5
+    - pages: ['194', '195']
+      section: 4.5.2.2.22
+    - pages: ['195', '196']
+      section: 4.5.2.2.23
+    - pages: ['196', '197']
+      section: 4.5.2.2.24
+    - page: '197'
+      section: 4.5.2.2.25
+    - pages: ['243', '244']
+      section: 4.10.2
+      table: '4-25'
+    - page: '244'
+      table: '4-26'
+    - page: '249'
+      table: '4-33'
+    - page: '250'
+      table: '4-34'
+  todo:
+    check: document
+    text: >-
+      The CTVPD pre-attached-source flow through Unattached.SRC, AttachWait.SRC, Try.SNK,
+      TryWait.SRC and Attached.SRC (sections 4.5.2.2.3.2 and 4.5.2.2.7 to 4.5.2.2.13, pp. 181,
+      184-191), the Charge-Through Support Timer reset rules (4.5.2.2.5.1, p. 183) and the
+      non-CTVPD rows of Tables 4-33 and 4-34 (pp. 249-250) are not extracted here.
+
+- id: ctvpd-unsupported-states
+  section: programming-model
+  title: Charge-Through VPD unsupported-partner states (CTUnattached.Unsupported, CTAttachWait.Unsupported, CTTry.SNK and CTAttached.Unsupported)
+  claim: >-
+    Because a Charge-Through VPD supports neither Sinks nor Debug Accessory Mode on its
+    Charge-Through port, when no Source is attached in CTUnattached.VPD it toggles on its
+    Charge-Through port between CTUnattached.VPD (leaving for CTUnattached.Unsupported within
+    tDRPTransition after both Charge-Through CC pins are SNK.Open for tDRP minus dcSRC.DRP times
+    tDRP, or when directed) and CTUnattached.Unsupported (returning to CTUnattached.VPD within
+    tDRPTransition after dcSRC.DRP times tDRP, or when directed). In CTUnattached.Unsupported
+    and CTAttachWait.Unsupported, the CTVPD isolates its Host-side and Charge-Through ports
+    (powered by VCONN, drawing at most ICCS or ICCSH from VBUS for monitoring), maintains its
+    3.0 A Rp and SOP' Discover Identity responder (meeting cReceiver) on Host-side CC, removes
+    Rd on Charge-Through CC1 and CC2, and applies Rp advertising Default USB Power instead. It
+    moves from CTUnattached.Unsupported to CTAttachWait.Unsupported when SRC.Rd is detected on
+    at least one Charge-Through CC pin or SRC.Ra on both; from CTAttachWait.Unsupported it
+    returns to CTUnattached.VPD if either Charge-Through CC pin is SRC.Open for at least
+    tCCDebounce, or enters CTTry.SNK once SRC.Rd on at least one pin or SRC.Ra on both persists
+    for at least tCCDebounce. In CTTry.SNK (whose state requirements match CTUnattached.VPD,
+    terminating Charge-Through CC1 and CC2 through Rd), the CTVPD waits tDRPTry before
+    monitoring Charge-Through CC for SNK.Rp: if SNK.Rp is detected for at least tTryCCDebounce
+    and Charge-Through VBUS is detected (riding through brief USB PD SNK.Open glitches up to
+    tTryCCDebounce), it enters CTAttached.VPD; if SNK.Rp is not detected for tDRPTryWait, it
+    enters CTAttached.Unsupported. In CTAttached.Unsupported, the CTVPD isolates both ports,
+    maintains its 3.0 A Rp on Host-side CC, replaces Rd on Charge-Through CC1 and CC2 with
+    Default USB Power Rp while monitoring their voltage, presents a USB Billboard Device Class
+    interface indicating an unsupported accessory or device, and returns to CTUnattached.VPD
+    when SRC.Open is detected on both Charge-Through CC pins or SRC.Open on one and SRC.Ra on
+    the other; from CTUnattached.Unsupported, CTAttachWait.Unsupported, CTTry.SNK and
+    CTAttached.Unsupported it also returns to Unattached.SNK if VCONN falls below
+    vVCONNDisconnect (or VCONN is removed per Figure 4-18 and Section 4.5.3.1.8 Case 6).
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '178'
+    - page: '195'
+      section: 4.5.2.2.22.2
+    - pages: ['198', '199']
+      section: 4.5.2.2.28
+    - page: '199'
+      section: 4.5.2.2.29
+    - pages: ['199', '200']
+      section: 4.5.2.2.30
+    - page: '200'
+      section: 4.5.2.2.31
+    - page: '221'
+
+- id: ctvpd-host-states-and-limits
+  section: programming-model
+  title: Host Charge-Through VPD states (CTUnattached.SNK and CTAttached.SNK), current limits and PD restrictions
+  claim: >-
+    A DRP in Attached.SRC or a Sink in Powered.Accessory that supports Charge-Through VPDs
+    transitions to CTUnattached.SNK when the connected device identifies itself as a
+    Charge-Through VPD in its SOP' Discover Identity response (which may be delayed for further
+    SOP' communication; a port in Attached.SNK that detects a CTVPD on SOP' transitions to
+    TryWait.SRC if supported, or else to Unattached.SRC or Unattached.Accessory, optionally
+    delaying until it has enough battery charge to stay powered until CTAttached.SNK). On
+    entering CTUnattached.SNK, the host removes its Rp (if present) and terminates CC to ground
+    through Rd, continues supplying VCONN, stops sourcing or sinking VBUS and discharges it, and
+    may query the CTVPD's eMarker on SOP' (and in USB PD 2.0 initiates PD messages); it exits to
+    Unattached.SNK if CC is SNK.Open for tVPDDetach (10 to 20 ms, Table 4-33) after VBUS reaches
+    vSafe0V, or transitions directly to CTAttached.SNK as soon as VBUS is detected (with no
+    intermediate CTAttachWait.SNK state because the CTVPD has already debounced the
+    passed-through CC pin). In CTAttached.SNK, the host keeps Rd on CC, continues supplying
+    VCONN, operates in the Sink Power Sub-States (Section 4.5.2.3) until VBUS is removed or a
+    USB PD contract is established with the pass-through Source, and returns to CTUnattached.SNK
+    (unless in a USB PD Hard Reset) within tSinkDisconnect when VBUS falls below vSinkDisconnect
+    (at or below 5 V) or vSinkDisconnectPD (above 5 V), or after CC stays below vRd-USB for
+    tPDDebounce if monitoring CC after USB PD communication. While in CTAttached.SNK, the host
+    must not negotiate VBUS above the maximum voltage in the CTVPD's Discover Identity response,
+    must not perform USB BC 1.2 primary detection, must neither initiate nor respond to SOP'
+    communication, must not negotiate or accept PR_Swap or VCONN_Swap (and must reject a VCONN
+    swap request) or enable FR_Swap, must not negotiate Alternate Modes that change connector
+    pin functions, must alter its advertised USB PD capabilities to represent itself as a
+    Sink-only, data-less UFP (while remaining DFP for USB data, and in USB PD 2.0 not initiating
+    PD messages and negotiating DR_Swap only to switch which side initiates PD messaging), and
+    must cap its current draw using the CTVPD's reported VPD_GND_DCR (in 1-mOhm steps) and
+    VPD_VBUS_DCR (in 2-mOhm steps) impedances per Section 4.6.2.5 and Tables 4-21 and 4-22: at
+    most 0.25 V / (0.25 V / Icable + VPD_GND_DCR) for the GND IR-drop limit, and either lower
+    its VBUS detach threshold or further limit its current to at most 0.75 V / (0.75 V / Icable +
+    VPD_VBUS_DCR + VPD_GND_DCR) for the combined VBUS+GND limit, where the inferred cable rating
+    Icable is 3 A unless the host receives a USB PD Source Capability PDO greater than 3 A (in
+    which case it may assume Icable = 5 A).
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['183', '184']
+      section: 4.5.2.2.5.2
+    - page: '188'
+      section: 4.5.2.2.9.2
+    - page: '194'
+      section: 4.5.2.2.20.2
+    - page: '197'
+      section: 4.5.2.2.26
+    - pages: ['197', '198']
+      section: 4.5.2.2.27
+    - pages: ['230', '231']
+      section: 4.6.2.5
+      table: '4-21'
+    - page: '231'
+      table: '4-22'
+    - pages: ['243', '244']
+      section: 4.10.2
+    - page: '249'
+      table: '4-33'
+  todo:
+    check: document
+    text: >-
+      Table 4-21's per-current-mechanism rows (p. 230), Table 4-22's worked numerical CTVPD
+      current-limit examples (p. 231), the mandatory/optional state summary Table 4-18 (pp.
+      205-206) and the DRP-to-VPD/CTVPD interoperability walkthroughs (Sections 4.5.3.1.7 and
+      4.5.3.1.8, pp. 214-221) are not extracted in full.
+
+- id: emarker-requirements-and-discovery
+  section: programming-model
+  title: When cables require an eMarker and how SOP' and SOP'' discovery works
+  claim: >-
+    An eMarker—an element in an Electronically Marked Cable that returns cable characteristics
+    in response to a USB PD Structured VDM Discover Identity command—is required in all USB
+    Full-Featured Type-C cables (USB 3.2 Gen 1/Gen 2 and USB4), all USB 2.0 Type-C cables rated
+    above 3 A, all Extended Power Range (EPR, 50 V and 5 A) cables, all active cables, and any
+    captive-cable or thumb-drive device (Sink, UFP or DRP) that either sinks more than 3 A or
+    supports USB4 (where the eMarker may reside in the captive cable or the device); USB 2.0
+    Type-C cables rated at 3 A or less may optionally include one. Electronically marked cables
+    respond to Discover Identity directed to SOP' (active cables return Active Cable VDOs,
+    identify whether they support one or two TX/RX lanes, and when data bus signal conditioning
+    is in both plugs must implement SOP' and may implement SOP'', responding to Get_Status on
+    SOP' and on SOP'' when the SOP'' Controller Present bit is set). Prior to an explicit USB PD
+    contract, a Sourcing Device is allowed to use SOP' to discover the cable's identity; once an
+    explicit USB PD contract has been negotiated, only the VCONN Source may communicate with
+    SOP' and SOP''. Once VCONN is available, all electronically marked cables (except Optically
+    Isolated Active Cables, Section 6.3, which may draw from both VCONN and VBUS) must use VCONN
+    as their only power source; if VCONN is applied after VBUS, a cable that draws power from
+    VBUS until VCONN is available must switch from VBUS to VCONN within tVCONNSwitch (at most
+    teMarkerReady, where teMarkerReady is at most 50 ms from the application of VCONN or VBUS,
+    whichever is later, Table 4-24). A cable whose VCONN wire traverses the cable includes
+    isolation elements so VCONN cannot pass end-to-end, whereas a cable whose VCONN wire does
+    not extend through the cable places an SOP' eMarker at each end without isolation elements.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '83'
+      section: 3.4.1.1
+    - page: '84'
+      section: 3.4.2.1
+    - page: '84'
+      section: 3.4.3
+    - page: '85'
+      section: 3.4.4
+    - page: '148'
+      section: 3.11.2
+    - page: '155'
+      table: '4-6'
+    - pages: ['239', '242']
+      section: '4.9'
+    - page: '242'
+      section: 4.9.1
+      table: '4-24'
+    - pages: ['242', '243']
+      section: 4.9.2
+    - page: '278'
+      section: 6.1.1
+    - page: '316'
+      section: 6.2.3.1
+  todo:
+    check: document
+    text: >-
+      Table 6-1's USB4 Cable Identity VDO bit encodings and Table 6-2's active cable feature
+      matrix (pp. 279-280), the other rows of Table 4-6 (covered by emarker-and-ra-state-machines),
+      and the Optically Isolated Active Cable (OIAC) rules of Section 6.3 (pp. 316-352) are not
+      extracted here.
+
+- id: emarker-and-ra-state-machines
+  section: programming-model
+  title: Cable eMarker and Ra management state machines (4.5.2.4 and 4.5.2.5)
+  claim: >-
+    In the Cable eMarker State Machine (Section 4.5.2.4, which also applies to an eMarker in a
+    direct-connect device), each eMarker starts in eMarker Power On when VCONN or VBUS is
+    applied (detachable Type-C cables must use VCONN to power their eMarkers; a direct-connect
+    device's eMarker may use VCONN, VBUS or another local supply), initializes, and transitions
+    to eMarker Communications Ready upon completing boot within teMarkerReady (at most 50 ms,
+    Table 4-24). In eMarker Communications Ready, a passive cable should power only one eMarker
+    at a time responding to SOP' only; if two eMarkers in a cable are powered at the same time,
+    one responds to SOP' and the other to SOP'', with the SOP' and SOP'' assignment fixed for
+    each eMarker and never dynamically set when VCONN is applied (a direct-connect device has at
+    most one eMarker, responding only to SOP'). An eMarker returns from eMarker Communications
+    Ready to eMarker Power On upon sensing a Hard Reset, Cable Reset, or Power On Reset—triggered
+    in a cable by sensing VCONN below vVCONNDisconnect (1.0 to 2.4 V, Table 4-6), and in a
+    direct-connect device by either sensing VCONN below vVCONNDisconnect or transitioning from
+    any attached state to any unattached state. Independently, any cable or direct-connect
+    device that uses VCONN to power circuitry implements the Cable Ra Management State Machine
+    (Section 4.5.2.5) independently at each plug end based on that end's VCONN (a direct-connect
+    device whose SOP' is not powered by VCONN still implements Ra and meets Section 4.5.2.4
+    timing, but need not weaken Ra or follow Section 4.5.2.5): starting in Ra Applied, each
+    eMarker applies Ra to VCONN within tRaReconnect (at most 1 ms, Table 4-6), transitions to Ra
+    Weakened to remove or weaken Ra when VCONN exceeds vVCONNDisconnect for tRaWeaken (21 ms to
+    1.2 s, Table 4-6), and returns to Ra Applied when VCONN falls below vVCONNDisconnect. Under
+    Table 4-6, a VCONN-powered cable operates over vVCONNValid of 3.0 to 5.5 V, presents at most
+    10 uF inrush capacitance, draws at most iRaDetect = 10 mA below vVCONNValid, consumes at
+    most 20 mW for an electronically marked passive cable with no USB PD traffic at least
+    tRaWeaken after VCONN is applied (75 mW max for the first tRaWeaken), and on disconnect
+    discharges VCONN below vVCONNDischarge (800 mV max) within tVCONNDischarge (230 ms max).
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - page: '155'
+      table: '4-6'
+    - pages: ['202', '204']
+      section: 4.5.2.4
+    - pages: ['204', '205']
+      section: 4.5.2.5
+    - pages: ['239', '242']
+      section: '4.9'
+    - page: '242'
+      section: 4.9.1
+      table: '4-24'
+  todo:
+    check: document
+    text: >-
+      Table 6-6's USB 3.2 U-state active-cable VCONN power limits (referenced by Table 4-6, p.
+      155) are not extracted.
+
 - id: rp-ignored-under-pd-contract
   section: gotchas
   title: Rp stops meaning current once a USB PD contract exists
@@ -590,3 +1138,82 @@ facts:
       section: 4.5.2.2.3
     - page: '235'
       section: 4.8.5
+
+- id: dam-equal-rp-no-orientation
+  section: gotchas
+  title: Equal Rp terminations on both CC pins in Debug Accessory Mode provide no orientation or USB PD
+  claim: >-
+    In Debug Accessory Mode, orientation detection relies on asymmetric CC voltages (CC1 not
+    equal to CC2): a DTS Source presents two distinct Rp values from Table B-2 (weaker
+    resistance on CC2), whereas a TS Source presents the same standard Rp value on both CC1 and
+    CC2 and relies on a DTS Sink to pull B5 (CC2) to at most Ra after entering AttachedDeb.SNK.
+    If a Sink does not pull CC2 to at most Ra (or if a partner presents equal terminations on
+    both CC pins), a TS Source stays in UnorientedDebugAccessory.SRC rather than entering
+    OrientedDebugAccessory.SRC, and neither side can determine plug orientation, connect
+    orientation-sensitive debug signals, or initiate USB PD communication (which Table 4-18 and
+    Section B.2.3 permit only when orientation is determined).
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['192', '193']
+      section: 4.5.2.2.17
+    - pages: ['192', '193']
+      section: 4.5.2.2.18
+    - page: '205'
+      section: 4.5.2.6
+      table: '4-18'
+    - page: '362'
+      section: B.2.3
+    - page: '369'
+      section: B.2.4.2.1
+      table: B-2
+    - page: '380'
+      section: B.2.6
+  todo:
+    check: document
+    text: >-
+      The non-DAM rows and footnotes of Table 4-18 (pp. 205-206) are not extracted here.
+
+- id: vconn-shutoff-and-swap-rules
+  section: gotchas
+  title: When a Source may turn off VCONN after eMarker discovery and how VCONN_Swap preserves cable power
+  claim: >-
+    Even after a Source initially supplies VCONN on entry to Attached.SRC, it may turn VCONN off
+    not only when Ra is not detected after tCCDebounce or SOP' Discover Identity receives no
+    GoodCRC, but also after reading the cable's eMarker per Table 4-4: a Source without TX/RX or
+    VPD support that supports more than 3 A (100 mW VCONN minimum) may remove VCONN once it has
+    read the eMarker and determined the cable's current-carrying capacity, and a Source with
+    TX/RX or VPD support (1 W for single-lane or VPD support, 1.5 W for dual-lane) may remove
+    VCONN if the eMarker shows the cable is not a VPD and its Cable Termination Type field is
+    00b (both plugs passive, VCONN not required). Conversely, when VCONN must remain powered
+    (such as for an active cable), a USB PD VCONN_Swap must run in a make-before-break
+    sequence—the new VCONN source starts supplying VCONN within tVCONNON (at most 2 ms) while
+    the original VCONN source continues supplying VCONN until stopping within tVCONNOFF (at most
+    35 ms)—so VCONN is never dropped; a PR_Swap or DR_Swap alone does not change which port
+    sources VCONN, and a Fast Role Swap that fails to maintain VCONN causes an active cable to
+    drop USB 3.2 signaling.
+  support:
+  - class: standard
+    doc: usb-type-c-2.5.pdf
+    at:
+    - pages: ['153', '154']
+      section: 4.4.3
+      table: '4-4'
+    - page: '154'
+      table: '4-5'
+    - pages: ['182', '183']
+      section: 4.5.2.2.5.1
+    - page: '187'
+      section: 4.5.2.2.9.1
+    - page: '247'
+      section: 4.11.2
+      table: '4-32'
+    - page: '316'
+      section: 6.2.4
+  todo:
+    check: document
+    text: >-
+      Table 4-5's Note 1 (U3 to U0 transition power), Rdch range and latch-off/Alternate Mode
+      notes (p. 154) and the remaining rows of Table 4-32 (p. 247) are covered by other facts or
+      not extracted here.

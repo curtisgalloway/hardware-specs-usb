@@ -155,11 +155,11 @@ blocks:
 - name: type-c-accessories-and-vpd
   title: Type-C accessory modes, VCONN-Powered and Charge-Through devices
   subsystem: type-c
-  disposition: "planned: sections 4.5.2.2.14 to 4.5.2.2.31 and Appendices A and B of the Type-C specification"
+  disposition: spec:usb-type-c#accessory-sink-states
 - name: type-c-cable-emarker
   title: Type-C cable eMarker and Ra management
   subsystem: type-c
-  disposition: "planned: sections 4.5.2.4 and 4.5.2.5 and 4.9 of the Type-C specification"
+  disposition: spec:usb-type-c#emarker-requirements-and-discovery
 - name: usb-pd-protocol
   title: USB Power Delivery protocol layer
   subsystem: power-delivery

@@ -32,7 +32,7 @@ disposition: specified, planned or excluded. Full definitions: driver-lab's
 |---|---|---|---|
 | [`xhci`](specs/xhci.spec.yaml): eXtensible Host Controller Interface | xHCI 1.2c (October 2025) | `public` | none yet |
 | [`ehci`](specs/ehci.spec.yaml): Enhanced Host Controller Interface (USB 2.0) | EHCI 1.0 (March 2002) | `public` | none yet |
-| [`usb-type-c`](specs/usb-type-c.spec.yaml): Type-C connection detection (CC) | Type-C Cable and Connector Release 2.5 (March 2026) | `public` | none yet |
+| [`usb-type-c`](specs/usb-type-c.spec.yaml): Type-C connection detection, accessories, VPDs and cable eMarkers | Type-C Cable and Connector Release 2.5 (March 2026) | `public` | none yet |
 | [`usb2`](specs/usb2.spec.yaml): USB 2.0 protocol and device framework | USB 2.0 (April 2000, base specification) | `public` | none yet |
 | [`usb-bc`](specs/usb-bc.spec.yaml): USB Battery Charging (BC 1.2) port detection | BC 1.2 (March 2012, with errata) | `public` | none yet |
 | [`usb2-ecns`](specs/usb2-ecns.spec.yaml): USB 2.0 ECNs (Connect Timing, LPM, IAD) | USB 2.0 ECNs (Connect Timing, Link Power Management, Interface Association Descriptor) | `public` | none yet |
@@ -44,9 +44,8 @@ The views (a Markdown copy and an HTML viewer of each spec) are built by CI and 
 https://curtisgalloway.github.io/hardware-specs-usb/ from `main`; nothing generated is
 committed here. A pull request's views are in its `spec-views` artifact.
 
-`specs/corpus.yaml` lists what is planned next: the USB PD specification, the
-rest of the Type-C specification (accessory modes, VCONN-powered devices, cable eMarkers), and
-the USB 3.2 and USB4 protocol specifications.
+`specs/corpus.yaml` lists what is planned next: the USB PD specification, and the
+USB 3.2 and USB4 protocol specifications.
 Protocol data structures (descriptor layouts, request tables) are written as prose claims for
 now; driver-lab#164 tracks a spec kind that would carry them as structured layouts.
 
