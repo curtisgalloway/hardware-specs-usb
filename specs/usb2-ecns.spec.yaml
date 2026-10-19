@@ -1,0 +1,561 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb2-ecns
+name: USB 2.0 Engineering Change Notices (Connect Timing, Link Power Management, Interface Association Descriptor)
+triggers:
+- usb2-ecns
+- USB 2.0 ECN
+- Connect Timing ECN
+- Link Power Management
+- USB 2.0 LPM
+- Interface Association Descriptor
+- IAD
+resources:
+  documents:
+  - name: usb-2.0-connect-timing-ecn.pdf
+    class: standard
+    title: 'USB 2.0 Engineering Change Notice: USB 2.0 Connect Timing Update'
+    url: https://www.usb.org/document-library/usb-20-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+    sha256: 31528541e9d829b1401fd0c747829012c56e6d6d6b12d8f1591ff4cb6549b73b
+    pages: 6
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      Served inside usb_20_20250603.zip as "USB ECN Final 20130404.pdf" without an account. No
+      page carries a confidentiality marking; the bytes are not redistributed. Printed page
+      numbers equal PDF page numbers (1 to 6).
+  - name: usb-2.0-lpm-ecn.pdf
+    class: standard
+    title: 'USB 2.0 Engineering Change Notice: Link Power Management Addendum'
+    url: https://www.usb.org/document-library/usb-20-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+    sha256: 9774dc93323695b44c7781d2bc18bdd4dddefb936c185eea9fa792d92a3bd75d
+    pages: 29
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      Served inside usb_20_20250603.zip as "USB2_LinkPowerManagement_ECN.pdf" without an
+      account. No page of this ECN carries a confidentiality marking; the companion file
+      "USB2-LPM-Errata-final.pdf" in the same archive is stamped Confidential on its pages and
+      is excluded from this public root. Printed page numbers equal PDF page numbers (1 to 29).
+  - name: usb-2.0-iad-ecn.pdf
+    class: standard
+    title: 'USB 2.0 Engineering Change Notice: Interface Association Descriptors'
+    url: https://www.usb.org/document-library/usb-20-specification
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/usb_20_20250603.zip
+    sha256: 494239252b46aed214ef4a22828c0a623b0ec0dac812ef249dc49a1d995c08a7
+    pages: 5
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: >-
+      Served inside usb_20_20250603.zip as "InterfaceAssociationDescriptor_ecn.pdf" without an
+      account. No page carries a confidentiality marking; the bytes are not redistributed.
+      Printed page numbers equal PDF page numbers (1 to 5).
+orientation: >-
+  Terms: Attach is a physical cable connection between a downstream device and an upstream port;
+  Connect is when an attached device pulls D+ or D- high through a 1.5 kOhm resistor to enter
+  Low-, Full- or High-Speed signaling. An Interface Association Descriptor (IAD) groups two or
+  more contiguous interfaces of a configuration into one device function so host software binds
+  them to a single function driver. Link Power Management (LPM) names four link states (L0 On,
+  L1 Sleep, L2 Suspend, L3 Off) and introduces a two-token Extension (EXT) transaction that
+  transitions a port between L0 and L1 with tens-of-microseconds entry and exit latencies. This
+  spec records the driver-visible protocol, descriptor, hub-request and timing updates from the
+  three public USB 2.0 ECNs; descriptor and request layouts are written as prose claims because
+  a kind ip spec carries no structured layout payloads (driver-lab#164).
+facts:
+- id: connect-timing-parameters
+  section: standards
+  title: Connect timing and pre-connect current limits
+  claim: >-
+    The Connect Timing Update ECN replaces Figure 7-29 and updates Tables 7-7 and 7-14 of the
+    USB 2.0 specification. It adds VSESS_VLD (peripheral session valid threshold, 0.8 V minimum
+    to 4.0 V maximum) to Table 7-7, globally replaces ICCS with ISUSP, renames TATTDB in Table
+    7-14 to TCON_RST (the minimum 100 ms debounce interval provided by USB System Software after
+    a peripheral connects by pulling D+ or D- high, restarted on disconnect), and replaces
+    TSIGATT (100 ms maximum) with TSVLD_CON_PWD (1 s maximum from VBUS crossing VSESS_VLD to a
+    powered-up or bus-powered peripheral connecting). For portable devices with dead or weak
+    batteries, it adds TSVLD_CON_WKB (2 minutes maximum from VBUS crossing VSESS_VLD to
+    connecting and being ready to enumerate). It also adds TUNIT_CON (100 ms maximum that a
+    bus-powered peripheral or a portable device with a good battery may draw up to IUNIT from
+    VBUS before connecting); during the preceding TSVLD_UNIT interval (from VBUS crossing
+    VSESS_VLD until TUNIT_CON before connect), portable devices with dead or weak batteries may
+    draw up to IUNIT while peripherals with good batteries may draw only up to ISUSP. During
+    TSVLD_CON_WKB, a dead- or weak-battery portable device drawing up to IUNIT must signal the
+    upstream port by driving D+ to VDP_SRC.
+  support:
+  - class: standard
+    doc: usb-2.0-connect-timing-ecn.pdf
+    at:
+    - page: '1'
+      heading: Definition of Terms
+    - pages: ['4', '6']
+      heading: Specification Changes
+      figure: '7-29'
+  todo:
+    check: document
+    text: >-
+      The Battery Charging 1.1/1.2 specification definitions of VDP_SRC, Dead Battery Threshold
+      and Weak Battery Threshold referenced on pages 1-5 are not defined in this ECN.
+
+- id: post-connect-current-and-suspend-window
+  section: standards
+  title: Post-connect current and 1-second suspend exemption (TCON_ISUSP)
+  claim: >-
+    After a peripheral connects, a peripheral with a good battery is allowed to draw up to one
+    unit load (IUNIT), and a peripheral with a dead or weak battery is allowed to draw up to
+    five times IUNIT, for TCON_ISUSP (1 s maximum in Table 7-14). Host and hub hardware must be
+    able to provide a unit load current for at least 1 s (TCON_ISUSP) after a peripheral
+    connects. If the peripheral becomes configured during TCON_ISUSP, it may draw its configured
+    current; once TCON_ISUSP has elapsed after the connect event (delta t8, T2SUSP), an
+    unconfigured peripheral must reduce its current draw to ISUSP and obey the USB 2.0 suspend
+    rules (Section 7.1.7.6). No host or peripheral software changes are required by this ECN,
+    and the host remains allowed to suspend the bus at any time after connect.
+  support:
+  - class: standard
+    doc: usb-2.0-connect-timing-ecn.pdf
+    at:
+    - pages: ['2', '3']
+      heading: Summary of ECN
+    - page: '3'
+      heading: Impact on Existing Peripherals and Systems
+    - pages: ['5', '6']
+      heading: Specification Changes
+      figure: '7-29'
+
+- id: iad-multi-interface-function
+  section: standards
+  title: Grouping multiple interfaces into one function with an Interface Association Descriptor
+  claim: >-
+    An Interface Association Descriptor (IAD, descriptor type INTERFACE_ASSOCIATION with value
+    11 added to Table 9-6 alongside OTG 9 and DEBUG 10) describes that two or more interfaces
+    and all of their alternate settings belong to the same device function so the operating
+    system can bind them to a single function driver instance. A device must use an IAD for each
+    device function that requires more than one interface. An IAD is always returned as part of
+    the configuration information returned by GetDescriptor(Configuration) and cannot be
+    accessed directly with a GetDescriptor() or SetDescriptor() request. It must be placed
+    before the set of interface descriptors (including all alternate settings) for the
+    interfaces it associates, and all interface numbers in the associated set must be
+    contiguous.
+  support:
+  - class: standard
+    doc: usb-2.0-iad-ecn.pdf
+    at:
+    - page: '1'
+      heading: Summary of ECN
+    - pages: ['3', '4']
+      heading: Specification Changes
+      section: 9.X.Y
+
+- id: iad-descriptor-layout
+  section: programming-model
+  title: Standard Interface Association Descriptor layout
+  claim: >-
+    The Standard Interface Association Descriptor (Table 9-Z) is 8 bytes (offsets 0 to 7, one
+    byte each): bLength (offset 0, size of this descriptor in bytes), bDescriptorType (1,
+    INTERFACE ASSOCIATION descriptor, value 11), bFirstInterface (2, interface number of the
+    first interface associated with this function), bInterfaceCount (3, number of contiguous
+    interfaces associated with this function), bFunctionClass (4, USB-IF class code; zero is not
+    allowed, FFH indicates a vendor-specific function class, and all other values are reserved
+    for USB-IF assignment), bFunctionSubClass (5, USB-IF subclass code; when bFunctionClass is
+    not FFH, all values are reserved for USB-IF assignment), bFunctionProtocol (6, USB-IF
+    protocol code qualified by bFunctionClass and bFunctionSubClass) and iFunction (7, index of
+    the string descriptor describing this function). The bFunctionClass, bFunctionSubClass and
+    bFunctionProtocol fields may carry the interface class, subclass and protocol values from
+    any one of the associated interfaces; for existing device classes, the preferred
+    implementation is to use the values from the first interface in the list of associated
+    interfaces.
+  support:
+  - class: standard
+    doc: usb-2.0-iad-ecn.pdf
+    at:
+    - page: '3'
+      heading: Specification Changes
+    - page: '4'
+      section: 9.X.Y
+      table: 9-Z
+
+- id: lpm-link-states
+  section: standards
+  title: Link Power Management states (L0, L1, L2, L3) and state transitions
+  claim: >-
+    Link Power Management defines four link states for the connection between a host or hub
+    downstream facing port and a device upstream facing port: L0 (On, port enabled for
+    transaction signaling in L0-Active or L0-Idle with SOFs or low-speed keep-alives), L1
+    (Sleep), L2 (Suspend, the formal name for USB 2.0 Suspend entered after 3 ms of link
+    inactivity) and L3 (Off, port incapable of data signaling because it is powered-off,
+    disconnected or disabled). L1 uses the same physical line state as L2 (full- or low-speed
+    idle, ~0.6 mW link pull-up power), but is entered explicitly when a host or hub port sends
+    an LPM transaction and the device responds with ACK (~10 us entry latency versus ~3 ms for
+    L2) and exits via resume signaling, remote wake, reset or disconnect (~70 us to 1 ms exit
+    latency versus >30 ms for L2). Unlike L2 (which limits device VBUS draw to <=500 uA or
+    <=2.5 mA), L1 imposes no specification-mandated VBUS power draw limits on the device. Direct
+    transitions between L1 and L2 are not allowed: a link must transition from L1 to L0 before
+    entering L2, and from L2 to L0 before entering L1; L3 is entered from L0, L1 or L2 on
+    disconnect, power loss or disable and transitions only to L0 via reset and enable.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['3', '4']
+      section: '1'
+      figure: 1-1
+    - pages: ['4', '5']
+      section: '1.1'
+      table: 1-2
+
+- id: ext-token-and-subpid
+  section: programming-model
+  title: USB 2.0 Extension (EXT) token packet and SubPID codes
+  claim: >-
+    Table 2-1 overrides USB 2.0 Table 8-1 to assign the reserved Special PID value 0000B (shown
+    in MSb order, bit 0 sent first) to the EXT protocol extension token. An extension
+    transaction's token phase consists of two back-to-back 3-byte token packets with standard
+    inter-packet timing (6 bytes of token information): first, a standard token packet with
+    PID=0000B (EXT), 7-bit ADDR, 4-bit ENDP and 5-bit CRC5; second, an Extended Token packet
+    with an 8-bit SubPID field, an 11-bit variable field whose format depends on SubPID, and a
+    5-bit CRC5 covering those 11 bits. In Table 2-2, SubPID 0011B selects the LPM token, SubPIDs
+    0000B, 1011B, 0111B, 1111B, 0010B, 1010B, 1110B and 0110B are reserved for future use, and
+    the seven base token PID values (0001B, 1001B, 0101B, 1101B, 1000B, 0100B and 1100B) are
+    reserved and must not be reused as SubPID types.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['5', '6']
+      section: '2.1'
+      table: 2-1
+    - pages: ['6', '7']
+      section: 2.1.1
+      table: 2-2
+
+- id: lpm-token-and-hird-encoding
+  section: programming-model
+  title: LPM extended token format, bmAttributes fields and HIRD encoding
+  claim: >-
+    The LPM token packet (SubPID 0011B) is valid only as the second token packet of an Extended
+    transaction following an EXT token packet. Its 11-bit variable field is bmAttributes (Table
+    2-3): bits 3:0 hold bLinkState (0001B for L1 Sleep; 0000B and 0010B to 1111B reserved for
+    future use), bits 7:4 hold HIRD (Host Initiated Resume Duration), bit 8 holds bRemoteWake
+    (1B enables the addressed device to wake the host on an application-specific event; 0B
+    disables device-initiated remote wake, temporarily overriding while in L1 the device's
+    standard Chapter 9 Remote Wake feature setting), and bits 10:9 are reserved for future use.
+    HIRD is a 4-bit encoding of the minimum time the host will drive resume when initiating L1
+    exit: 0000B is 50 us, and each increment adds 75 us (0001B is 125 us, 0010B is 200 us, up to
+    1111B for 1.2 ms / 1200 us).
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['7', '8']
+      section: 2.2.1
+    - pages: ['10', '11']
+      section: '4.1'
+
+- id: lpm-transaction-handshakes
+  section: programming-model
+  title: LPM transaction handshakes, retries and L1 entry rules
+  claim: >-
+    An LPM transaction has two phases with no data phase: an extended token phase (EXT token
+    followed by LPM token) and a handshake phase. The addressed device responds with ACK if
+    ready to transition to the requested link state, NYET if not currently ready (typically
+    because it has data pending for the host), or STALL if it does not support the requested
+    bLinkState; if it detects an error in either token packet or does not support protocol
+    extension transactions, it returns no handshake. On a corrupted handshake or timeout, the
+    host or hub retries up to two more times (three attempts in total), transmitting any retry
+    for a lost ACK before TL1TokenRetry(min) (8 us) expires. After sending ACK, the device must
+    not start transitioning to L1 before TL1TokenRetry(min) (8 us) and must start by
+    TL1TokenRetry(max) (10 us); a high-speed link transitions its ports to full-speed mode (idle)
+    before TL1Residency(min) (50 us) elapses. A host must not initiate an LPM transaction unless
+    the addressed device is connected directly to a downstream port of the targeted host or hub,
+    and must not initiate one while a split transaction is in flight to that device.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - page: '4'
+      section: '1.1'
+    - page: '8'
+      section: 2.2.2
+    - pages: ['10', '11']
+      section: '4.1'
+    - page: '11'
+      section: 4.1.1
+      figure: 4-2
+    - page: '23'
+      section: '4.9'
+
+- id: bos-usb2-extension-descriptor
+  section: programming-model
+  title: BOS bcdUSB threshold and USB 2.0 Extension capability descriptor
+  claim: >-
+    A wired USB device indicates that it supports reading the Binary Device Object Store
+    descriptor (GetDescriptor(BOS), defined in Section 7.4.1 of the Certified Wireless USB
+    Specification, Revision 1.0) by setting bcdUSB in its standard Device Descriptor to 0201H or
+    larger. Within the BOS descriptor set, the device reports LPM support in the 7-byte USB
+    Device Capabilities - USB 2.0 Extension descriptor (Table 3-1), which cannot be accessed
+    directly by GetDescriptor() or SetDescriptor(): bLength (offset 0, 1 byte), bDescriptorType
+    (offset 1, 1 byte, DEVICE CAPABILITY type), bDevCapabilityType (offset 2, 1 byte, 002H for
+    USB 2.0 EXTENSION), and bmAttributes (offset 3, 4-byte bitmap: bit 0 reserved zero, bit 1
+    LPM set to 1 when the device supports the LPM protocol, and bits 31:2 reserved zero).
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - page: '9'
+      section: '3'
+  todo:
+    check: document
+    text: >-
+      The numeric descriptor type constants for BOS and DEVICE CAPABILITY are defined in Section
+      7.4.1 of the Certified Wireless USB Specification, Revision 1.0 (cited on p. 9) rather
+      than in Table 3-1 of this ECN.
+
+- id: lpm-timing-parameters
+  section: programming-model
+  title: LPM residency, remote-wake and resume timing parameters
+  claim: >-
+    Table 4-6 defines the LPM timing parameters in microseconds: L1 residency TL1Residency is at
+    least 50 us (max >50 us); device L1 entry delay after ACK TL1TokenRetry is 8 to 10 us;
+    host-initiated resume drive time TL1HubDrvResume1 is 50 +/- 1 us to 1200 +/- 1 us in the
+    discrete 75 us steps encoded by HIRD; L1 exit device recovery time TL1ExitDevRecovery (from
+    end-of-resume EOP until the host may address a transaction to the device) is at least 10 us;
+    total host-initiated L1 exit latency TL1ExitLatency1 is 60 to 1210 us; device-initiated
+    remote-wake K drive time TL1DevDrvResume is at least 50 +/- 1 us; host/hub time to detect
+    remote wake and begin reflecting resume TL1HubReflect is at most 48 us (leaving a 1 us guard
+    band before the device releases K); host/hub reflected resume drive time TL1HubDrvResume2 is
+    60 +/- 1 us to 990 +/- 1 us (allowing a stopped signaling clock to restart and stabilize);
+    and total device-initiated L1 exit latency TL1ExitLatency2 is 70 to 1000 us.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['12', '13']
+      section: 4.2.1
+      figure: 4-3
+    - pages: ['14', '15']
+      section: 4.2.2
+    - page: '23'
+      section: '4.9'
+      figure: 4-6
+
+- id: hub-lpm-clock-and-repeater-rules
+  section: programming-model
+  title: Hub L1 clock, repeater propagation and downstream port state rules
+  claim: >-
+    On entering L1Suspend on its upstream port, a hub controller starts a 50 us timer
+    (TL1Residency) and cannot generate resume signaling until it expires. A hub must keep a
+    clock of at least 64 kHz available in L1 to time resume signaling; if L1Resume is held while
+    the hub's normal signaling clock stabilizes, its upstream receiver provides a K state to the
+    repeater for propagation to enabled downstream ports until the normal signaling clock is
+    stable. On a downstream port in L1Suspended, the port's differential transmitter is
+    disabled, a high-speed port reverts to full-speed terminations while keeping high-speed
+    status, normal disconnect detection is suppressed for at least 4 ms, and a noise filter
+    ignores K or SE0 events shorter than TDDIS. When the upstream receiver is not in L1Suspend,
+    a K on the downstream port lasting at least 2.5 us enters L1Resuming (driving K for
+    TL1HubDrvResume2); when the upstream receiver is in L1Suspend, an SE0 or K enters
+    Restart_L1S, which within 9 us either transitions to TransmitR (setting C_PORT_L1 and
+    asserting TrueRWU if K lasts at least TDDIS), transitions to Disconnected (if SE0 lasts at
+    least TDDIS), or returns to L1Suspended.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['16', '18']
+      section: '4.4'
+    - pages: ['20', '22']
+      section: '4.8'
+  todo:
+    check: document
+    text: >-
+      The full inter-state-machine signal tables and state transition diagrams for the hub
+      upstream receiver, upstream transmitter, repeater and internal port (Sections 4.3-4.7,
+      Figures 4-7 to 4-11, Tables 4-2 to 4-4, pp. 15-21) are not extracted in full.
+
+- id: hub-lpm-feature-selectors-and-status
+  section: programming-model
+  title: Hub LPM feature selectors (PORT_L1, C_PORT_L1) and port status/change bits
+  claim: >-
+    Table 4-7 overrides USB 2.0 Table 11-17 to add port feature selectors PORT_L1 (10) and
+    C_PORT_L1 (23) and to label selector 2 PORT_SUSPEND (L2). In GetPortStatus, wPortStatus
+    (Table 4-9) defines bit 5 as PORT_L1 (0 = not in L1 link state, 1 = L1 state or resuming;
+    bits 6..7 and 13..15 are reserved and return 0), set as a side-effect of a successful
+    SetandTestPortFeature(PORT_L1) when PORT_ENABLE is set and the downstream device responds
+    with ACK, and cleared when resume completes or on any event that clears PORT_ENABLE while
+    PORT_L1 is set. wPortChange (Table 4-10) defines bit 5 as C_PORT_L1 (0 = no change, 1 = L1
+    exit complete; bits 6..15 are reserved and return 0), set when the entire L1 exit resume
+    process completes (transition from Resuming to SendEOR or from Restart_L1S to TransmitR) and
+    cleared by ClearPortFeature(C_PORT_L1) or while the port is in the Powered-off state.
+    Standard SetPortFeature cannot be used to set PORT_L1 or C_PORT_L1 and returns a Request
+    Error if attempted.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['23', '24']
+      section: '4.10'
+      table: 4-7
+    - pages: ['25', '27']
+      section: 4.10.2
+    - page: '29'
+      section: 4.10.4
+  todo:
+    check: document
+    text: >-
+      The unchanged USB 2.0 feature selectors and port status/change bit descriptions repeated
+      in Tables 4-7, 4-9 and 4-10 (pp. 23-27) are covered in the base usb2 spec and not
+      repeated here.
+
+- id: hub-set-and-test-port-feature
+  section: programming-model
+  title: Hub SetandTestPortFeature(PORT_L1) control read request
+  claim: >-
+    A host transitions a hub port to L1 with the SetandTestPortFeature control read request
+    (bmRequestType 10100011B, bRequest SET_AND_TEST, wValue PORT_L1 = 10, wLength = 1), where
+    wIndex (Table 4-11) carries Port Number in bits 3..0, HIRD in bits 7..4, Device Address in
+    bits 14..8 and Remote Wake Enable in bit 15. When the port is enabled, the hub stops
+    repeating traffic down the port by the next microframe boundary after the SETUP stage, NAKs
+    the DATA (IN) stage while its LPM Transaction Engine runs the LPM transaction (with up to
+    two retries on error/timeout) to Device Address, and responds to the DATA stage within
+    200 us with a 1-byte Completion Code: 00H Success (device responded ACK; port enters L1 and
+    sets PORT_L1 to 1), 01H Reserved, 10H NYET (device responded NYET; port restored to
+    enabled), or 11H Timeout (three consecutive attempts failed; port restored to enabled). If
+    the port is already in L1, the hub treats SetandTestPortFeature(PORT_L1) as a functional
+    no-operation and returns 00H (Success); if the port is not in the Enabled, Transmitting or
+    L1 state, it treats the request as a functional no-operation. A wValue not in {PORT_L1}, a
+    nonexistent port in wIndex[7..0], or wLength not equal to 1 is a Request Error; if the hub
+    is unconfigured, its response is undefined.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - page: '10'
+      section: '4.1'
+    - pages: ['28', '29']
+      section: 4.10.3
+      table: 4-11
+
+- id: hub-clear-port-feature-l1
+  section: programming-model
+  title: Host-initiated L1 exit via ClearPortFeature(PORT_L1) and hub hierarchy policy
+  claim: >-
+    ClearPortFeature clears PORT_L1 or C_PORT_L1. Clearing PORT_L1 causes a host-initiated L1
+    exit (resume) on the specified port; if the port is not in L1, the hub treats the request as
+    a functional no-operation. On an LPM-enabled hub, wIndex for ClearPortFeature (Table 4-8)
+    places the downstream Port number in bits 3..0, HIRD (the encoded minimum time the hub must
+    drive resume) in bits 7..4, and the port indicator Selector in bits 15..8; the host must
+    ensure the HIRD value in ClearPortFeature matches the HIRD value used in
+    SetandTestPortFeature to the same device. To restore communication to a device in L1, each
+    link along the hierarchy path must be explicitly transitioned to L0 with one
+    ClearPortFeature(PORT_L1) per link. Host software must also keep every downstream port of a
+    hub at a power-savings state level equal to or deeper than its upstream port (never leaving
+    an adjacent downstream port in L0 when the hub's upstream port is in L1 or L2), because a
+    hub waking from upstream L1 or L2 broadcasts resume down all L0 ports without recovering
+    devices on those ports, making system behavior undefined if the policy is violated.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - pages: ['11', '14']
+      section: '4.2'
+      table: 4-1
+    - pages: ['14', '15']
+      section: 4.2.2
+    - page: '24'
+      section: 4.10.1
+
+- id: connect-timing-redline-contradictions
+  section: gotchas
+  title: Connect Timing Update ECN retains uncleaned redlines and conflicting current limits
+  claim: >-
+    The Connect Timing Update ECN preserves the original Connect Timing ECN text with inline
+    redline edits that were not cleaned up before publication: on page 5, delta t1 reads "shall
+    reduce its current draw to ISUSP is allowed to draw up to five times IUNIT", delta t2 reads
+    "during this timegood batteries are allowed to draw up to ISUSP", and delta t7 spells the
+    suspend current "ISSUSP.". In addition, while the "Summary of ECN Update" on page 1 and
+    delta t1/delta t7 on page 5 allow dead- or weak-battery portable devices to draw up to
+    500 mA (five times IUNIT), the preserved "Summary of ECN" on page 2 still describes a 100 mA
+    pre-connect limit and the Table 7-14 instructions on page 6 set TSVLD_CON_WKB to a maximum
+    of 2 minutes (rather than the 45-minute trickle-charge limit mentioned on page 1).
+  support:
+  - class: standard
+    doc: usb-2.0-connect-timing-ecn.pdf
+    at:
+    - pages: ['1', '2']
+      heading: Summary of ECN Update
+    - pages: ['5', '6']
+      heading: Specification Changes
+
+- id: iad-device-descriptor-class-migration
+  section: gotchas
+  title: Composite devices using IADs need the Multi-interface Function Class in the Device Descriptor
+  claim: >-
+    Because earlier USB operating systems assumed a 1:1 mapping between interfaces and functions
+    and ignore Interface Association Descriptors, a device with multiple functional units that
+    use multiple interfaces per unit will only enumerate properly on an OS that supports IADs.
+    The IAD ECN strongly recommends that every device using an IAD place the Multi-interface
+    Function Class codes in its Device Descriptor so operating systems can identify the device
+    and load an upgrade driver capable of parsing configurations containing IADs; the numeric
+    class, subclass and protocol codes themselves are assigned on the USB-IF website rather than
+    printed in the ECN text.
+  support:
+  - class: standard
+    doc: usb-2.0-iad-ecn.pdf
+    at:
+    - page: '2'
+      heading: Impact on Existing Peripherals and Systems
+    - pages: ['4', '5']
+      section: 9.X.Y
+  todo:
+    check: document
+    text: >-
+      The numeric Multi-interface Function Class, SubClass and Protocol codes (EFH, 02H, 01H in
+      USB-IF Defined Class Codes) are published on the USB-IF website referenced on pages 2 and
+      5 rather than in usb-2.0-iad-ecn.pdf.
+
+- id: lpm-ecn-internal-typos-and-omissions
+  section: gotchas
+  title: Internal defects in the base LPM ECN text (4.8.2 NYET typo, 4.10.2.1.1 heading, missing SET_AND_TEST code)
+  claim: >-
+    The base Link Power Management Addendum contains several internal inconsistencies: Section
+    4.8.2 (L1Suspended, p. 22) states that "LPM TE will only return L1OK when the device
+    responded with a NYET handshake", contradicting Table 1-1 (p. 3), Section 4.1.1 (p. 11),
+    Table 4-5 (p. 21) and Section 4.10.3.1 (p. 29), all of which require an ACK handshake to
+    enter L1; Section 4.10.2.1.1 (p. 26) is titled "PORT_SUSPEND" and names "SendEOP" and
+    "Restart_S" while its body describes the PORT_L1 status bit set by
+    SetandTestPortFeature(PORT_L1); Tables 4-8 (p. 24) and 4-11 (p. 28) allocate only wIndex
+    bits 3..0 to the downstream port number even though Section 4.10.3 prose (p. 28) checks
+    wIndex[7..0]; and Section 4.10.3 (p. 28) names bRequest SET_AND_TEST and leaves a "`<<tbd>>`"
+    placeholder for the LPM token's HIRD field without specifying the numeric bRequest code for
+    SET_AND_TEST.
+  support:
+  - class: standard
+    doc: usb-2.0-lpm-ecn.pdf
+    at:
+    - page: '3'
+      section: '1'
+    - pages: ['20', '22']
+      section: '4.8'
+    - page: '24'
+      section: 4.10.1
+    - page: '26'
+      section: 4.10.2.1.1
+    - pages: ['28', '29']
+      section: 4.10.3
+      table: 4-11
+  todo:
+    check: document
+    text: >-
+      USB2-LPM-Errata-final.pdf in the USB 2.0 specification package addresses errata to the
+      LPM Addendum, but its pages are stamped Confidential so this public root does not cite it.

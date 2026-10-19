@@ -34,6 +34,7 @@ disposition: specified, planned or excluded. Full definitions: driver-lab's
 | [`usb-type-c`](specs/usb-type-c.spec.yaml): Type-C connection detection (CC) | Type-C Cable and Connector Release 2.5 (March 2026) | `public` | none yet |
 | [`usb2`](specs/usb2.spec.yaml): USB 2.0 protocol and device framework | USB 2.0 (April 2000, base specification) | `public` | none yet |
 | [`usb-bc`](specs/usb-bc.spec.yaml): USB Battery Charging (BC 1.2) port detection | BC 1.2 (March 2012, with errata) | `public` | none yet |
+| [`usb2-ecns`](specs/usb2-ecns.spec.yaml): USB 2.0 ECNs (Connect Timing, LPM, IAD) | USB 2.0 ECNs (Connect Timing, Link Power Management, Interface Association Descriptor) | `public` | none yet |
 
 The views (a Markdown copy and an HTML viewer of each spec) are built by CI and published to
 https://curtisgalloway.github.io/hardware-specs-usb/ from `main`; nothing generated is
@@ -41,7 +42,7 @@ committed here. A pull request's views are in its `spec-views` artifact.
 
 `specs/corpus.yaml` lists what is planned next: the USB PD, TCPCI and UCSI specifications, the
 rest of the Type-C specification (accessory modes, VCONN-powered devices, cable eMarkers), the
-USB 2.0 ECNs, the USB 3.2 and USB4 protocol specifications, and EHCI.
+USB 3.2 and USB4 protocol specifications, and EHCI.
 Protocol data structures (descriptor layouts, request tables) are written as prose claims for
 now; driver-lab#164 tracks a spec kind that would carry them as structured layouts.
 
