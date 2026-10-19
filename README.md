@@ -21,34 +21,93 @@ instead of the original sources. A *fact* is one record in it: a claim with a st
 *support*, the citations it rests on. `specs/board-specs.yaml` is this repository's *root
 marker*: it states the repository's license and its *accepts list*, the licenses a cited source
 may carry (none here: documents only). A *verification record*
-(`specs/resources/<name>.verify.yaml`) holds a verdict per fact. Full definitions: driver-lab's
+(`specs/resources/<name>.verify.yaml`) holds a verdict per fact. The *corpus ledger*
+(`specs/corpus.yaml`) lists every document and block of the family found so far, each with a
+disposition: specified, planned or excluded. Full definitions: driver-lab's
 [glossary](https://github.com/curtisgalloway/driver-lab/blob/main/GLOSSARY.md).
 
 ## The specs
 
-None yet.
-
 | Spec | Revision | Access class | Composed by |
 |---|---|---|---|
+| [`xhci`](specs/xhci.spec.yaml): eXtensible Host Controller Interface | xHCI 1.2c (October 2025) | `public` | none yet |
+
+The views (a Markdown copy and an HTML viewer of each spec) are built by CI and published to
+https://curtisgalloway.github.io/hardware-specs-usb/ from `main`; nothing generated is
+committed here. A pull request's views are in its `spec-views` artifact.
+
+`specs/corpus.yaml` lists what is planned next: the Type-C, USB PD, TCPCI and UCSI
+specifications, the USB 2.0, USB 3.2 and USB4 protocol specifications, and EHCI.
+
+## How other spec repositories use these specs
+
+A SoC or board spec names a spec here from an instance row (`instances[].ip: xhci`), and its
+repository reads this one as a context root. `board-expert` finds this repository the same way
+it finds any spec root: list this checkout's `specs/` directory under `roots:` in your
+board-specs configuration marker (`~/.config/board-specs/board-specs.yaml`) or in a project's
+marker. A protocol question about an xHCI controller is then answered from these facts, not
+from memory.
 
 ## What a spec here may cite
 
 Documents only (`accepts: []`), listed under `resources.documents` and cited by name with a
 page, section, table or clause. By the document's `access` class: `public` and `registration`
 documents are cited as usual (for `registration`, the URL is recorded, never a copy);
-`members-only` documents get a map only (`cite: false`); `private` documents never.
+`members-only` documents get a map only (`cite: false`); `private` documents never. Document
+bytes are never committed here: each entry records the URL and SHA-256 a reader fetches and
+checks.
 
 ## What is here
 
-- `specs/`: the spec root. `board-specs.yaml` is the root marker; each spec will be
-  `<name>.spec.yaml`, and its verification record `resources/<name>.verify.yaml`.
+- `specs/`: the spec root. `board-specs.yaml` is the root marker, `corpus.yaml` the corpus
+  ledger; each spec is `<name>.spec.yaml`, its verification record
+  `resources/<name>.verify.yaml`, and `index/<document>.index.yaml` is a generated section
+  index of a cited document (headings and page ranges, no document text).
 - `LICENSE`: the license.
+- `LICENSES/Apache-2.0.txt`: the license of the CI files.
+- `.github/workflows/checks.yml` and `scripts/checks.sh`: the checks below.
+- `.github/workflows/publish.yml`: builds the published views.
 
-CI (`checks.yml`, `publish.yml`, `scripts/checks.sh`, as in
-[hardware-specs-docs](https://github.com/curtisgalloway/hardware-specs-docs)) arrives with the
-first spec.
+## How a spec is written and checked
+
+The method lives in [driver-lab](https://github.com/curtisgalloway/driver-lab). The contract
+for specs, the root marker and verification records is the
+[`spec-format`](https://github.com/curtisgalloway/driver-lab/blob/main/skills/spec-format/SKILL.md)
+skill; [`spec-verifier`](https://github.com/curtisgalloway/driver-lab/tree/main/skills/spec-verifier)
+writes the verification records. CI checks out driver-lab at one pinned commit, installs
+`spec.py`'s hash-pinned dependencies, and runs, through `scripts/checks.sh`:
+
+1. `check`: `spec.py check specs --require-license --require-verified <mode>`, then
+   `spec.py corpus specs` (the step sets `REQUIRE_CORPUS=1`). Pull requests use mode `pr`: a
+   fact with no verdict or a stale one fails, so nothing merges unverified. `main` uses mode
+   `main`.
+2. `resolve`: `spec.py resolve` on every spec.
+3. `render`: the Markdown view and the viewer of every spec.
+4. `self-test`: proves the license gate with this repository's own root marker on driver-lab's
+   fixture specs; specs citing source must fail, documents-only specs pass.
+
+To run the same checks locally:
+
+```bash
+git clone https://github.com/curtisgalloway/driver-lab ../driver-lab
+python3 -m venv .venv-spec
+.venv-spec/bin/pip install --require-hashes -r ../driver-lab/skills/spec-format/requirements.txt
+CHECKS_PYTHON=.venv-spec/bin/python RESOLVE_SRC=1 REQUIRE_CORPUS=1 scripts/checks.sh all ../driver-lab
+```
+
+Check out the driver-lab commit that `.github/workflows/checks.yml` pins for an identical run.
+`resolve` checks document citations against the document bytes only when they are supplied:
+run `spec.py resolve specs/<name>.spec.yaml --root specs --docs-dir <dir>` with each document
+saved as `<dir>/<name>` (its `resources.documents` name) after checking its SHA-256.
+
+Other spec repositories read this one as a context root, so this repository's driver-lab pin
+(`TOOL_COMMIT` in `checks.yml` and `publish.yml`) must never be newer than theirs, or their
+checks may reject it: bump the repositories that read this one first, or together.
 
 ## License
 
-Everything here is licensed CC-BY-4.0 ([LICENSE](LICENSE)); each file states it in an
+The specs, their verification records, the corpus ledger and documentation are licensed
+CC-BY-4.0 ([LICENSE](LICENSE)). The CI files (`.github/workflows/checks.yml`,
+`.github/workflows/publish.yml`, `scripts/checks.sh`) are licensed Apache-2.0
+([LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt)). Each file states its license in an
 `SPDX-License-Identifier` line.

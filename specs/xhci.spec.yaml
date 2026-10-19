@@ -1,0 +1,872 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: xhci
+name: eXtensible Host Controller Interface (xHCI) for USB
+triggers:
+- xhci
+- xHC
+- eXtensible Host Controller Interface
+- USB host controller interface
+resources:
+  documents:
+  - name: xhci-1.2c.pdf
+    class: standard
+    title: eXtensible Host Controller Interface for Universal Serial Bus (xHCI) Requirements
+      Specification
+    revision: Revision 1.2c, October 2025, Document Number 868295
+    url: https://www.intel.com/content/www/us/en/content-details/868295/extensible-host-controller-interface-for-universal-serial-bus-xhci-requirements-specification-r1-2c.html
+    retrieval:
+    - url: https://cdrdv2-public.intel.com/868295/xHCI__Rev1.2c.pdf
+    sha256: 0b06318005c3e0c8b896f2a002c2a3c78426b5fdacac4ad1cc02ffec15835190
+    pages: 600
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-18
+    fetch: ok
+    note: >-
+      Intel's catalog page for ID 868295 labels the document Public, and it downloads from
+      Intel's public document server without an account. No page carries a confidentiality
+      marking (the earlier revision 1.2b, ID 625472, is stamped "Intel Confidential" on its pages
+      and is not cited here). Intel copyright and its notice that no license is granted remain
+      applicable; the bytes are not redistributed. Printed page numbers equal PDF page numbers.
+orientation: >-
+  Terms: the xHC is the host controller hardware and the xHCI its register-level programming
+  interface. A TRB (Transfer Request Block) is the 16-byte unit queued on a ring; a ring is a
+  circular queue of TRBs in system memory, whose owner signals new entries by flipping a Cycle
+  bit. A Device Slot is the controller's handle for one attached USB device; a Device Context is
+  the memory structure describing it. Base means the start of the controller's MMIO register
+  space. This spec records the standard's generic programming model only; where a particular SoC
+  places an xHC, how many it has and which quirks it carries belong in that SoC's spec, which
+  names this spec in `instances[].ip`.
+facts:
+- id: interface-scope
+  section: standards
+  title: What the xHCI specification covers
+  claim: >-
+    The xHCI specification defines the register-level interface between system software and a
+    USB host controller for USB 2.0 and later, including the hardware/software interface between
+    them. Where it conflicts with the USB specifications, the USB specifications take precedence.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '22'
+      section: '1.1'
+
+- id: supported-protocol-capability
+  section: standards
+  title: Which USB revisions a controller's ports speak
+  claim: >-
+    Every xHC implements at least one xHCI Supported Protocol extended capability (capability ID
+    2). Each one names a protocol (Name String "USB ", 20425355h) with a BCD Major Revision
+    (bits 31:24 of its first Dword) and Minor Revision (bits 23:16), and the range of root hub
+    ports that speak it: Compatible Port Offset (bits 7:0 of the Dword at offset 08h, the first
+    port number, 1 to MaxPorts) and Compatible Port Count (bits 15:8). The defined protocols are
+    USB 2.0 (02h/00h) and USB 3.0, 3.1 and 3.2 (03h with 00h, 10h, 20h). Two Supported Protocol
+    capabilities never claim the same port, one of them starts at port 1, and gaps between
+    their port ranges are allowed; software referencing a port number no capability defines
+    gets undefined behavior.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '480'
+      section: '7.2'
+      table: '7-6'
+    - page: '481'
+      table: '7-8'
+    - page: '483'
+      section: 7.2.2
+      table: '7-11'
+    - pages: ['483', '484']
+      section: 7.2.2
+  todo:
+    check: document
+    text: >-
+      The Protocol Speed ID (PSI) Dwords (Table 7-10, p. 482), the Protocol Slot Type field
+      (Table 7-9, p. 481) and the protocol-defined bits 27:16 at offset 08h (section 7.2.2.1.3)
+      are not extracted.
+
+- id: non-pci-required-capabilities
+  section: standards
+  title: Extended capabilities a non-PCI controller must provide
+  claim: >-
+    An xHC that is not a PCI device (for example one integrated in an SoC and reached only
+    through MMIO) must implement the Extended Power Management capability (ID 3), and either
+    the Message Interrupt capability (ID 5) or the Extended Message Interrupt capability
+    (ID 17). The Supported Protocol capability (ID 2) is required of every xHC.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['476', '477']
+      section: '7'
+      table: '7-2'
+
+- id: pci-header
+  section: standards
+  title: PCI-based controllers
+  claim: >-
+    A PCI-based xHC implements a Type 0 PCI configuration header and at least BAR0 and BAR1,
+    which together form a 64-bit base address pointing to the start of the controller's MMIO
+    register space.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '339'
+      section: 5.2.1
+
+- id: register-spaces
+  section: programming-model
+  title: The four MMIO register spaces and how to find them
+  critical: true
+  claim: >-
+    The MMIO register space has four parts. The capability registers start at Base (offset 0)
+    and are all read-only. The operational registers start at Base + CAPLENGTH, where CAPLENGTH
+    is the byte at Base + 00h. The runtime registers start at Base + RTSOFF, where RTSOFF is the
+    Dword at Base + 18h with bits 4:0 reserved (a 32-byte aligned offset). The doorbell array
+    starts at Base + DBOFF, where DBOFF is the Dword at Base + 14h with bits 1:0 reserved (a
+    Dword-aligned offset). Under virtualization the alignment can be larger (see fact
+    virtualization-alignment-disagreement).
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '336'
+      section: '5'
+      table: '5-1'
+    - page: '347'
+      section: '5.3'
+    - page: '348'
+      section: 5.3.1
+    - pages: ['353', '354']
+      section: 5.3.7
+    - pages: ['354', '355']
+      section: 5.3.8
+    - page: '357'
+      section: '5.4'
+
+- id: capability-register-map
+  section: programming-model
+  title: Capability register offsets
+  claim: >-
+    Capability registers, at offsets from Base: CAPLENGTH 00h (1 byte), HCIVERSION 02h
+    (2 bytes), HCSPARAMS1 04h, HCSPARAMS2 08h, HCSPARAMS3 0Ch, HCCPARAMS1 10h, DBOFF 14h,
+    RTSOFF 18h and HCCPARAMS2 1Ch (4 bytes each). HCIVERSION is the BCD revision of the xHCI
+    specification the controller implements: 0100h is 1.0.0 and 0110h is 1.1.0.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '348'
+      table: '5-9'
+    - pages: ['348', '349']
+      section: 5.3.2
+
+- id: hcsparams1
+  section: programming-model
+  title: Slots, interrupters and ports (HCSPARAMS1)
+  claim: >-
+    HCSPARAMS1 (Base + 04h) gives the controller's sizes: MaxSlots in bits 7:0 (Device Slots and
+    doorbell entries, 1 to 255), MaxIntrs in bits 18:8 (interrupter register sets, 1 to 400h) and
+    MaxPorts in bits 31:24 (the highest port number, 1 to FFh). MaxPorts is the highest port
+    number assigned by a Supported Protocol capability; software uses those capabilities, not
+    MaxPorts alone, to learn whether a port number is valid and which protocol it speaks.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '349'
+      section: 5.3.3
+      table: '5-10'
+
+- id: hccparams1
+  section: programming-model
+  title: Capability flags software must read first (HCCPARAMS1)
+  claim: >-
+    HCCPARAMS1 (Base + 10h): bit 0 AC64 is 1 when the controller implements 64-bit memory
+    pointers, and 0 when it implements only 32-bit ones (it then ignores the high 32 bits of
+    pointer fields, and software ignores the high 32 bits of 64-bit registers). Bit 2 CSZ selects
+    64-byte (1) or 32-byte (0) context structures (not stream contexts). Bit 3 PPC is 1 when the
+    ports have power switches. Bit 5 LHRC is 1 when Light Host Controller Reset is supported.
+    Bits 31:16 xECP give the offset of the first extended capability from Base in Dwords (the
+    byte offset is xECP shifted left by 2).
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['352', '353']
+      section: 5.3.6
+      table: '5-13'
+  todo:
+    check: document
+    text: >-
+      HCCPARAMS1 bits 1 (BNC), 4 (PIND), 6 (LTC), 7 (NSS), 8 (PAE), 9 (SPC), 10 (SEC), 11 (CFC)
+      and 15:12 (MaxPSASize), Table 5-13 pp. 352-353, are not extracted, nor are HCSPARAMS3 and
+      HCCPARAMS2 (sections 5.3.5 and 5.3.9, pp. 351-357).
+
+- id: operational-register-map
+  section: programming-model
+  title: Operational register offsets
+  claim: >-
+    Operational registers, at offsets from the operational base: USBCMD 00h, USBSTS 04h,
+    PAGESIZE 08h, DNCTRL 14h, CRCR 18h (64-bit), DCBAAP 30h (64-bit) and CONFIG 38h. Port
+    register sets start at 400h; port n (1 to MaxPorts) occupies 10h bytes at 400h + 10h*(n-1),
+    holding PORTSC at +0h, PORTPMSC at +4h and PORTLI at +8h. The Dword at +Ch is PORTHLPMC on a
+    port that supports the USB2 protocol and PORTEXSC on a port that supports USB3; their fields
+    differ.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '358'
+      table: '5-18'
+    - pages: ['358', '359']
+      table: '5-19'
+    - page: '370'
+      section: 5.4.8
+    - page: '387'
+      section: 5.4.11
+    - page: '388'
+      section: 5.4.12
+
+- id: register-access-width
+  section: programming-model
+  title: Access widths and byte order
+  claim: >-
+    Registers and data structures are little-endian. Operational and runtime registers are read
+    as 32-bit Dwords (masking as needed), and partial writes are done read-modify-write. If AC64
+    is 1, software writes 64-bit registers with one Qword access, or, if it cannot issue Qword
+    accesses, as two Dword writes, low Dword first; if AC64 is 0 it writes them with Dword
+    accesses only. Doorbell registers are read and written only as Dwords, and DNCTRL must be
+    written as a Dword (byte writes are undefined). The exception is the USB Legacy Support
+    register USBLEGSUP, which supports byte accesses so firmware and the OS can each write their
+    own ownership semaphore.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '337'
+      section: '5.1'
+    - pages: ['357', '358']
+      section: '5.4'
+    - page: '389'
+      section: '5.5'
+    - pages: ['395', '396']
+      section: '5.6'
+    - page: '366'
+      section: 5.4.4
+    - page: '403'
+      section: '6'
+    - page: '478'
+      section: 7.1.1
+
+- id: reserved-field-rules
+  section: programming-model
+  title: Reserved and write-1 field attributes
+  claim: >-
+    RW1C bits are cleared by writing 1 and RW1S bits are set by writing 1; writing 0 to either
+    has no effect. Software preserves the value read in RsvdP bits when writing, writes 0 to
+    RsvdZ bits, does not write RsvdO space unless vendor-specific instructions allow it, and
+    masks all reserved fields (Rsvd, RsvdP, RsvdZ) to 0 before evaluating a register or data
+    structure value. When allocating a data structure,
+    software sets its reserved fields to 0.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['337', '338']
+      section: 5.1.1
+      table: '5-3'
+
+- id: controller-not-ready
+  section: programming-model
+  title: Wait for CNR before touching the controller
+  critical: true
+  claim: >-
+    After a Chip Hardware Reset (a PCI reset or a power-on reset input), software waits until
+    the Controller Not Ready flag (CNR, USBSTS bit 11, read-only, '1' = not ready) reads 0 before
+    writing any doorbell, operational or runtime register; USBSTS itself may be written while
+    CNR is 1. CNR stays 0 until the next Chip Hardware Reset.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['68', '69']
+      section: '4.2'
+    - pages: ['363', '365']
+      section: 5.4.2
+      table: '5-21'
+
+- id: initialization-sequence
+  section: programming-model
+  title: Bringing a controller up
+  critical: true
+  claim: >-
+    After CNR reads 0, and in no required order among themselves, software programs CONFIG
+    MaxSlotsEn with the number of Device Slots it will use, writes DCBAAP with the Device
+    Context Base Address Array's address, writes CRCR with the Command Ring's first TRB address
+    and its Ring Cycle State (RCS), and initializes the primary interrupter: allocate the Event
+    Ring segments and clear them to 0, allocate the Event Ring Segment Table and fill each entry
+    with its segment's base address and size in TRBs (at least 16), write ERSTSZ with the number
+    of entries, write ERDP with the first segment's start, then write ERSTBA with the table's
+    address, which enables the Event Ring. To use interrupts it also sets the interrupt
+    moderation interval (IMOD), USBCMD INTE and the interrupter's IMAN IE. All of this precedes
+    setting USBCMD Run/Stop to 1, which starts the controller accepting doorbells. A secondary
+    interrupter may instead be set up after Run/Stop, but must be fully initialized before any
+    event targets it. Interrupts are optional: the controller may be managed by polling the
+    Event Rings.
+  relates:
+  - fact: "#primary-interrupter-before-run"
+    relation: refines
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['68', '70']
+      section: '4.2'
+    - pages: ['367', '368']
+      section: 5.4.5
+      table: '5-24'
+    - pages: ['162', '164']
+      section: 4.9.4
+    - pages: ['390', '391']
+      section: 5.5.2
+    - pages: ['393', '394']
+      section: 5.5.2.3.2
+  todo:
+    check: document
+    text: >-
+      The MSI-X steps of section 4.2 (pp. 69-70: the MSI-X table, PBA, table and PBA offsets,
+      Message Control initialization and setting MSI-X Enable) are PCI-specific and are not
+      extracted; nor is the Scratchpad allocation, which section 4.20 (p. 305) also places
+      before Run/Stop (see fact scratchpad-buffers).
+
+- id: primary-interrupter-before-run
+  section: programming-model
+  title: The primary interrupter is set up before Run/Stop
+  claim: >-
+    All registers of the primary interrupter (interrupter 0) are initialized before USBCMD
+    Run/Stop is set to 1. Secondary interrupters may be initialized afterwards, but before any
+    event targets them; otherwise controller behavior is undefined. The primary Event Ring
+    cannot be disabled: writing 0 to its ERSTSZ is undefined, and its ERSTBA is not modified
+    while the controller is running (HCHalted = 0).
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['390', '391']
+      section: 5.5.2
+    - page: '393'
+      section: 5.5.2.3.1
+    - pages: ['393', '394']
+      section: 5.5.2.3.2
+
+- id: run-stop-and-halt
+  section: programming-model
+  title: Run/Stop and HCHalted
+  claim: >-
+    USBCMD bit 0 Run/Stop starts the controller (1) or stops it (0). After software clears it,
+    the controller finishes current and queued work and halts, setting USBSTS bit 0 HCHalted
+    (HCH, default 1) to 1; it is forced to halt within 16 ms of the clear whether or not that
+    work is complete. Software writes Run/Stop to 1 only while HCH is 1. While HCH is 1 the
+    controller generates no SOFs or ITPs.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '359'
+      section: 5.4.1
+      table: '5-20'
+    - page: '362'
+      section: 5.4.1.1
+    - page: '363'
+      section: 5.4.2
+      table: '5-21'
+
+- id: host-controller-reset
+  section: programming-model
+  title: Host Controller Reset (HCRST)
+  claim: >-
+    Writing 1 to USBCMD bit 1 HCRST resets the controller's internal state and all operational
+    registers, including the port registers, but not the PCI configuration registers; USB3 root
+    hub ports get a Hot or Warm Reset, USB2 ports no bus reset. Software sets HCRST only while
+    HCHalted is 1. The controller clears HCRST when the reset is complete; software cannot end
+    it early, writes no operational or runtime register while it is 1, and then reinitializes
+    the controller as for power-on.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['359', '360']
+      section: 5.4.1
+      table: '5-20'
+
+- id: usbsts-fields
+  section: programming-model
+  title: USBSTS status bits
+  claim: >-
+    USBSTS (operational base + 04h): bit 0 HCHalted (RO), bit 2 Host System Error (RW1C; the
+    controller also clears Run/Stop), bit 3 Event Interrupt (RW1C), bit 4 Port Change Detect
+    (RW1C), bit 8 Save State Status (RO), bit 9 Restore State Status (RO), bit 10 Save/Restore
+    Error (RW1C), bit 11 Controller Not Ready (RO) and bit 12 Host Controller Error (RO, set on
+    an internal error that requires software to reset and reinitialize the controller). Software
+    that uses EINT clears it before clearing interrupters' IP flags; clearing them in the other
+    order can lose a new IP transition.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['363', '365']
+      section: 5.4.2
+      table: '5-21'
+
+- id: pagesize
+  section: programming-model
+  title: The controller's page size (PAGESIZE)
+  claim: >-
+    PAGESIZE (operational base + 08h, read-only) bits 15:0: when bit n is set the controller
+    supports a page size of 2^(n+12) bytes, so bit 0 means 4 KiB. Several memory structures use
+    PAGESIZE as their alignment or boundary.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['365', '366']
+      section: 5.4.3
+      table: '5-22'
+
+- id: command-ring-control
+  section: programming-model
+  title: Command Ring Control (CRCR)
+  claim: >-
+    CRCR (operational base + 18h, 64-bit): bit 0 RCS is the Command Ring's initial consumer cycle
+    state, bit 1 CS (RW1S) stops the ring after the current command, bit 2 CA (RW1S) aborts the
+    current command and stops the ring, bit 3 CRR (RO) reads 1 while the ring runs, and bits
+    63:6 hold the ring's dequeue pointer, so the ring is 64-byte aligned. Writes to RCS and the
+    pointer are ignored while CRR is 1, and reading RCS or the pointer returns 0. Commands are
+    started by writing 0 to doorbell register 0.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['367', '368']
+      section: 5.4.5
+      table: '5-24'
+    - page: '68'
+      section: '4.1'
+    - page: '396'
+      table: '5-43'
+  todo:
+    check: document
+    text: >-
+      The notes on simultaneous CS and CA writes and on ringing the command doorbell before CRR
+      clears (p. 368) are not extracted.
+
+- id: device-context-base-address-array
+  section: programming-model
+  title: Device Context Base Address Array and DCBAAP
+  claim: >-
+    DCBAAP (operational base + 30h, 64-bit, bits 5:0 reserved) points to the Device Context Base
+    Address Array, which is 64-byte aligned, physically contiguous within a page, indexed by
+    Device Slot ID and has MaxSlotsEn + 1 64-bit entries (at most 256 entries, 2 KiB). Software
+    zeroes it, points entries at Device Contexts as slots are allocated, and writes DCBAAP
+    before setting Run/Stop. Entry 0 points to the Scratchpad Buffer Array when HCSPARAMS2 asks
+    for scratchpad buffers, and is 0 otherwise.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '369'
+      section: 5.4.6
+      table: '5-25'
+    - pages: ['404', '405']
+      section: '6.1'
+
+- id: config-max-slots
+  section: programming-model
+  title: CONFIG MaxSlotsEn
+  claim: >-
+    CONFIG (operational base + 38h) bits 7:0 MaxSlotsEn enable Device Slots 1 to MaxSlotsEn (0
+    to MaxSlots; 0 disables all). Software does not change it while Run/Stop is 1. A disabled
+    slot does not respond to its doorbell.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['369', '370']
+      section: 5.4.7
+      table: '5-26'
+
+- id: scratchpad-buffers
+  section: programming-model
+  title: Scratchpad buffers the controller may require
+  claim: >-
+    HCSPARAMS2 (Base + 08h) gives the number of scratchpad buffers the controller needs, 0 to
+    1023, split across bits 25:21 (high 5 bits) and 31:27 (low 5 bits). If it is nonzero,
+    software allocates a Scratchpad Buffer Array of that many entries, points DCBAA entry 0 at
+    it, and for each entry allocates a PAGESIZE buffer on a PAGESIZE boundary, clears it to 0
+    and stores its address; all before setting Run/Stop. Software does not otherwise read or
+    write the buffers, with one exception: when SPR (bit 26) is 1 their contents must survive
+    power events, and the system software suspend and resume steps of section 4.23.2 save an
+    image of them before Core Well power is removed and restore it after power returns.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['350', '351']
+      section: 5.3.4
+      table: '5-11'
+    - pages: ['305', '306']
+      section: '4.20'
+    - pages: ['312', '314']
+      section: 4.23.2
+
+- id: interrupter-registers
+  section: programming-model
+  title: Runtime registers and interrupter register sets
+  claim: >-
+    The runtime space holds MFINDEX at offset 0 (a microframe counter that advances every 125 us
+    while Run/Stop is 1) and interrupter register sets at 20h + 32*n for interrupters n = 0 to
+    1023. Each set holds IMAN at +00h (bit 0 IP, RW1C, interrupt pending; bit 1 IE, interrupt
+    enable), IMOD at +04h (bits 15:0 minimum interval between interrupts in 250 ns units,
+    default 4000, about 1 ms, and 0 disables throttling; bits 31:16 the down-counter), ERSTSZ at
+    +08h (bits 15:0, Event Ring Segment Table entries), ERSTBA at +10h (64-bit table address,
+    bits 5:0 reserved) and ERDP at +18h (64-bit dequeue pointer in bits 63:4, with bits 2:0 DESI
+    and bit 3 EHB).
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '389'
+      section: '5.5'
+      table: '5-35'
+    - page: '390'
+      section: 5.5.1
+    - page: '390'
+      section: 5.5.2
+    - page: '391'
+      table: '5-37'
+    - page: '391'
+      table: '5-38'
+    - page: '392'
+      table: '5-39'
+    - page: '393'
+      table: '5-40'
+    - page: '394'
+      table: '5-41'
+    - pages: ['394', '395']
+      table: '5-42'
+
+- id: event-ring-consumption
+  section: programming-model
+  title: Consuming events (cycle bit and ERDP)
+  claim: >-
+    The controller writes Event TRBs with its producer cycle state, which starts at 1 and flips
+    each time it wraps to the start of the Event Ring. Software keeps a consumer cycle state,
+    also starting at 1 and flipping on each wrap: an Event TRB is valid when its Cycle bit equals
+    that state, and the first mismatch marks the end of pending events. After processing events
+    software writes ERDP with the address of the last TRB processed. EHB (ERDP bit 3, RW1C) is
+    set when IP is set, and software clears it, by writing 1 to it, when it writes ERDP.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['162', '163']
+      section: 4.9.4
+    - pages: ['394', '395']
+      section: 5.5.2.3.3
+      table: '5-42'
+
+- id: event-ring-segment-table
+  section: programming-model
+  title: Event Ring Segment Table entries
+  claim: >-
+    Each Event Ring Segment Table entry is 16 bytes: a 64-bit segment base address (bits 5:0
+    reserved, so segments are 64-byte aligned) and, at offset 08h, bits 15:0 Ring Segment Size,
+    the number of TRBs in the segment, 16 to 4096. The table may have up to 2^ERST Max entries,
+    where ERST Max is HCSPARAMS2 bits 7:4.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '474'
+      section: '6.5'
+      table: '6-94'
+    - page: '474'
+      table: '6-95'
+    - page: '475'
+    - page: '350'
+      section: 5.3.4
+      table: '5-11'
+
+- id: doorbells
+  section: programming-model
+  title: Doorbell registers
+  claim: >-
+    The doorbell array holds one 32-bit doorbell per Device Slot, indexed by slot ID, with
+    doorbell 0 for the controller itself. Writing 0 to doorbell 0's DB Target (bits 7:0) rings the
+    Command Ring. For slot doorbells 1 to 255, DB Target 1 means the default control endpoint,
+    and 2 to 31 mean endpoints 1 to 15, OUT then IN (2 is EP 1 OUT, 3 is EP 1 IN, up to 31 for
+    EP 15 IN); bits 31:16 carry a Stream ID for endpoints that use streams and are 0 otherwise.
+    Software does not ring an endpoint's doorbell until a Configure Endpoint command for it has
+    completed successfully.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['395', '397']
+      section: '5.6'
+      table: '5-43'
+
+- id: trb-format
+  section: programming-model
+  title: TRB layout
+  claim: >-
+    A TRB is four Dwords (16 bytes), aligned on a 16-byte boundary: a 64-bit Parameter, a 32-bit
+    Status and a 32-bit Control Dword. In the Control Dword, bit 0 is the Cycle bit and bits
+    15:10 the TRB Type. If software does not write all four Dwords atomically, it writes the
+    Parameter and Status Dwords before the Control Dword.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['189', '190']
+      section: 4.11.1
+      figure: '4-13'
+    - page: '427'
+      section: '6.4'
+
+- id: memory-structure-alignment
+  section: programming-model
+  title: Size, alignment and boundary limits of memory structures
+  claim: >-
+    No data structure whose maximum size is 64 KiB or less may cross a 64 KiB boundary, and none
+    whose maximum size is PAGESIZE or less may cross a PAGESIZE boundary. Transfer Ring segments
+    are 16-byte aligned, and Command and Event Ring segments 64-byte aligned, each at most 64 KiB
+    and not crossing a 64 KiB boundary. The Event Ring Segment Table and the Device Context Base
+    Address Array are 64-byte aligned; slot and endpoint contexts 32-byte aligned. A data buffer
+    a transfer TRB points to must not cross a 64 KiB boundary; a buffer that would cross one is
+    described by chained TRBs.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['403', '404']
+      section: '6'
+      table: '6-1'
+    - page: '428'
+      section: 6.4.1
+  todo:
+    check: document
+    text: >-
+      Not extracted from Table 6-1 (pp. 403-404): the Device Context, Input Control Context,
+      Stream Context, Stream Array, Scratchpad Buffer Array and Scratchpad Buffers rows; the
+      Max Size column of every row (the claim states only the ring segments' 64 KiB); and the
+      Boundary column of the DCBAA, slot and endpoint context and Event Ring Segment Table rows.
+
+- id: extended-capability-list
+  section: programming-model
+  title: Walking the extended capability list
+  claim: >-
+    Extended capabilities form a linked list in MMIO space starting at Base + (xECP << 2). Each
+    entry's first Dword holds the Capability ID in bits 7:0 and, in bits 15:8, the offset in
+    Dwords from this entry to the next one; 0 ends the list. Defined IDs include 1 USB Legacy
+    Support, 2 Supported Protocol, 3 Extended Power Management, 4 I/O Virtualization, 5 Message
+    Interrupt, 6 Local Memory, 10 USB Debug Capability, 17 Extended Message Interrupt and 18
+    USB3 Tunneling Support; 192 to 255 are vendor defined.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '476'
+      table: '7-1'
+    - pages: ['476', '477']
+      table: '7-2'
+    - pages: ['352', '353']
+      table: '5-13'
+
+- id: bios-os-handoff
+  section: programming-model
+  title: Taking the controller from firmware (USB Legacy Support)
+  claim: >-
+    When the USB Legacy Support capability (ID 1) is present, its first Dword (USBLEGSUP) holds
+    the HC BIOS Owned semaphore in bit 16 and the HC OS Owned semaphore in bit 24, in separate
+    bytes so each side can write its own with a byte access. The operating system requests the
+    controller by setting OS Owned to 1, and owns it once OS Owned reads 1 and BIOS Owned reads
+    0; it should not wait more than 1 second for firmware to release it. The capability's
+    second Dword (USBLEGCTLSTS) holds the firmware's SMI enables. Both are in the Aux power well.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['308', '310']
+      section: 4.22.1
+    - page: '477'
+      section: '7.1'
+      table: '7-3'
+    - page: '478'
+      table: '7-4'
+    - page: '479'
+      table: '7-5'
+
+- id: portsc-port-enable
+  section: programming-model
+  title: Enabling, disabling and resetting a root hub port (PORTSC)
+  claim: >-
+    In PORTSC, bit 0 CCS (ROS, sticky read-only) shows a device connected and bit 1 PED shows
+    the port enabled.
+    Software cannot enable a port through PED: writing 1 to PED disables the port. A USB2 port
+    is enabled by a port reset, writing 1 to bit 4 PR (RW1S); a USB3 port enables itself after
+    successful link training. Software never writes PED and PR as 1 in the same write (the
+    result is undefined). Bits 17 to 23 are change flags (CSC, PEC, WRC, OCC, PRC, PLC, CEC),
+    each cleared by writing 1; WRC and CEC exist only on USB3 ports and are RsvdZ on USB2
+    ports. Software writes PORTSC only while the controller is running (HCHalted = 0).
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['370', '373']
+      section: 5.4.8
+      table: '5-27'
+    - pages: ['376', '378']
+  todo:
+    check: document
+    text: >-
+      PORTSC bits 2 (TM), 3 (OCA), 5 to 16 and 24 to 31 (PLS, PP, Port Speed, PIC, LWS, CAS,
+      the wake enables, DR and WPR; Table 5-27, pp. 372-380) are not extracted.
+
+- id: port-power
+  section: programming-model
+  title: Port power
+  claim: >-
+    A port's state cannot be changed while its Port Power (PP) flag is 0, whether or not the
+    controller has port power switches. The host has power stable within 20 ms of PP going from
+    0 to 1, and when PPC is 1 software waits 20 ms after setting PP before changing the port's
+    state.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['370', '371']
+      section: 5.4.8
+
+- id: specification-revisions
+  section: variants-quirks
+  title: Specification revisions
+  claim: >-
+    The specification's revisions are 0.96 (2009), 1.0 (2010), 1.1 (2013, reissued 2017), 1.2
+    (May 2019), 1.2b (April 2023, adds the USB3 Tunneling Support capability) and 1.2c (October
+    2025, adds eUSB2V2, double isochronous IN bandwidth and the Camera Sideband capability). A
+    controller reports the revision it implements in HCIVERSION. Stopped EDTLA support
+    (HCCPARAMS1 bit 10 SEC = 1) is mandatory for xHCI 1.1 and 1.2 controllers.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '21'
+      heading: Revision History
+    - pages: ['348', '349']
+      section: 5.3.2
+    - pages: ['352', '353']
+      section: 5.3.6
+      table: '5-13'
+    - pages: ['355', '356']
+      table: '5-16'
+
+- id: capability-table-omits-vtiosoff
+  section: gotchas
+  title: Table 5-9 lists 20h as reserved, but VTIOSOFF lives there
+  claim: >-
+    In revision 1.2c, Table 5-9 lists capability offsets 20h up to CAPLENGTH as reserved, while
+    section 5.3.10 defines the VTIO Register Space Offset register (VTIOSOFF) at Base + 20h.
+    HCCPARAMS2 bit 9 (VTC) reports whether the controller supports VTIO.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '348'
+      table: '5-9'
+    - page: '357'
+      section: 5.3.10
+      table: '5-17'
+    - pages: ['355', '356']
+      section: 5.3.9
+      table: '5-16'
+
+- id: virtualization-alignment-disagreement
+  section: gotchas
+  title: Runtime and doorbell alignment under virtualization is stated two ways
+  claim: >-
+    Revision 1.2c gives two answers for how the runtime registers and doorbell array are
+    aligned when the controller supports virtualization. Table 5-2 says PAGESIZE with VTIO, and
+    with IOV PAGESIZE for virtual functions but 32 bytes (runtime) and 4 bytes (doorbells) for
+    physical function 0. The notes to sections 5.3.7 (DBOFF) and 5.3.8 (RTSOFF) say both are
+    PAGESIZE aligned whenever IOV or VTIO is supported. Without virtualization both sources agree:
+    32-byte runtime and 4-byte doorbell alignment.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['336', '337']
+      table: '5-2'
+    - pages: ['353', '354']
+      section: 5.3.7
+    - pages: ['354', '355']
+      section: 5.3.8
+
+- id: erstba-value-wording
+  section: gotchas
+  title: Section 4.9.4 names the wrong value for ERSTBA
+  claim: >-
+    The Event Ring rules in section 4.9.4 say to write ERSTBA "with the value of
+    ERST(0).BaseAddress", the first segment's address. Sections 4.2 and 5.5.2.3.2 say ERSTBA
+    holds the address of the Event Ring Segment Table itself, and it is ERDP that section 4.2
+    initializes with the first segment's address. ERSTBA's own definition (Table 5-41) is the
+    start address of the Event Ring Segment Table.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - pages: ['162', '164']
+      section: 4.9.4
+    - pages: ['68', '70']
+      section: '4.2'
+    - pages: ['393', '394']
+      section: 5.5.2.3.2
+      table: '5-41'
+
+- id: bus-master-disable-while-running
+  section: gotchas
+  title: Clearing PCI Bus Master Enable while running
+  claim: >-
+    On a PCI controller, software halts the controller (Run/Stop 0, then HCHalted reads 1)
+    before clearing Bus Master Enable. Clearing it while the controller runs may be treated as a
+    Host Controller Error: HCE is set, the controller halts immediately, and only HCRST
+    recovers it.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '308'
+      section: 4.21.2
+
+- id: interrupt-moderation-default
+  section: gotchas
+  title: Interrupts are throttled to about 1 ms by default
+  claim: >-
+    IMOD's interval defaults to 4000 (250 ns units, about 1 ms), so an interrupter left at its
+    default delivers at most about one interrupt per millisecond. Section 4.2 has software set the
+    interval to the rate it wants; 0 disables throttling.
+  support:
+  - class: standard
+    doc: xhci-1.2c.pdf
+    at:
+    - page: '392'
+      section: 5.5.2.2
+      table: '5-39'
+    - pages: ['68', '70']
+      section: '4.2'
