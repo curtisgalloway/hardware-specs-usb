@@ -97,7 +97,7 @@ blocks:
 - name: xhci-debug-capability
   title: xHCI USB Debug Capability (DbC)
   subsystem: host-controller
-  disposition: "planned: section 7.6 of the xHCI specification"
+  disposition: spec:xhci#dbc-capability-structure
 - name: xhci-virtualization
   title: xHCI I/O Virtualization and VTIO
   subsystem: host-controller
