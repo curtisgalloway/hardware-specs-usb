@@ -1,0 +1,310 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+spec: usb3
+spec_file: usb3.spec.yaml
+spec_sha256: 1414032b1bfd95de7f3a9d45b3e2cbe22815ae92ca02e9ea4ed1529a42662687
+canonical: fact-v1
+sources:
+- name: usb-3.2.pdf
+  url: https://www.usb.org/sites/default/files/usb_32_202206.zip
+  sha256: 26e025a56ce0352f4f91fcaaca67b622d8e9e030ca429804bf7da98f52e674fd
+  fetch: ok
+  note: The PDF inside the USB-IF zip download; verified the SHA-256 and extracted page text with
+    pdftotext.
+summary:
+  pass: 22
+  fail: 0
+  unverifiable: 0
+  gap: 0
+  adjudicate: 0
+verdicts:
+  operating-modes-and-dual-bus:
+    basis: bef2e5799f316d7633fad82f04e74fac843625a8d5e32e472349159ef40adac2
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 1.1 (p. 32), 3.1 and Figure 3-1 (pp. 46-47), 3.1.4 Table 3-1 (pp. 48-49),
+      3.2 and Figure 3-2 (pp. 49-53), 3.2.6 (pp. 57-59), 6.3 (pp. 87-88), 7.1 (p. 145), 9.6.2.3 Table
+      9-17 (p. 387), and 11.3 (p. 494). All four operating modes (Gen 1x1 5 Gbps 8b/10b, Gen 2x1 10
+      Gbps 128b/132b, Gen 1x2 10 Gbps 8b/10b across two lanes, Gen 2x2 20 Gbps 128b/132b across two
+      lanes), dual-bus architecture, USB Type-C Lane 0 Configuration Lane role, peripheral single-active-bus
+      rule (including the Section 11.3 qualification for internal non-user-accessible devices), and
+      hub parallel operation with a common 128-bit (16-byte UUID) ContainerID in Table 9-17 match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  ltssm-link-states:
+    basis: 03eedf3faccc5f0901ab24c63b32a3d09add23a0e2c41065e78fff0069e069da
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 4.4.4 (pp. 69-70), 7.5 Figure 7-14 and Table 7-12 through 7.5.12 (pp. 190-228),
+      and 10.16.2.6.1 Table 10-13 (pp. 476-477). All twelve LTSSM link states (U0 0x00, U1 0x01, U2
+      0x02, U3 0x03, eSS.Disabled 0x04, Rx.Detect 0x05, eSS.Inactive 0x06, Polling 0x07, Recovery
+      0x08, Hot Reset 0x09, Compliance Mode 0x0A, Loopback 0x0B), their wPortStatus PORT_LINK_STATE
+      encodings, and their entry/exit conditions (including 8 consecutive unsuccessful Rx.Detect attempts
+      to eSS.Disabled in 7.5.3.7.2, Polling TSEQ/SYNC/TS1/TS2 training in 7.5.4, Recovery in 7.5.10,
+      and Hot Reset in 7.5.12) match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  link-commands-and-header-flow-control:
+    basis: bae8f7786ea2472910d3fd1776ab1a2a11843721120598971d520e0a6948300d
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 7.2.1.1 (pp. 146-150), 7.2.2 Table 7-3 through Table 7-5 (pp. 154-159), and
+      7.2.4.1 (pp. 159-167). The 20-byte (or 24-byte non-deferred Gen 2 DPH) Header Packet structure,
+      CRC-16 and Link Control Word with CRC-5, 8-symbol Link Command structure, all class/type encodings
+      (LGOOD_0..7 / LGOOD_0..15, LCRD_A..D / LCRD1_x / LCRD2_x, LRTY, LBAD, LGO_U1..U3, LAU, LXU,
+      LPMA, LUP, LDN), credit advertisement upon entering U0, and U1/U2/U3 entry/rejection handshakes
+      all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  packet-types-and-lmp-subtypes:
+    basis: 1944c0daec7c7e9b8896d94408daff64eab95c733c8f111e3916c7847e6c4f18
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.2 Table 8-1 (pp. 239-241), 8.3 Table 8-2 (pp. 240-242), 8.4 Tables 8-3
+      through 8-10 (pp. 242-250), and 10.16.2.10 (pp. 483-486). The 5-bit Type encodings (00000b LMP,
+      00100b TP, 01000b DPH, 01100b ITP) and all seven LMP subtypes (0001b Set Link Function including
+      Force_LinkPM_Accept and the LXU exception in 10.16.2.10, 0010b U2 Inactivity Timeout, 0011b
+      Vendor Device Test, 0100b Port Capability, 0101b Port Configuration, 0110b Port Configuration
+      Response, and 0111b Precision Time Management) with their bit fields and response rules all
+      match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  transaction-packets-and-route-string:
+    basis: e1fe7f6dde7197c59f49ec208b2551eca9753eabba05f421a796964b33dea630
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.5 Tables 8-12 through 8-24 (pp. 262-276) and 8.8-8.9 Figure 8-32 (pp. 279-280).
+      The Addressing Triple (7-bit Device Address in DWORD 0 bits 31..25, 4-bit Endpoint Number in
+      DWORD 1 bits 11..8, 1-bit Direction in DWORD 1 bit 7), 20-bit Route String in DWORD 0 bits 24..5
+      indexed by Hub Depth << 2, and all eight TP SubTypes in Table 8-12 match: 0001b ACK (Table 8-13:
+      rty bit 6, D bit 7, Endpoint Number bits 11..8, 3-bit TT in bits 14..12 with 100b..111b and
+      000b encodings, HE bit 15, 5-bit NumP in bits 20..16, 5-bit Seq Num in bits 25..21, TPF bit
+      31, Stream ID in DWORD 2 bits 15..0, PP in DWORD 2 bit 27), 0010b NRDY (Table 8-14), 0011b ERDY
+      (Table 8-15), 0100b STATUS (Table 8-16), 0101b STALL (Table 8-17), 0110b DEV_NOTIFICATION (Tables
+      8-18..8-22), 0111b PING (Table 8-23), and 1000b PING_RESPONSE (Table 8-24).'
+    contrary_evidence: none-found
+    citation_precision: exact
+  data-packets-and-itp:
+    basis: 1a62cb8c5964818ce2c8809f0222c0e79986eeac38f4308c89790fec77c3f289
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 7.2.1.2 Figures 7-9 and 7-11 (pp. 150-153), 8.6 Figure 8-30 and Table 8-25
+      (pp. 276-278), 8.7 Figure 8-31 and Table 8-26 (pp. 278-279), and 8.10.1 (pp. 280-282). The two-part
+      Data Packet structure (DPH Type 01000b plus DPP framed by DPPSTART/DPPEND or DPPABORT and 4-byte
+      CRC-32 even for 0-byte payloads), all DPH fields, Deferred DPH handling when a downstream port
+      is in U1/U2, and ITP Type 01100b multicast format (14-bit Bus interval counter, 13-bit Delta,
+      14-bit PTM Correction) all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  transfer-types-and-endpoint-parameters:
+    basis: 415c78ccec27718b4fb037bc1bc5dcb7d592278928263690e2d201f645deffe1
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 4.4.5-4.4.8 (pp. 68-78), 8.10.2 (pp. 281-283), 8.12.5 (p. 330), 8.12.6.1
+      (pp. 331-333), 9.6.1 Table 9-11 (pp. 379-381), 9.6.6 Table 9-26 (pp. 395-396), 9.6.7 Table 9-28
+      (pp. 398-400), and 9.6.8 Table 9-29 (pp. 400-401). Max packet sizes, max burst sizes (bMaxBurst
+      0..15 for 1..16 packets), sequence number rules, and service interval limits for Control, Bulk,
+      Interrupt, and Isochronous transfers all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  standard-device-requests-and-features:
+    basis: 311938f2c960e2f6eca4c16e5d546f6a0d3945abeceeb46ac2a5d70c1b518dcb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.2.6 (pp. 357-358), 9.3-9.4.12 (Tables 9-3 through 9-9, Figures 9-4 through
+      9-7, pp. 359-375). All bRequest codes, request timing limits (50 ms no-data, 500 ms per IN packet,
+      5 s OUT limit), SET_SEL 6-byte payload (U1SEL, U1PEL, U2SEL, U2PEL), SET_ISOCH_DELAY formula,
+      Table 9-7 feature selectors (including the internal Section 9.4.9 discrepancy on LDM_ENABLE
+      in the Address state between p. 373 and p. 374), and GET_STATUS STANDARD_STATUS / PTM_STATUS
+      responses all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  standard-and-bos-descriptors:
+    basis: 9549f7b915e755e2f2cd0d82fa71f6943be9a6213381292d51e36c000a4b8cdb
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.4 Table 9-6 (pp. 361-363), 9.4.3 (pp. 365-366), and 9.6.1-9.6.8 (Tables
+      9-11 through 9-29, pp. 379-401). All descriptor type codes, Device Descriptor fields, BOS Descriptor
+      (5 bytes) and Device Capability descriptors (USB 2.0 EXTENSION 02H, SUPERSPEED_USB 03H, CONTAINER_ID
+      04H, PLATFORM 05H, SUPERSPEED_PLUS 0AH, PRECISION_TIME_MEASUREMENT 0BH, CONFIGURATION SUMMARY
+      10H, FWStatus Capability 11H), SuperSpeed Endpoint Companion Descriptor (type 30H, 6 bytes),
+      and SuperSpeedPlus Isochronous Endpoint Companion Descriptor (type 31H, 8 bytes) all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  hub-class-and-power-distribution:
+    basis: 5c2acac965c36c1259544aa26ce40348052cfd4648cab7521d19d45f708b035c
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.2.5.1 (p. 355), 10.15.2.1 Table 10-5 (pp. 468-469), 10.16 Tables 10-6 through
+      10-15 (pp. 470-483), and 11.4 Table 11-2 (pp. 494-501). The 12-byte Enhanced SuperSpeed Hub
+      Descriptor (type 2AH), Hub Class request codes (including SET_HUB_DEPTH 12 and GET_PORT_ERR_COUNT
+      13), feature selectors in Table 10-9, GetPortStatus PORT_STATUS (4 bytes) and EXT_PORT_STATUS
+      (8 bytes), and VBUS voltage and current limits in Table 11-2 all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  device-enumeration-and-link-pm-setup:
+    basis: 55828ad39f60c1338c336787fe4b043e3318784166bc95ff9230d7f8c886fe96
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.4.5-8.4.6 (pp. 244-247), 9.1.1-9.1.2 Figure 9-1 and Table 9-1 (pp. 348-354),
+      9.2.6.3 (p. 358), 9.4.3 (pp. 365-366), 9.4.9 (p. 373), 9.4.11-9.4.12 (p. 375), and 10.16.2.9-10.16.2.10
+      Tables 10-16 and 10-17 (pp. 482-484). Visible device states, the seven enumeration and Link PM
+      setup steps, Port Capability / Port Configuration LMP exchange within tPortConfiguration, SET_ISOCH_DELAY
+      and SET_SEL, PORT_U1_TIMEOUT and PORT_U2_TIMEOUT encodings, and periodic endpoint service interval
+      constraints on U1_ENABLE and U2_ENABLE all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  inband-resets-hot-vs-warm:
+    basis: 42bf486eaf710444a24983dd81aea847f40532aa33ff6761955da4b6ebfd404b
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 7.4.2 Table 7-11 (pp. 189-190), 7.5.11-7.5.12 (pp. 230-236), 9.4.16 Table
+      9-10 (pp. 377-378), 10.3.1.6 (pp. 419-420), 10.16.2.6.1-10.16.2.6.2 Tables 10-13 and 10-14 (pp.
+      476-480), and 10.16.2.10 (pp. 483-486). SetPortFeature(PORT_RESET) vs SetPortFeature(BH_PORT_RESET),
+      TS1/TS2 Hot Reset vs LFPS Warm Reset, parameter reset effects in Table 9-10, Hot Reset failure
+      handling in 7.4.2 and 10.3.1.6, and C_PORT_RESET vs C_BH_PORT_RESET change bits all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  asynchronous-flow-control-and-bursting:
+    basis: 76fbfcc593210bef296dfa814c2da15f9539f6f53f8a56be0eb10a6d915c3f76
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.5.1 Table 8-13 (pp. 263-268), 8.6 Table 8-25 (pp. 276-277), 8.10-8.11 (pp.
+      280-286), and 8.12.1 (pp. 286-292). IN and OUT credit-bounded bursting (up to bMaxBurst + 1
+      packets), pipelined ACKs, NRDY/ERDY flow control, short packet and EOB = 1 burst termination
+      (including the 8.10.2.1 rule allowing ACK with NumP > 0 after a short packet with EOB = 0 when
+      initiating another transfer), and Rty = 1 sequence recovery all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  bulk-streaming-protocol:
+    basis: a4dc9b6c6880f130bf2a1345b59e391d47191d1b8c95ee2c8d33da47b48249f3
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.12.1.4 Figures 8-38 through 8-41 (pp. 293-305), 9.4.5 (pp. 367-369), and
+      9.6.7 Table 9-28 (pp. 398-399). Stream ID encodings (0000h Stream 0, 1..65533 Stream n, FFFEh
+      Prime, FFFFh NoStream), SPSM state transitions (Disabled, Prime Pipe, Idle, Start Stream, Start
+      Stream End on OUT rejection sending NRDY(NoStream), and Move Data), and HIMD transitions all
+      match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  isochronous-transfers-and-ping:
+    basis: 41e31eb0c7c8eb39ce9482223c15078cbafad56539bcf20b778f42c18852d4c8
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 4.4.8 (pp. 76-78), 8.5.7-8.5.8 Tables 8-23 and 8-24 (pp. 275-276), 8.12.5
+      (pp. 330-331), and 8.12.6 Figures 8-60, 8-61 and Table 8-32 (pp. 331-341). Absence of retries
+      and NRDY/ERDY/STALL handshakes, Seq Num = 0 reset at each service interval boundary, pipelined
+      IN ACK TPs in SuperSpeedPlus (Table 8-32, p. 341), LPF = 0/1 packet framing, and PING / PING_RESPONSE
+      pre-wakeup before the service interval all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  suspend-resume-and-function-wake:
+    basis: fae46ca5396eeef0b0929fff6103c5410fe40adb4801149c7244da4557514f17
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.5.6.1 Tables 8-18 and 8-19 (pp. 269-271), 9.1.1.6 (p. 353), 9.2.5.2-9.2.5.4
+      Table 9-2 (pp. 356-357), 9.4.9 Table 9-9 (pp. 373-374), 10.16.2.6.2 (pp. 479-480), 10.16.2.10
+      Table 10-18 (pp. 483-486), and 11.4.3 (pp. 499-500). SetFeature(FUNCTION_SUSPEND) Suspend Options
+      in wIndex[15..8], the 10 ms U2 initiation rule when all functions are in Function Suspend and
+      PORT_U2_TIMEOUT is FFH, U3 entry via SetPortFeature(PORT_LINK_STATE, 3), preserved parameters
+      in Table 9-2, and LFPS U3 wakeup followed by FUNCTION_WAKE DEV_NOTIFICATION TP repeated every
+      tNotification all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  endpoint-0-bmaxpacketsize0-exponent:
+    basis: daeb9b366039f5ecfdd7dd662f6a8c7aa7bb05d01a4310f79627e69158f72888
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.2.6.6 (p. 359), 9.4.3 (pp. 365-366), 9.6.1 and Table 9-11 (pp. 379-381),
+      and 11.3 (p. 494). Offset 7 bMaxPacketSize0 as exponent 2^bMaxPacketSize0 with 09H (512 bytes)
+      as the only valid value at Gen X speed, prohibition on device_qualifier (6) and other_speed_configuration
+      (7) descriptors at Gen X speed (returning Request Error / STALL), and reporting bcdUSB = 0210H
+      when operating in a USB 2.0 mode so the host fetches the BOS descriptor (0FH) all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  bmaxpower-8ma-units-and-power-fallback:
+    basis: f3be02f0f8ee0f08b9341df1a0b2ee90615da925bd522b3db6cca671a9c773b7
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.1.1.2 (p. 351), 9.2.5.1 (p. 355), 9.6.3 and Table 9-23 (pp. 391-392),
+      11.4 (p. 494), and 11.4.5 Table 11-2 (p. 501). Offset 8 bMaxPower in 8 mA units at Gen X speed
+      versus 2 mA units at high-speed (50 = 400 mA vs 100 mA), the 100 mA VBUS limit before detecting
+      far-end Rx terminations despite the 150 mA unconfigured unit load (I_CCINIT), and returning
+      to the Powered state when a self-powered Gen X device in a configuration requiring >1 unit load
+      switches to bus-powered (with the 9.1.1.2 exception for self-powered hubs whose Hub Controller
+      is powered from VBUS) all match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  clear-feature-endpoint-halt-resets-sequence-and-streams:
+    basis: 7187bc2efb823b5fe9fc7ab53a889ffa05b0965e7acf62fb336cd6282af61b2a
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 8.12.1.4 (pp. 293-303), 9.4.5 (pp. 367-369), and 9.4.16 Table 9-10 (pp.
+      377-378). Regardless of whether the Halt feature is currently set, ClearFeature(ENDPOINT_HALT)
+      always reinitializes the endpoint data sequence number to zero and, if Streams are enabled,
+      reinitializes the Stream Protocol State Machine to the Disabled state; and Enhanced SuperSpeed
+      devices do not support functional stall on control endpoints. All match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  set-address-status-stage-and-configured-state:
+    basis: 1dd2512d7b2a1a6b8093bca82f837f881c194037acabfda8cef8e2e9961cec06
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.2.6 (pp. 357-358), 9.4.6 (pp. 370-371), 9.4.7 (p. 372), and 9.4.16 Table
+      9-10 (pp. 377-378). SetAddress() completes its Status stage (STATUS TP -> ACK TP) on the old
+      address within 50 ms before changing its device address, SetAddress(0) in the Address state
+      enters the Default state, and receiving SetAddress() in the Configured state has unspecified
+      behavior in 9.4.6 even though Table 9-10 has a Set Address 0 column. All match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  device-remote-wakeup-ignored-use-function-suspend:
+    basis: b73ea6a9390baa8d2ff694d2ee382641b02345eea7f91e66d4808ec70c7e4b21
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 9.2.5.4 (p. 357), 9.4.1 Table 9-7 (pp. 364-365), 9.4.5 Figures 9-4 and 9-5
+      (pp. 367-369), and 9.4.9 Table 9-9 (pp. 373-374). DEVICE_REMOTE_WAKEUP is ignored and not used
+      by Enhanced SuperSpeed devices, GetStatus(DEVICE) bit D1 is reserved and must be 0, remote wakeup
+      from U3 Device Suspend is enabled when any function is enabled for Function Remote Wake via
+      SetFeature(FUNCTION_SUSPEND) to its first interface with wIndex bit 9 (bit 1 of Suspend Options
+      in wIndex bits 15..8) set to 1, and SetFeature/ClearFeature for FUNCTION_SUSPEND, U1_ENABLE,
+      U2_ENABLE, and LTM_ENABLE are valid only in the Configured state (returning Request Error in
+      the Address state). All match.'
+    contrary_evidence: none-found
+    citation_precision: exact
+  hub-port-enable-and-reset-clear-feature-differences:
+    basis: 466eb86d3de7e163e2495036694feb6a5adf89c1daa0031780f2c1db7da62c24
+    verdict: PASS
+    date: '2026-10-19'
+    verifier: spec-verifier (blind subagent)
+    note: 'Compared with 10.3.1.9 (p. 420), 10.16.2.2 Table 10-9 (pp. 472-473), 10.16.2.6.1 Table
+      10-13 (pp. 476-478), and 10.16.2.10 (pp. 483-485). Omission of USB 2.0 PORT_ENABLE (1) and PORT_SUSPEND
+      (2) feature selectors, lack of ClearPortFeature(PORT_ENABLE), no-op treatment of ClearPortFeature
+      for PORT_RESET, PORT_LINK_STATE, PORT_CONNECTION, and PORT_OVER_CURRENT, disabling a port via
+      SetPortFeature(PORT_LINK_STATE) with selector 4 (eSS.Disabled -> DSPORT.Disabled), exiting DSPORT.Disabled
+      via selector 5 (Rx.Detect -> DSPORT.Disconnected, valid only in DSPORT.Disabled), and selector
+      1 (U1) / 2 (U2) requiring U0 vs selector 3 (U3) transitioning from U1/U2 through U0 to U3 all
+      match.'
+    contrary_evidence: none-found
+    citation_precision: exact

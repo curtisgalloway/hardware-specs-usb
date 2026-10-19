@@ -1,0 +1,1331 @@
+# SPDX-FileCopyrightText: 2026 contributors
+# SPDX-License-Identifier: CC-BY-4.0
+format: 2
+kind: ip
+id: usb3
+name: Universal Serial Bus 3.2 (Enhanced SuperSpeed) protocol and device framework
+triggers:
+- usb3
+- USB 3.0
+- USB 3.1
+- USB 3.2
+- SuperSpeed
+- SuperSpeedPlus
+- Gen 1x1
+- Gen 2x1
+- Gen 1x2
+- Gen 2x2
+- LTSSM
+- LMP
+- ITP
+- BOS descriptor
+- Endpoint Companion
+- Bulk Streams
+resources:
+  documents:
+  - name: usb-3.2.pdf
+    class: standard
+    title: Universal Serial Bus 3.2 Specification
+    revision: Revision 1.1, June 2022
+    url: https://www.usb.org/document-library/usb-32-revision-11-june-2022
+    retrieval:
+    - url: https://www.usb.org/sites/default/files/usb_32_202206.zip
+    sha256: 26e025a56ce0352f4f91fcaaca67b622d8e9e030ca429804bf7da98f52e674fd
+    pages: 569
+    page_numbering: pdf
+    access: public
+    verified: 2026-10-19
+    fetch: ok
+    note: The USB-IF document library serves the USB 3.2 Revision 1.1 package as a zip (usb_32_202206.zip)
+      without an account; the cited bytes are usb_32_20220620.pdf inside it, the base specification
+      of June 2022. No page carries a confidentiality marking; the USB 3.0 Promoter Group copyright
+      and disclaimer remain applicable and the bytes are not redistributed. Locators are PDF page
+      numbers, which are the printed page numbers plus 31 in the chapters (printed page 1 is PDF page
+      32).
+orientation: 'Terms: Enhanced SuperSpeed (eSS) encompasses both SuperSpeed (Gen 1x1) and SuperSpeedPlus
+  (Gen 2x1, Gen 1x2, Gen 2x2) operation. A USB 3.2 bus is a dual-bus architecture that operates an
+  Enhanced SuperSpeed bus in parallel with a USB 2.0 bus (covered in usb2.spec.yaml), while host controller
+  register and ring programming for Enhanced SuperSpeed devices is covered in xhci.spec.yaml. This
+  spec records the parts of the USB 3.2 Revision 1.1 specification that a host, device, or hub driver
+  acts on: the four operating modes and dual-lane Type-C configuration lane, the 12-state LTSSM and
+  link-layer header/credit protocol, protocol-layer packets (LMP, TP, DP, ITP) and 20-bit Route Strings,
+  transfer packet sizes and bursting, Bulk Streams, Chapter 9 device states, enumeration, standard
+  requests (including SET_SEL and SET_ISOCH_DELAY), BOS and Device Capability descriptors, SuperSpeed
+  and SuperSpeedPlus Endpoint Companion descriptors, Chapter 10 Enhanced SuperSpeed hub class requests
+  and port status bits, and Chapter 11 VBUS power distribution. Descriptor and packet layouts are
+  written as prose claims because a kind ip spec carries no structured layout payloads (driver-lab#164).'
+facts:
+- id: operating-modes-and-dual-bus
+  section: standards
+  title: Enhanced SuperSpeed operating modes, dual-simplex signaling, and dual-bus architecture
+  claim: 'USB 3.2 is a dual-bus architecture consisting of a USB 2.0 bus and an Enhanced SuperSpeed
+    bus operating simultaneously in parallel. Each Enhanced SuperSpeed lane uses dual-simplex, four-wire
+    differential signaling (separate transmit and receive differential pairs per lane, or eight wires
+    for two-lane operation) and supports four operating modes across two protocol architectures: Gen
+    1x1 (SuperSpeed USB architecture, 5 Gbps nominal signaling rate over 1 lane using 8b/10b symbol
+    encoding), Gen 2x1 (SuperSpeedPlus USB architecture, 10 Gbps nominal signaling rate over 1 lane
+    using 128b/132b block encoding where a 4-bit block header is prepended to 16 symbols / 128 bits),
+    Gen 1x2 (SuperSpeedPlus USB architecture, 5 Gbps per lane across 2 lanes for 10 Gbps aggregate
+    using 8b/10b encoding), and Gen 2x2 (SuperSpeedPlus USB architecture, 10 Gbps per lane across
+    2 lanes for 20 Gbps aggregate using 128b/132b block encoding). Dual-lane operation (Gen 1x2 and
+    Gen 2x2) is supported only on the USB Type-C connector, where Lane 0 (determined by USB Type-C
+    CC pin orientation) serves as the Configuration Lane for all LFPS signaling, LBPM capability negotiation,
+    Receiver Detect, and Ux Exit detection. A user-attached USB 3.2 peripheral device must support
+    both Enhanced SuperSpeed and at least one USB 2.0 speed (returning bcdUSB = 0210H in its device
+    descriptor when operating in a USB 2.0 mode; internal non-user-accessible devices where Enhanced
+    SuperSpeed operation is independently assured may omit USB 2.0 support per Section 11.3), but
+    simultaneous operation of both Enhanced SuperSpeed and USB 2.0 connections is prohibited for a
+    peripheral device; by contrast, a USB 3.2 hub is the logical combination of an Enhanced SuperSpeed
+    hub and a USB 2.0 hub that operate simultaneously and report a common 128-bit (16-byte UUID) ContainerID
+    in their BOS descriptors.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '32'
+      section: '1.1'
+    - pages:
+      - '46'
+      - '47'
+      section: '3.1'
+      figure: 3-1
+    - pages:
+      - '48'
+      - '49'
+      section: 3.1.4
+      table: 3-1
+    - pages:
+      - '49'
+      - '53'
+      section: '3.2'
+      figure: 3-2
+    - pages:
+      - '57'
+      - '59'
+      section: 3.2.6
+    - pages:
+      - '87'
+      - '88'
+      section: '6.3'
+    - page: '145'
+      section: '7.1'
+    - page: '387'
+      section: 9.6.2.3
+      table: 9-17
+    - page: '494'
+      section: '11.3'
+  todo:
+    check: document
+    text: Physical layer electrical parameters, LFPS/SCD/LBPM timing tables, and lane-striping/deskew
+      ordered sets in Chapter 6 (Sections 6.3.2 and 6.4-6.11, pp. 88-143) are not extracted.
+- id: ltssm-link-states
+  section: standards
+  title: The 12 Link Training and Status State Machine (LTSSM) link states
+  claim: 'The Link Training and Status State Machine (LTSSM) defines 12 link states grouped into four
+    categories and reported in the hub wPortStatus PORT_LINK_STATE field (bits 8..5): (1) operational
+    and low-power link states U0 (0x00, normal operational state in which packets and link commands
+    are sent and received), U1 (0x01, low-power idle state with no packet transfers and fast exit
+    latency to U0), U2 (0x02, deeper low-power idle state in which clocks may be quiesced with longer
+    exit latency to U0), and U3 (0x03, link suspend state entered when initiated by the downstream
+    port for selective or system suspend); (2) link initialization, training, and recovery states
+    Rx.Detect (0x05, initial power-on and post-Warm-Reset state detecting far-end low-impedance receiver
+    terminations R_RX-DC; a peripheral upstream port transitions to eSS.Disabled after 8 consecutive
+    unsuccessful detections), Polling (0x07, LFPS/SCD/LBPM speed and lane capability negotiation followed
+    by TSEQ, SYNC, TS1, and TS2 receiver equalization, bit/symbol lock, lane polarity inversion, and
+    port configuration training), Recovery (0x08, retraining from U1/U2/U3 exit or a link error in
+    U0 using TS1 and TS2 ordered sets without retraining Rx equalizers), and Hot Reset (0x09, inband
+    reset entered from Recovery when TS1/TS2 ordered sets have the Reset bit asserted, resetting link
+    and protocol state and returning to U0 while keeping PHY equalization and port configuration);
+    (3) test states Compliance Mode (0x0A, entered on Polling.LFPS timeout when enabled for transmitter
+    compliance testing) and Loopback (0x0B, entered when the Loopback bit is set in TS2 ordered sets
+    for bit error rate testing); and (4) disabled and error states eSS.Disabled (0x04, low-impedance
+    receiver termination R_RX-DC removed and Enhanced SuperSpeed connectivity disabled) and eSS.Inactive
+    (0x06, link error state where Enhanced SuperSpeed operation has ceased and software intervention,
+    a Warm Reset, or disconnect is required).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '69'
+      - '70'
+      section: 4.4.4
+    - pages:
+      - '190'
+      - '228'
+      section: '7.5'
+      figure: 7-14
+      table: 7-12
+    - section: 10.16.2.6.1
+      table: 10-13
+      pages:
+      - '476'
+      - '477'
+  todo:
+    check: document
+    text: Detailed LTSSM substate transition rules and link state machine timeout parameters in Sections
+      7.5.1 through 7.5.12 and Table 7-13 (pp. 194-236) are not exhaustively extracted.
+- id: link-commands-and-header-flow-control
+  section: standards
+  title: Link-layer Header Packet framing, Link Control Word, and Link Commands
+  claim: 'Every Link Layer Header Packet (LMP, TP, ITP, and DPH) is 20 bytes in Gen 1 (20 bytes in
+    Gen 2 for LMP, TP, ITP, and deferred DPH; 24 bytes for non-deferred Gen 2 DPH): a 4-symbol framing
+    ordered set (HPSTART = 3x SHP + EPF, or DPHSTART = 3x DPHP + EPF for non-deferred Gen 2 DPH),
+    a 12-byte packet header (DWORD 0..2) protected by a 2-byte CRC-16 (DWORD 3 bits 15..0, polynomial
+    100Bh, initial value FFFFh, complemented remainder, constant receiver residual F6AAh), and a 2-byte
+    Link Control Word (DWORD 3 bits 31..16) protected by a 5-bit CRC-5 (bits 15..11 of the Link Control
+    Word, polynomial 00101b, initial value 11111b, complemented remainder, constant receiver residual
+    01100b). The Link Control Word contains the Header Sequence Number (3 bits 2..0 modulo-8 0..7
+    in SuperSpeed; 4 bits 3..0 modulo-16 0..15 in SuperSpeedPlus), Reserved bits (5..3 in SuperSpeed;
+    5..4 in SuperSpeedPlus), 3-bit Hub Depth index (bits 8..6), Delayed bit (DL, bit 9), and Deferred
+    bit (DF, bit 10); non-deferred Gen 2 DPH appends two identical 2-byte Length Field Replica words
+    after the Link Control Word. Link Commands are 8 symbols long — LCSTART (3x SLC + EPF) followed
+    by a 2-byte Link Command Word (11-bit command in bits 10..0 + 5-bit CRC-5 in bits 15..11) and
+    its 2-byte replica — and handle four functions: (1) header acknowledgement and retry (Class 00b:
+    LGOOD_0..7 in SuperSpeed or LGOOD_0..15 in SuperSpeedPlus on valid receipt; LBAD on CRC-5 or CRC-16
+    error; LRTY sent before retransmitting unacknowledged header packets; three consecutive header
+    reception failures transition directly to Recovery without a third LBAD); (2) Rx Buffer Credit
+    flow control (Class 00b, Type 01b: 4 credits LCRD_A..LCRD_D cycled alphabetically in SuperSpeed;
+    separate Type 1 credits LCRD1_x for periodic DPs, TPs, ITPs, and LMPs and Type 2 credits LCRD2_x
+    for asynchronous DPs in SuperSpeedPlus, with 4 credits A..D per class in Gen 1x2/Gen 2x1 and 7
+    credits A..G per class in Gen 2x2; a port must not transmit when remote credit is 0, and any out-of-order
+    LGOOD_n or LCRD_x triggers Recovery); (3) link power management (Class 01b: LGO_U1 0001b, LGO_U2
+    0010b, LGO_U3 0011b, LAU accept, LXU reject for U1/U2, and LPMA acknowledgement); and (4) U0 port
+    presence (Class 10b: LDN sent by a downstream port and LUP sent by an upstream port every 10 us
+    when idle). Upon entering U0 from Polling, Hot Reset, or Recovery, both ports must transmit LGOOD_n
+    (Header Sequence Number Advertisement) followed by LCRD_x/LCRD1_x/LCRD2_x (Rx Buffer Credit Advertisement)
+    before sending any header packet or requesting low-power link entry.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '146'
+      - '150'
+      section: 7.2.1.1
+      figure: 7-3
+    - page: '147'
+      figure: 7-4
+    - page: '147'
+      figure: 7-5
+    - page: '149'
+      figure: 7-7
+    - pages:
+      - '154'
+      - '159'
+      section: 7.2.2
+      table: 7-3
+    - pages:
+      - '155'
+      - '156'
+      table: 7-4
+    - pages:
+      - '157'
+      - '159'
+      table: 7-5
+    - pages:
+      - '159'
+      - '167'
+      section: 7.2.4.1
+  todo:
+    check: document
+    text: Bit-position mapping Table 7-1 (p. 149) and Link Layer timers PENDING_HP_TIMER, CREDIT_HP_TIMER,
+      PM_LC_TIMER, PM_ENTRY_TIMER, and Ux_EXIT_TIMER in Sections 7.2.4.1.13, 7.2.4.2, and Table 7-7
+      (pp. 170-183) are not extracted.
+- id: packet-types-and-lmp-subtypes
+  section: standards
+  title: Protocol packet Type encodings and Link Management Packet (LMP) SubTypes
+  claim: 'Every Enhanced SuperSpeed packet header begins with a 5-bit Type field in DWORD 0 bits 4..0
+    (Table 8-1): Link Management Packet (00000b), Transaction Packet (00100b), Data Packet Header
+    (01000b), and Isochronous Timestamp Packet (01100b). Link Management Packets (LMPs, Type = 00000b)
+    have no addressing or routing fields, travel only between a pair of directly connected ports,
+    and carry a 4-bit SubType field in DWORD 0 bits 8..5 (Table 8-3): 0001b Set Link Function (Table
+    8-4, DWORD 0 bit 10 Force_LinkPM_Accept forces the recipient to accept LGO_U1 and LGO_U2 with
+    LAU unless an LXU was sent just prior to receiving the LMP), 0010b U2 Inactivity Timeout (Table
+    8-5, DWORD 0 bits 16..9 carry the 8-bit timeout value from SetPortFeature(PORT_U2_TIMEOUT)), 0011b
+    Vendor Device Test (Table 8-6, DWORD 0 bits 16..9 and DWORD 1..2 64-bit vendor data, prohibited
+    during normal operation), 0100b Port Capability (Table 8-7, sent by both link partners within
+    tPortConfiguration upon entering U0 from Polling; in Gen 1x1 advertises Link speed bit 0 = 1 in
+    DWORD 0 bits 15..9 and Num HP Buffers = 4 in DWORD 1 bits 7..0, both reserved/0 in SuperSpeedPlus,
+    plus 2-bit Direction capability in DWORD 1 bits 17..16, USB 3.0 OTG Capable in bit 18, and 4-bit
+    Tiebreaker in bits 23..20 for Table 8-8 port-type selection), 0101b Port Configuration (Table
+    8-9, sent by the downstream-selected port to select operating speed; if an upstream peripheral
+    port does not receive it within tPortConfiguration after link initialization, it transitions to
+    eSS.Disabled and tries connecting at a supported USB 2.0 speed), 0110b Port Configuration Response
+    (Table 8-10, sent by the upstream port within tPortConfiguration with Response Code in DWORD 0
+    bits 15..9, bit 0 = 1 for accept in Gen 1x1; rejection or timeout causes a downstream hub port
+    to signal C_PORT_CONFIG_ERROR), and 0111b Precision Time Management (PTM / Link Delay Measurement
+    LDM, Table 8-3; if received by a port that does not support PTM, the port still acknowledges the
+    packet with LGOOD_n and returns LCRD_x credit per Section 7.2.4.1 but silently drops the LMP).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '239'
+      - '241'
+      section: '8.2'
+      table: 8-1
+    - pages:
+      - '240'
+      - '242'
+      section: '8.3'
+      table: 8-2
+    - pages:
+      - '242'
+      - '250'
+      section: '8.4'
+      table: 8-3
+    - page: '243'
+      table: 8-4
+    - page: '244'
+      table: 8-5
+    - page: '244'
+      table: 8-6
+    - pages:
+      - '245'
+      - '246'
+      table: 8-7
+    - page: '246'
+      table: 8-8
+    - page: '247'
+      table: 8-9
+    - page: '248'
+      table: 8-10
+    - pages:
+      - '483'
+      - '486'
+      section: 10.16.2.10
+  todo:
+    check: document
+    text: Precision Time Measurement LDM packet bitfields and link delay calculation formulas in Sections
+      8.4.8.3 through 8.4.8.5 and Table 8-11 (pp. 251-262) are not extracted.
+- id: transaction-packets-and-route-string
+  section: standards
+  title: Transaction Packet (TP) SubTypes, Addressing Triple, and 20-bit Route String
+  claim: 'Transaction Packets (TP, Type = 00100b) traverse the direct path between host and device
+    with no data payload. Data flows are addressed by the Addressing Triple: 7-bit Device Address
+    (DWORD 0 bits 31..25, 0 default, 1..127 assigned), 4-bit Endpoint Number (DWORD 1 bits 11..8,
+    0..15), and 1-bit Direction (DWORD 1 bit 7: 0 for Host-to-Device/OUT, 1 for Device-to-Host/IN;
+    ignored and set to 0 for control endpoints). Downstream packets carry a 20-bit Route String in
+    DWORD 0 bits 24..5 composed of five 4-bit port-number fields for hub tiers 1 through 5 (up to
+    15 downstream ports per hub); a hub at tier depth Hub Depth (0..4) indexes the Route String at
+    bit offset (Hub Depth << 2) to select its downstream port (or 0 if targeted at the hub itself).
+    The 4-bit TP SubType in DWORD 1 bits 3..0 (Table 8-12) selects: 0001b ACK (Table 8-13, requests
+    IN packets or acknowledges received DPs; carries Retry Data Packet rty in DWORD 1 bit 6, Direction
+    D in bit 7, Endpoint Number in bits 11..8, 3-bit Transfer Type TT in bits 14..12 in SuperSpeedPlus
+    with 100b Control / 101b Isochronous / 110b Bulk / 111b Interrupt / 000b Unknown from SuperSpeed
+    bus instances, Host Error HE in bit 15, 5-bit NumP 0..16 in bits 20..16, 5-bit Seq Num 0..31 in
+    bits 25..21, TP Follows TPF in bit 31 in SuperSpeedPlus, 16-bit Stream ID in DWORD 2 bits 15..0,
+    and Packets Pending PP in DWORD 2 bit 27), 0010b NRDY (Table 8-14, sent only by a device on a
+    non-isochronous endpoint when no data or buffer space is available; prohibited during the Setup
+    stage of a control transfer), 0011b ERDY (Table 8-15, sent only by a device with Route String
+    = 0 to exit flow control, reporting NumP 1..16 in DWORD 1 bits 20..16 and Stream ID in DWORD 2
+    bits 15..0), 0100b STATUS (Table 8-16, sent only by the host with DWORD 1 bits 31..12 and DWORD
+    2 reserved/0 to initiate the Status stage of a control transfer), 0101b STALL (Table 8-17, sent
+    only by a device with DWORD 1 bits 31..12 and DWORD 2 reserved/0 when an endpoint is halted or
+    a control transfer has a Request Error), 0110b DEV_NOTIFICATION (Table 8-18..Table 8-22, sent
+    only by a device with Route String = 0 and 4-bit Notification Type in DWORD 1 bits 7..4: 0001b
+    FUNCTION_WAKE with interface in bits 15..8 in Table 8-19, 0010b LATENCY_TOLERANCE_MESSAGE with
+    12-bit BELT in bits 19..8 in Table 8-20, 0011b deprecated BUS_INTERVAL_ADJUSTMENT_MESSAGE in Table
+    8-21, 0100b HOST_ROLE_REQUEST, and 0101b SUBLINK_SPEED with 32-bit Sublink Speed Attribute in
+    DWORD 2 in Table 8-22), 0111b PING (Table 8-23, sent by the host to bring links along the path
+    to an endpoint to U0), and 1000b PING_RESPONSE (Table 8-24, sent by the device in response to
+    each PING TP).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '262'
+      - '276'
+      section: '8.5'
+      table: 8-12
+    - pages:
+      - '263'
+      - '266'
+      table: 8-13
+    - page: '266'
+      table: 8-14
+    - pages:
+      - '266'
+      - '267'
+      table: 8-15
+    - page: '267'
+      table: 8-16
+    - page: '268'
+      table: 8-17
+    - pages:
+      - '268'
+      - '269'
+      table: 8-18
+    - pages:
+      - '270'
+      - '271'
+      table: 8-19
+    - page: '271'
+      table: 8-20
+    - pages:
+      - '273'
+      - '274'
+      table: 8-22
+    - page: '275'
+      table: 8-23
+    - page: '276'
+      table: 8-24
+    - pages:
+      - '279'
+      - '280'
+      section: '8.8'
+    - section: '8.9'
+      figure: 8-32
+      pages:
+      - '279'
+      - '280'
+  todo:
+    check: document
+    text: Deprecated Smart Isochronous Scheduling ACK TP fields (SSI, WPA, DBI, NBI in Table 8-13,
+      p. 265) and deprecated Bus Interval Adjustment Message fields (Table 8-21, p. 273) are not extracted.
+- id: data-packets-and-itp
+  section: standards
+  title: Data Packet (DP), Deferred DPH, and Isochronous Timestamp Packet (ITP) formats
+  claim: 'A Data Packet (DP, Type = 01000b) consists of a Data Packet Header (DPH) followed immediately
+    with zero spacing by a Data Packet Payload (DPP). The DPP is framed by DPPSTART (3x SDP + EPF)
+    and DPPEND (3x END + EPF) or DPPABORT (3x EDB + EPF) and contains 0 to 1024 data bytes (Data Length
+    in DWORD 1 bits 31..16, excluding CRC) followed by a 4-byte CRC-32 (polynomial 04C11DB7h, initial
+    value FFFFFFFFh, complemented remainder, constant receiver residual C704DD7Bh); even a zero-length
+    DP carries a 4-byte CRC-32. Key DPH fields (Table 8-25) are Seq Num (DWORD 1 bits 4..0, wrapping
+    at 31 to 0), End Of Burst / Last Packet Flag (EOB/LPF, DWORD 1 bit 6: EOB for non-isochronous
+    IN endpoints when ending a burst with fewer than NumP packets on a non-short packet, failing to
+    meet tMaxBurstInterval / tGen2MaxBurstInterval, or entering flow control on a short packet; 0
+    for non-isochronous OUT and control endpoints; LPF for isochronous endpoints on the last packet
+    of the last burst in the current service interval), Direction D (DWORD 1 bit 7), Endpoint Number
+    (DWORD 1 bits 11..8), Setup S (DWORD 1 bit 15, set to 1 only by the host on Setup DPs), Data Length
+    (DWORD 1 bits 31..16), Stream ID (DWORD 2 bits 15..0), and Packets Pending PP (DWORD 2 bit 27,
+    set only by the host). When a hub cannot forward a downstream TP or DP because the target downstream
+    port link is in U1 or U2, it initiates link exit to U0, sets the Deferred (DF) bit in the Link
+    Control Word (stripping the DPP from a DP to form a Deferred DPH), and returns the header packet
+    upstream. An Isochronous Timestamp Packet (ITP, Type = 01100b, Table 8-26) carries no addressing
+    or routing fields and is multicast by the host within tTimestampWindow of every 125 us bus interval
+    boundary on all root port links already in U0 (never waking a root port link just to send an ITP)
+    and forwarded by hubs to all downstream ports in U0 that have completed Port Configuration; devices
+    never respond to an ITP. DWORD 0 bits 31..5 hold the 27-bit Isochronous Timestamp (ITS): bits
+    13..0 of ITS hold the 14-bit Bus interval counter (125 us microframes, rolling over from 0x3FFF
+    to 0) and bits 26..14 hold the 13-bit Delta (0..7499 in tIsochTimestampGranularity units from
+    the previous bus interval boundary), while DWORD 1 bits 20..7 hold a 14-bit PTM Correction field
+    (set to 0 by the host). A device may ignore an ITP that has the Delayed (DL) bit set in its Link
+    Control Word.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '150'
+      - '153'
+      section: 7.2.1.2
+      figure: 7-9
+    - page: '153'
+      figure: 7-11
+    - pages:
+      - '276'
+      - '278'
+      section: '8.6'
+      figure: 8-30
+      table: 8-25
+    - pages:
+      - '278'
+      - '279'
+      section: '8.7'
+      figure: 8-31
+      table: 8-26
+    - pages:
+      - '280'
+      - '282'
+      section: 8.10.1
+  todo:
+    check: document
+    text: CRC-32 bit mapping Table 7-2 (p. 152) and hub PTM ITP Correction calculation rules in Section
+      10.9.4.4.1 (pp. 453-456) are not extracted.
+- id: transfer-types-and-endpoint-parameters
+  section: standards
+  title: Transfer types, maximum packet sizes, burst lengths, and service intervals
+  claim: 'Enhanced SuperSpeed defines four transfer types with constrained wMaxPacketSize, bMaxBurst
+    (0..15 for 1..16 packets per burst), and sequence number rules: (1) Control transfers use a Setup
+    stage (8-byte DP with S = 1, Seq Num = 0, D = 0), an optional Data stage (starting at Seq Num
+    = 1), and a Status stage (STATUS TP followed by ACK TP with Seq Num = 0); the maximum data payload
+    size is fixed at 512 bytes (bMaxPacketSize0 = 09H in the Device Descriptor, where 2^9 = 512; wMaxPacketSize
+    = 512) and the maximum burst size is fixed at 1 packet (bMaxBurst = 0); Endpoint 0 has no Endpoint
+    Descriptor or Endpoint Companion Descriptor. (2) Bulk transfers have a fixed maximum data payload
+    size of 1024 bytes (wMaxPacketSize = 1024), burst sizes of 1 to 16 packets (bMaxBurst = 0..15),
+    continuous sequence numbers 0..31, and optional Bulk Streams (MaxStreams = 1..16 supporting 2^MaxStreams
+    streams). (3) Interrupt transfers have a service interval period of 2^(bInterval - 1) * 125 us,
+    where bInterval is 1..16 for Periodic usage type (bmAttributes bits 5..4 = 00b) or 8..16 for Notification
+    usage type (bits 5..4 = 01b); maximum burst size is 1 to 3 packets (bMaxBurst = 0..2, up to 3072
+    bytes per service interval), wMaxPacketSize is 1..1024 bytes when bMaxBurst = 0 and fixed at 1024
+    bytes when bMaxBurst > 0, and sequence numbers run continuously 0..31. (4) Isochronous transfers
+    have a service interval period of 2^(bInterval - 1) * 125 us (bInterval = 1..16), no ACK/NRDY/ERDY
+    handshakes or retries, and sequence numbers that reset to 0 at the start of every service interval;
+    maximum burst size is 1 to 16 packets (bMaxBurst = 0..15), wMaxPacketSize is 0..1024 bytes when
+    bMaxBurst = 0 and fixed at 1024 bytes when bMaxBurst > 0, and up to 3 bursts per service interval
+    are supported in SuperSpeed (Mult = 0..2, up to 48 DPs / 48 KB per service interval in Gen 1x1;
+    Mult must be 0 if bMaxBurst = 0) or up to 6 bursts per service interval in SuperSpeedPlus (up
+    to 96 DPs in Gen 1x2/Gen 2x1 and 192 DPs in Gen 2x2).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '68'
+      - '70'
+      section: 4.4.5
+    - page: '71'
+      section: 4.4.6
+    - pages:
+      - '74'
+      - '76'
+      section: 4.4.7
+    - pages:
+      - '76'
+      - '78'
+      section: 4.4.8
+    - pages:
+      - '281'
+      - '283'
+      section: 8.10.2
+    - page: '330'
+      section: 8.12.5
+    - pages:
+      - '331'
+      - '333'
+      section: 8.12.6.1
+    - pages:
+      - '379'
+      - '381'
+      section: 9.6.1
+      table: 9-11
+    - pages:
+      - '395'
+      - '396'
+      section: 9.6.6
+      table: 9-26
+    - pages:
+      - '398'
+      - '400'
+      section: 9.6.7
+      table: 9-28
+    - pages:
+      - '400'
+      - '401'
+      section: 9.6.8
+      table: 9-29
+- id: standard-device-requests-and-features
+  section: standards
+  title: Standard Device Requests, SET_SEL, SET_ISOCH_DELAY, and Feature Selectors
+  claim: 'Standard Device Requests on the Default Control Pipe use bRequest codes (Table 9-5): GET_STATUS
+    0, CLEAR_FEATURE 1, SET_FEATURE 3, SET_ADDRESS 5, GET_DESCRIPTOR 6, SET_DESCRIPTOR 7, GET_CONFIGURATION
+    8, SET_CONFIGURATION 9, GET_INTERFACE 10, SET_INTERFACE 11, SYNCH_FRAME 12, GET_FW_STATUS 26 (1AH),
+    SET_FW_STATUS 27 (1BH), SET_SEL 48 (30H), and SET_ISOCH_DELAY 49 (31H). Requests with no Data
+    stage must complete within 50 ms; IN Data-stage requests must return the first and each subsequent
+    packet within 500 ms and complete the Status stage within 50 ms; OUT Data-stage requests have
+    a 5-second limit. SET_SEL (bRequest = 48, bmRequestType = 00000000B, wValue = 0, wIndex = 0, wLength
+    = 6) transfers a 6-byte payload setting exit latencies: 1-byte U1SEL at offset 0 (us), 1-byte
+    U1PEL at offset 1 (us), 2-byte U2SEL at offset 2 (us), and 2-byte U2PEL at offset 4 (us); it is
+    valid in the Address and Configured states and must be accepted whether or not the device supports
+    or enables LTM. SET_ISOCH_DELAY (bRequest = 49, bmRequestType = 00000000B, wValue = delay in ns
+    from 0 to 65535 calculated as (sum of wHubDelay values) + (tTPTransmissionDelay * (number of hubs
+    + 1)), wIndex = 0, wLength = 0) is valid in the Default, Address, and Configured states. Standard
+    Feature Selectors (Table 9-7) are ENDPOINT_HALT 0 (Endpoint recipient), FUNCTION_SUSPEND 0 (Interface
+    recipient, targeting the first interface of the function with Suspend Options in wIndex[15..8]
+    from Table 9-9: bit 0 = 1 for low-power suspend state, bit 1 = 1 for Function Remote Wake Enabled),
+    U1_ENABLE 48 (Device recipient), U2_ENABLE 49 (Device recipient), LTM_ENABLE 50 (Device recipient),
+    B3_NTF_HOST_REL 51 (Device, OTG), B3_RSP_ENABLE 52 (Device, OTG), and LDM_ENABLE 53 (Device, PTM;
+    set to 1 on reset for PTM-capable devices; Section 9.4.9 body text states it may be set or cleared
+    in the Address or Configured state, whereas its state summary lists Address state as a Request Error).
+    U1_ENABLE, U2_ENABLE, LTM_ENABLE, and FUNCTION_SUSPEND are valid only in the Configured state. GET_STATUS
+    (Table 9-8) uses wValue low byte 00H (STANDARD_STATUS, wLength = 2: Device returns bit D0 Self
+    Powered, D1 = 0 reserved, D2 U1 Enable, D3 U2 Enable, D4 LTM Enable in Figure 9-4; first Interface
+    of a function returns bit D0 Function Remote Wake Capable and D1 Function Remote Wakeup in Figure
+    9-5, while other interfaces return 0; Endpoint returns bit D0 Halt in Figure 9-6) or 01H (PTM_STATUS,
+    wLength = 4, Device recipient only: returns bit D0 LDM Enable, D1 LDM Valid, and bits D31..D16
+    16-bit LDM Link Delay in Figure 9-7).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - section: 9.2.6
+      pages:
+      - '357'
+      - '358'
+    - pages:
+      - '359'
+      - '361'
+      section: '9.3'
+      table: 9-3
+    - pages:
+      - '361'
+      - '364'
+      section: '9.4'
+      table: 9-4
+    - pages:
+      - '362'
+      - '363'
+      table: 9-5
+    - page: '364'
+      table: 9-7
+    - pages:
+      - '364'
+      - '365'
+      section: 9.4.1
+    - pages:
+      - '367'
+      - '370'
+      section: 9.4.5
+      table: 9-8
+    - page: '368'
+      figure: 9-4
+    - page: '369'
+      figure: 9-5
+    - page: '369'
+      figure: 9-6
+    - page: '370'
+      figure: 9-7
+    - pages:
+      - '373'
+      - '374'
+      section: 9.4.9
+      table: 9-9
+    - page: '375'
+      section: 9.4.11
+    - page: '375'
+      section: 9.4.12
+  todo:
+    check: document
+    text: SYNCH_FRAME (Section 9.4.13, p. 376) and firmware status requests SET_FW_STATUS and GET_FW_STATUS
+      (Sections 9.4.14-9.4.15, pp. 376-377) are not extracted in detail.
+- id: standard-and-bos-descriptors
+  section: standards
+  title: Standard descriptors, BOS, Device Capability descriptors, and Endpoint Companion descriptors
+  claim: 'Descriptor Type codes (Table 9-6) are DEVICE 1, CONFIGURATION 2, STRING 3, INTERFACE 4,
+    ENDPOINT 5, INTERFACE_POWER 8, OTG 9, DEBUG 10, INTERFACE_ASSOCIATION 11 (0BH), BOS 15 (0FH),
+    DEVICE CAPABILITY 16 (10H), SUPERSPEED_USB_ENDPOINT_COMPANION 48 (30H), and SUPERSPEEDPLUS_ISOCHRONOUS_ENDPOINT_COMPANION
+    49 (31H). In the 18-byte Device Descriptor (Table 9-11), an Enhanced SuperSpeed device operating
+    at Gen X speed sets bcdUSB to at least 0310H (0320H for USB 3.2) and bMaxPacketSize0 (offset 7)
+    to 09H (2^9 = 512 bytes), and reports only configurations for the current operating speed in bNumConfigurations
+    (offset 17). The 5-byte Binary Device Object Store (BOS) descriptor (Table 9-12: bLength 5, bDescriptorType
+    0FH, 2-byte wTotalLength, 1-byte bNumDeviceCaps) is the root container for Device Capability descriptors
+    (Table 9-13, Table 9-14: bDescriptorType 10H, bDevCapabilityType at offset 2), which can only
+    be read as part of GetDescriptor(BOS): (1) USB 2.0 EXTENSION (02H, 7 bytes, Table 9-15: required
+    for all Enhanced SuperSpeed devices, with 4-byte bmAttributes bit 1 LPM set to 1); (2) SUPERSPEED_USB
+    (03H, 10 bytes, Table 9-16: required for all Enhanced SuperSpeed devices; contains 1-byte bmAttributes
+    at offset 3 with bit 1 LTM Capable, 2-byte wSpeedsSupported at offset 4 with bit 0 Low-Speed,
+    bit 1 Full-Speed, bit 2 High-Speed, bit 3 Gen 1, 1-byte bFunctionalitySupport at offset 6, 1-byte
+    bU1DevExitLat at offset 7 from 00H zero to 0AH < 10 us, and 2-byte wU2DevExitLat at offset 8 from
+    0000H zero to 07FFH < 2047 us); (3) CONTAINER_ID (04H, 20 bytes, Table 9-17: mandatory for all
+    USB 3.2 hubs and optional for peripherals, with bReserved = 0 at offset 3 and 16-byte UUID at
+    offset 4); (4) SUPERSPEED_PLUS (0AH, 12 + 4 * (SSAC + 1) bytes, Table 9-19: mandatory for all
+    SuperSpeedPlus devices; contains bReserved = 0 at offset 3, 4-byte bmAttributes at offset 4 with
+    bits 4..0 SSAC = attribute count minus 1 and bits 8..5 SSIC = unique Sublink Speed ID count minus
+    1, 2-byte wFunctionalitySupport at offset 8 with bits 3..0 min SSID, bits 11..8 Min Rx Lane Count,
+    bits 15..12 Min Tx Lane Count, 2-byte wReserved = 0 at offset 10, and SSAC + 1 4-byte bmSublinkSpeedAttr[i]
+    bitmaps at offset 12 with bits 3..0 SSID, bits 5..4 LSE exponent 0 = bps / 1 = Kb/s / 2 = Mb/s
+    / 3 = Gb/s, bit 6 ST[0] 0 = Symmetric / 1 = Asymmetric, bit 7 ST[1] 0 = Rx / 1 = Tx paired Rx-then-Tx,
+    bits 15..14 LP 0 = SuperSpeed / 1 = SuperSpeedPlus, and bits 31..16 16-bit LSM mantissa); and
+    (5) PLATFORM (05H, Table 9-18), PRECISION_TIME_MEASUREMENT (0BH, 3 bytes, Table 9-20), CONFIGURATION
+    SUMMARY (10H, Table 9-21), and FWStatus Capability (11H, Table 9-22). When operating at Gen X
+    speed, each non-zero Endpoint Descriptor (Table 9-26) in GetDescriptor(CONFIGURATION) is immediately
+    followed by a 6-byte SuperSpeed Endpoint Companion Descriptor (Table 9-28: bLength 6, bDescriptorType
+    30H, 1-byte bMaxBurst 0..15 at offset 2, 1-byte bmAttributes at offset 3 with Bulk bits 4..0 MaxStreams
+    0..16 or Isochronous bits 1..0 Mult 0..2 and bit 7 SSP ISO Companion, and 2-byte wBytesPerInterval
+    at offset 4). When operating above Gen 1 speed, any isochronous endpoint requiring > 48 KB per
+    service interval sets SSP ISO Companion = 1 (with wBytesPerInterval = 1) and is immediately followed
+    by an 8-byte SuperSpeedPlus Isochronous Endpoint Companion Descriptor (Table 9-29: bLength 8,
+    bDescriptorType 31H, 2-byte wReserved = 0 at offset 2, 4-byte dwBytesPerInterval at offset 4,
+    with effective Mult = ceil(dwBytesPerInterval / bMaxBurst / wMaxPacketSize)).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - section: '9.4'
+      table: 9-6
+      pages:
+      - '361'
+      - '363'
+    - section: 9.4.3
+      pages:
+      - '365'
+      - '366'
+    - pages:
+      - '379'
+      - '381'
+      section: 9.6.1
+      table: 9-11
+    - pages:
+      - '381'
+      - '391'
+      section: 9.6.2
+      table: 9-12
+    - page: '382'
+      table: 9-13
+    - page: '382'
+      table: 9-14
+    - page: '384'
+      table: 9-15
+    - pages:
+      - '385'
+      - '386'
+      table: 9-16
+    - page: '387'
+      table: 9-17
+    - page: '387'
+      table: 9-18
+    - pages:
+      - '388'
+      - '389'
+      table: 9-19
+    - page: '390'
+      table: 9-20
+    - page: '390'
+      table: 9-21
+    - page: '391'
+      table: 9-22
+    - pages:
+      - '391'
+      - '392'
+      section: 9.6.3
+      table: 9-23
+    - pages:
+      - '395'
+      - '396'
+      section: 9.6.6
+      table: 9-26
+    - pages:
+      - '398'
+      - '400'
+      section: 9.6.7
+      table: 9-28
+    - pages:
+      - '400'
+      - '401'
+      section: 9.6.8
+      table: 9-29
+  todo:
+    check: document
+    text: Interface Association Descriptor layout (Table 9-24, p. 393), Interface Descriptor layout
+      (Table 9-25, pp. 394-395), and Isochronous feedback endpoint number matching examples (Table
+      9-27 and Figure 9-8, pp. 397-398) are not extracted in full.
+- id: hub-class-and-power-distribution
+  section: standards
+  title: Enhanced SuperSpeed Hub Descriptor, Hub Class Requests, Port Status, and VBUS power
+  claim: 'An Enhanced SuperSpeed hub reports a 12-byte Hub Descriptor (bDescriptorType = 2AH, Table
+    10-5): bDescLength (12), bDescriptorType (2AH), bNbrPorts (offset 2, 1..15 downstream ports),
+    2-byte wHubCharacteristics (offset 3: bits 1..0 power switching mode 00b ganged / 01b individual;
+    bit 2 compound device; bits 4..3 over-current protection mode 00b global / 01b individual / 1Xb
+    none), bPwrOn2PwrGood (offset 5, in 2 ms intervals), bHubContrCurrent (offset 6, in aCurrentUnit
+    mA), bHubHdrDecLat (offset 7, 00H..0AH for 0.0..1.0 us header decode latency), 2-byte wHubDelay
+    (offset 8, max forwarding delay in ns up to tHubDelay), and 2-byte DeviceRemovable bitmap (offset
+    10, bits 1..15 for ports 1..15, 0 = removable, 1 = non-removable). Hub class requests (Table 10-7,
+    Table 10-8, worst-case 50 ms per stage in Section 10.16.1) use bRequest codes GET_STATUS 0, CLEAR_FEATURE
+    1, SET_FEATURE 3, GET_DESCRIPTOR 6, SET_DESCRIPTOR 7 (optional), SET_HUB_DEPTH 12 (bmRequestType
+    = 00100000B, wValue = 0..4 setting the Route String bit offset to wValue << 2; wValue > 4 is a
+    Request Error), and GET_PORT_ERR_COUNT 13 (bmRequestType = 10100011B, wLength = 2 returning the
+    port''s 2-byte link error count). Hub Class Feature Selectors (Table 10-9) are Hub selectors C_HUB_LOCAL_POWER
+    0 and C_HUB_OVER_CURRENT 1, and Port selectors PORT_CONNECTION 0, PORT_OVER_CURRENT 3, PORT_RESET
+    4, PORT_LINK_STATE 5, PORT_POWER 8, C_PORT_CONNECTION 16, C_PORT_OVER_CURRENT 19, C_PORT_RESET
+    20, PORT_U1_TIMEOUT 23, PORT_U2_TIMEOUT 24, C_PORT_LINK_STATE 25, C_PORT_CONFIG_ERROR 26, PORT_REMOTE_WAKE_MASK
+    27, BH_PORT_RESET 28, C_BH_PORT_RESET 29, and FORCE_LINKPM_ACCEPT 30. GetPortStatus (Table 10-12)
+    with wValue low byte 00H (PORT_STATUS, wLength = 4) returns 16-bit wPortStatus (Table 10-13: bit
+    0 PORT_CONNECTION, bit 1 PORT_ENABLE, bit 3 PORT_OVER_CURRENT, bit 4 PORT_RESET, bits 8..5 PORT_LINK_STATE
+    0x00..0x0B, bit 9 PORT_POWER, bits 12..10 PORT_SPEED = 0 for Enhanced SuperSpeed) and 16-bit wPortChange
+    (Table 10-14: bit 0 C_PORT_CONNECTION, bit 3 C_PORT_OVER_CURRENT, bit 4 C_PORT_RESET, bit 5 C_BH_PORT_RESET,
+    bit 6 C_PORT_LINK_STATE, bit 7 C_PORT_CONFIG_ERROR); on SuperSpeedPlus hubs, wValue low byte 02H
+    (EXT_PORT_STATUS, wLength = 8) appends 32-bit dwExtPortStatus (Table 10-15: bits 3..0 RX_SUBLINK_SPEED_ID,
+    bits 7..4 TX_SUBLINK_SPEED_ID, bits 11..8 zero-based RX_LANE_COUNT, bits 15..12 zero-based TX_LANE_COUNT).
+    For VBUS power distribution (Section 11.4, Table 11-2), downstream VBUS is 4.75 V to 5.50 V (>=
+    4.00 V steady-state at the upstream device connector, 3.67 V min transient), and a single-lane
+    Enhanced SuperSpeed unit load is 150 mA: unconfigured devices draw at most 150 mA (I_CCINIT, and
+    <= 100 mA before detecting far-end Rx terminations), low-power devices draw up to 150 mA single-lane
+    / 250 mA dual-lane (I_CCLPF, 1 unit load), high-power configured devices draw up to 900 mA single-lane
+    / 1500 mA dual-lane (I_CCHPF, 6 unit loads), and suspended devices draw at most 2.5 mA (I_CCS,
+    or up to 12.5 mA for a configured bus-powered compound device with up to 4 internal ports) averaged
+    over 1.0 s.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '355'
+      section: 9.2.5.1
+    - pages:
+      - '468'
+      - '469'
+      section: 10.15.2.1
+      table: 10-5
+    - pages:
+      - '470'
+      - '483'
+      section: '10.16'
+      table: 10-6
+    - page: '471'
+      table: 10-7
+    - page: '471'
+      table: 10-8
+    - page: '472'
+      table: 10-9
+    - page: '474'
+      table: 10-10
+    - pages:
+      - '474'
+      - '475'
+      table: 10-11
+    - page: '476'
+      table: 10-12
+    - pages:
+      - '476'
+      - '477'
+      table: 10-13
+    - pages:
+      - '479'
+      - '480'
+      table: 10-14
+    - page: '481'
+      table: 10-15
+    - pages:
+      - '494'
+      - '501'
+      section: '11.4'
+      table: 11-2
+  todo:
+    check: document
+    text: Dynamic attach/detach inrush capacitance and droop requirements in Section 11.4.4 (pp. 500-501)
+      and internal hub port state machines in Sections 10.3-10.14 (pp. 413-467) are not exhaustively
+      extracted.
+- id: device-enumeration-and-link-pm-setup
+  section: programming-model
+  title: Device state transitions, bus enumeration, and Link Power Management initialization
+  claim: 'An Enhanced SuperSpeed device transitions through the visible states Attached, Powered (Far-end
+    Receiver Termination and Link Training substates), Default, Address, Configured, Suspended, and
+    Error (Figure 9-1, Table 9-1). During bus enumeration (Section 9.1.2): (1) when attached to a
+    powered port, the link detects far-end receiver terminations, trains through Polling to U0, and
+    exchanges Port Capability, Port Configuration, and Port Configuration Response LMPs within tPortConfiguration,
+    placing the port in DSPORT.Enabled and the device in the Default state (already reset, answering
+    at default address 0, drawing <= 1 unit load); (2) the hub reports C_PORT_CONNECTION on its status
+    change interrupt pipe and the host queries GetPortStatus (and EXT_PORT_STATUS on SuperSpeedPlus
+    hubs) and may optionally reset the port again; (3) the host assigns a unique address (1..127)
+    via SetAddress(), moving the device to the Address state; (4) the host reads the 18-byte Device
+    Descriptor (bMaxPacketSize0 = 09H = 512 bytes) and reads the BOS descriptor (first reading the
+    5-byte BOS header for wTotalLength, then reading wTotalLength bytes to parse USB 2.0 EXTENSION,
+    SUPERSPEED_USB, SUPERSPEED_PLUS, CONTAINER_ID, and PRECISION_TIME_MEASUREMENT capabilities); (5)
+    the host sends SET_ISOCH_DELAY (bRequest = 49, delay in ns) and SET_SEL (bRequest = 48, 6-byte
+    U1SEL/U1PEL/U2SEL/U2PEL payload); (6) the host reads Configuration Descriptors (0..bNumConfigurations
+    - 1) and selects one with SetConfiguration(), entering the Configured state (D0), resetting endpoint
+    sequence numbers to 0, and allowing up to bMaxPower (in 8 mA units), plus sending SetHubDepth
+    (0..4) if the device is a hub; and (7) after configuration, software may program the downstream
+    hub port''s inactivity timers via SetPortFeature(PORT_U1_TIMEOUT) (wValue = 23, wIndex[15..8]
+    = 01H..7FH for 1..127 us, FFH infinite, 00H disabled, Table 10-16) and SetPortFeature(PORT_U2_TIMEOUT)
+    (wValue = 24, wIndex[15..8] = 01H..FEH in 256 us steps up to 65.024 ms, FFH infinite, 00H disabled,
+    Table 10-17, which triggers a U2 Inactivity Timeout LMP to the device) and enable device-initiated
+    U1/U2/LTM via SetFeature(U1_ENABLE) (48), SetFeature(U2_ENABLE) (49), and SetFeature(LTM_ENABLE)
+    (50), provided that host-initiated U1/U2 System Exit Latency plus one Bus Interval (125 us) does
+    not exceed the minimum service interval of any periodic endpoint on the device.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '244'
+      - '247'
+      section: 8.4.5
+    - pages:
+      - '246'
+      - '247'
+      section: 8.4.6
+    - pages:
+      - '348'
+      - '353'
+      section: 9.1.1
+      figure: 9-1
+      table: 9-1
+    - pages:
+      - '353'
+      - '354'
+      section: 9.1.2
+    - page: '358'
+      section: 9.2.6.3
+    - section: 9.4.3
+      pages:
+      - '365'
+      - '366'
+    - page: '373'
+      section: 9.4.9
+    - page: '375'
+      section: 9.4.11
+    - page: '375'
+      section: 9.4.12
+    - pages:
+      - '482'
+      - '484'
+      section: 10.16.2.9
+      table: 10-16
+    - page: '484'
+      table: 10-17
+- id: inband-resets-hot-vs-warm
+  section: programming-model
+  title: Inband resets — PORT_RESET (Hot Reset) vs. BH_PORT_RESET (Warm Reset)
+  claim: 'Hub and root ports support two reset feature selectors (Section 7.4.2, Section 10.3.1.6,
+    Section 10.16.2.10): SetPortFeature(PORT_RESET) (wValue = 4) and SetPortFeature(BH_PORT_RESET)
+    (wValue = 28). When SetPortFeature(PORT_RESET) is received in DSPORT.Enabled and the port''s link
+    is in any state other than U3 (U0, Polling, Recovery, or U1/U2 after LFPS exit to Recovery), the
+    port initiates an inband Hot Reset using TS1/TS2 ordered sets with the Reset bit asserted, which
+    resets the device''s USB address to 0, deconfigures the device, and resets endpoint halts and
+    sequence numbers while preserving PHY equalization and Port Configuration Information (Table 9-10).
+    When SetPortFeature(PORT_RESET) is received in DSPORT.Error, or in DSPORT.Enabled with the link
+    in U3 (or Loopback, Compliance Mode, or eSS.Inactive), it initiates an LFPS Warm Reset instead;
+    if a Hot Reset fails during Recovery (TS1/TS2 training timeout transitions to Rx.Detect and attempts
+    a Warm Reset, while an LFPS handshake timeout when exiting U1/U2 transitions to eSS.Inactive per
+    Section 7.4.2; at the hub port state machine level in Section 10.3.1.6, a failed Hot Reset falls
+    back to a Warm Reset while remaining in DSPORT.Resetting). SetPortFeature(BH_PORT_RESET) unconditionally
+    initiates an LFPS Warm Reset from any link state in DSPORT.Enabled or DSPORT.Error (and is ignored
+    in DSPORT.Disabled, DSPORT.Powered-off, or DSPORT.Disconnected), transitioning the link through
+    Rx.Detect and Polling, retraining the PHY and Rx equalizer, resetting Port Configuration Information
+    (Table 9-10), and re-exchanging Port Capability and Port Configuration LMPs upon entering U0.
+    When reset completes and the port enters DSPORT.Enabled, the hub sets C_PORT_RESET (wPortChange
+    bit 4, feature selector 20) to 1 for any reset (Hot or Warm) and sets C_BH_PORT_RESET (wPortChange
+    bit 5, feature selector 29) to 1 for a Warm Reset only; software clears these change bits with
+    ClearPortFeature(C_PORT_RESET) and ClearPortFeature(C_BH_PORT_RESET).'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '189'
+      - '190'
+      section: 7.4.2
+      table: 7-11
+    - pages:
+      - '230'
+      - '236'
+      section: 7.5.11
+    - section: 9.4.16
+      table: 9-10
+      pages:
+      - '377'
+      - '378'
+    - pages:
+      - '419'
+      - '420'
+      section: 10.3.1.6
+    - pages:
+      - '476'
+      - '480'
+      section: 10.16.2.6.1
+      table: 10-13
+    - pages:
+      - '479'
+      - '480'
+      table: 10-14
+    - pages:
+      - '483'
+      - '486'
+      section: 10.16.2.10
+- id: asynchronous-flow-control-and-bursting
+  section: programming-model
+  title: Burst transactions, pipelined ACKs, EOB, Rty recovery, and NRDY/ERDY flow control
+  claim: 'Bulk, Interrupt, and Control endpoints transfer packets using credit-bounded bursts and
+    asynchronous NRDY/ERDY flow control instead of USB 2.0 NAK polling (Sections 8.10-8.12): (1) For
+    IN transactions, the host sends ACK(Seq Num, NumP = N, PP) requesting up to N (1..16, bounded
+    by bMaxBurst + 1) packets starting at Seq Num. If the endpoint has no data ready, the device returns
+    NRDY and both sides place the pipe in flow control until the device sends ERDY(NumP), prompting
+    the host to send a new ACK TP. If data is ready, the device streams up to NumP back-to-back DPs
+    (Seq Num, Seq Num + 1, ...) while the host returns pipelined ACK(Seq Num + 1, NumP - 1) TPs as
+    each valid DP arrives. A short packet (Data Length < wMaxPacketSize) always terminates a burst;
+    if the device ends a burst early with fewer than NumP packets on a full-length packet (or wishes
+    to enter flow control immediately after a short packet), it sets EOB = 1 (DWORD 1 bit 6) in that
+    DP and later sends ERDY when ready to resume. The host acknowledges the final packet of an IN
+    burst with a Terminating ACK(Seq Num + 1, NumP = 0) (or ACK(Seq Num + 1, NumP > 0) after a short
+    packet with EOB = 0 if the host immediately initiates another transfer on that endpoint). (2) For
+    OUT transactions, the host streams
+    up to bMaxBurst + 1 back-to-back DPs (bounded by the device''s advertised NumP credit), and for
+    each valid DP stored the device returns ACK(Seq Num + 1, NumP) advertising its remaining buffer
+    credit; if NumP reaches 0 in an ACK TP or the device drops a DP and returns NRDY, the pipe enters
+    flow control until the device sends ERDY(NumP > 0). (3) If a receiver detects a corrupted DPP
+    or an out-of-sequence Seq Num during a burst, it discards that DP and any subsequent DPs in the
+    burst and returns a single ACK(Rty = 1, Seq Num = failed_seq_num, NumP > 0), causing the transmitter
+    to flush unacknowledged packets and retransmit starting at Seq Num.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '263'
+      - '268'
+      section: 8.5.1
+      table: 8-13
+    - section: '8.6'
+      table: 8-25
+      pages:
+      - '276'
+      - '277'
+    - pages:
+      - '280'
+      - '285'
+      section: '8.10'
+    - pages:
+      - '285'
+      - '286'
+      section: '8.11'
+    - pages:
+      - '286'
+      - '292'
+      section: 8.12.1
+- id: bulk-streaming-protocol
+  section: programming-model
+  title: Bulk Streaming Protocol State Machine (SPSM) and reserved Stream IDs
+  claim: 'A bulk endpoint with MaxStreams > 0 in its SuperSpeed Endpoint Companion Descriptor (bmAttributes
+    bits 4..0 = 1..16, supporting up to 2^MaxStreams streams) multiplexes streams using the 16-bit
+    Stream ID (SID) in DWORD 2 bits 15..0 of DP, ACK, NRDY, and ERDY packets (Section 8.12.1.4). Reserved
+    and valid SIDs are: Stream 0 (0000h, reserved on stream pipes and required on standard bulk pipes),
+    Stream n (1..65533 / 0001h..FFFDh, valid logical Stream IDs), Prime (FFFEh, used for Prime Pipe
+    state transitions), and NoStream (FFFFh, used by the host to reject a device''s stream selection).
+    The Stream Protocol State Machine (SPSM, Figure 8-38..Figure 8-41) starts in Disabled after configuration,
+    SetFeature(ENDPOINT_HALT), or ClearFeature(ENDPOINT_HALT). When software adds or modifies host
+    stream buffers, the host transitions the pipe from Disabled (or Idle) to Prime Pipe by sending
+    ACK(Prime, NumP > 0, PP = 0) on an IN pipe or a zero-length DP(Prime, PP = 0) on an OUT pipe;
+    the device marks all Active Stream IDs as Ready, replies with NRDY(Prime), and enters Idle. From
+    Idle, the device initiates stream selection (Start Stream) by sending ERDY(Stream n, NumP > 0):
+    the host accepts by sending ACK(Stream n, NumP > 0) (IN) or the first DP(Stream n) (OUT) to enter
+    Move Data (CStream = Stream n), or rejects the stream when no host buffer is available by sending
+    ACK(NoStream, NumP = 0, PP = 0) (IN, returning the device directly to Idle with Stream n marked
+    Not Ready) or a zero-length DP(NoStream, PP = 0) (OUT, transitioning the device through Start Stream
+    End where it sends NRDY(NoStream) before marking Stream n Not Ready and returning to Idle). From
+    Idle (or concurrently with Start
+    Stream), the host can also perform a Host-Initiated Move Data (HIMD) on Stream x by sending ACK(Stream
+    x, NumP > 0) (IN) or DP(Stream x) (OUT); the device marks Stream x as Ready, sets CStream = Stream
+    x in Move Data, and either transfers data or rejects/flow-controls CStream with NRDY(CStream)
+    to return to Idle.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '293'
+      - '305'
+      section: 8.12.1.4
+      figure: 8-38
+    - page: '297'
+      figure: 8-39
+    - page: '300'
+      figure: 8-40
+    - page: '303'
+      figure: 8-41
+    - section: 9.4.5
+      pages:
+      - '367'
+      - '369'
+    - section: 9.6.7
+      table: 9-28
+      pages:
+      - '398'
+      - '399'
+  todo:
+    check: document
+    text: Device OUT Move Data State Machine (DOMDSM) and Host IN/OUT Stream Protocol State Machines
+      (HISPSM, HOSPSM) in Sections 8.12.1.4.3.6 through 8.12.1.4.5 (pp. 305-324) are not extracted
+      in full.
+- id: isochronous-transfers-and-ping
+  section: programming-model
+  title: Isochronous service interval sequencing, Last Packet Flag (LPF), and PING wakeup
+  claim: Isochronous transfers run on aligned service intervals of 2^(bInterval - 1) * 125 us without
+    retries or NRDY/ERDY/STALL handshakes (Section 8.12.5, Section 8.12.6). The first DP (OUT) or
+    ACK TP (IN) in every service interval must start with Seq Num = 0, and Seq Num increments by 1
+    for each subsequent DP within the service interval (wrapping from 31 to 0 after 32 packets). For
+    IN transactions, the host requests each burst with ACK(Seq Num, NumP) (where Seq Num[i + 1] =
+    Seq Num[i] + NumP[i] across bursts in the interval, and SuperSpeedPlus hosts may pipeline multiple
+    IN ACK TPs as long as total outstanding DPs do not exceed bMaxBurst + 1, Table 8-32), and the
+    device returns DPs (or a zero-length DP with LPF = 1 if it has no data). For OUT transactions,
+    the host transmits DPs directly with no ACK TP (or sends nothing if it has no data). In both directions,
+    every packet except the final packet of the service interval must have LPF = 0 (DWORD 1 bit 6)
+    and Data Length = wMaxPacketSize, while the final packet of the service interval must have LPF
+    = 1 and Data Length <= wMaxPacketSize. Whenever links along the path to an isochronous endpoint
+    may be in U1 or U2, the host must transmit a PING TP (SubType = 0111b) and wait for the device's
+    PING_RESPONSE TP (SubType = 1000b) prior to the start of the service interval to bring all intermediate
+    links to U0 before initiating the isochronous transfer.
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '76'
+      - '78'
+      section: 4.4.8
+    - pages:
+      - '275'
+      - '276'
+      section: 8.5.7
+      table: 8-23
+    - section: 8.5.8
+      table: 8-24
+      pages:
+      - '275'
+      - '276'
+    - pages:
+      - '330'
+      - '331'
+      section: 8.12.5
+    - pages:
+      - '331'
+      - '341'
+      section: 8.12.6
+      figure: 8-60
+    - page: '332'
+      figure: 8-61
+    - page: '341'
+      table: 8-32
+- id: suspend-resume-and-function-wake
+  section: programming-model
+  title: Function Suspend, U3 Device Suspend, and Function Wake remote wakeup
+  claim: 'Enhanced SuperSpeed separates per-function power management (Function Suspend) from link-wide
+    device suspend (U3 Device Suspend): (1) Host software places a function into Function Suspend
+    via SetFeature(FUNCTION_SUSPEND) (bRequest = 3, bmRequestType = 00000001B, wValue = 0) targeted
+    at the first interface of that function (wIndex[7..0] = first interface number) with Suspend Options
+    in wIndex[15..8] (Table 9-9: bit 0 = 1 for Low power suspend state, bit 1 = 1 for Function Remote
+    Wake Enabled). Placing all functions into Function Suspend does not suspend the device, though
+    if all functions are in Function Suspend and PORT_U2_TIMEOUT is FFH, the device initiates U2 after
+    10 ms of link inactivity. (2) Software selectively suspends a device by sending SetPortFeature(PORT_LINK_STATE)
+    (wValue = 5) to its upstream hub port with wIndex[15..8] = 3 (U3); if the link is in U1 or U2,
+    the hub first transitions the link to U0 before sending LGO_U3. In U3, the device enters Suspended
+    (drawing <= 2.5 mA I_CCS) and preserves all parameters in Table 9-2. (3) Software resumes a suspended
+    port via SetPortFeature(PORT_LINK_STATE) with wIndex[15..8] = 0 (U0), which drives LFPS exit handshake
+    through Recovery to U0 and sets C_PORT_LINK_STATE = 1 (wPortChange bit 6). Conversely, if any
+    function has Function Remote Wake enabled (or port events are enabled in PORT_REMOTE_WAKE_MASK,
+    Table 10-18, on a hub), the device can initiate remote wakeup by driving LFPS resume signaling
+    to bring its upstream link to U0 (within 10 ms of drawing non-suspend current; hubs do not set
+    C_PORT_LINK_STATE when U3 -> U0 is triggered by downstream remote wakeup signaling) and then sending
+    a DEV_NOTIFICATION TP with Notification Type = 0001b (FUNCTION_WAKE, Table 8-18, Table 8-19) and
+    Interface (DWORD 1 bits 15..8) set to the first interface number of the waking function, repeating
+    FUNCTION_WAKE every tNotification until the host accesses the function.'
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '269'
+      - '271'
+      section: 8.5.6.1
+      table: 8-18
+    - page: '271'
+      table: 8-19
+    - page: '353'
+      section: 9.1.1.6
+    - pages:
+      - '356'
+      - '357'
+      section: 9.2.5.2
+      table: 9-2
+    - page: '357'
+      section: 9.2.5.3
+    - page: '357'
+      section: 9.2.5.4
+    - section: 9.4.9
+      table: 9-9
+      pages:
+      - '373'
+      - '374'
+    - section: 10.16.2.6.2
+      pages:
+      - '479'
+      - '480'
+    - pages:
+      - '483'
+      - '486'
+      section: 10.16.2.10
+      table: 10-18
+    - section: 11.4.3
+      pages:
+      - '499'
+      - '500'
+- id: endpoint-0-bmaxpacketsize0-exponent
+  section: gotchas
+  title: bMaxPacketSize0 is a power-of-two exponent (09H = 512 bytes), not a literal byte count
+  claim: In the Standard Device Descriptor (Table 9-11), bMaxPacketSize0 at offset 7 is encoded as
+    the exponent for 2^bMaxPacketSize0 bytes, and 09H (2^9 = 512 bytes) is the only valid value when
+    operating at Gen X speed — unlike USB 2.0, where bMaxPacketSize0 is a literal byte count (8, 16,
+    32, or 64). Treating 09H as a literal 9-byte packet size (or programming 64) breaks control transfers.
+    In addition, an Enhanced SuperSpeed device operating at Gen X speed must not support device_qualifier
+    (6) or other_speed_configuration (7) descriptors (returning STALL), and when operating in a USB
+    2.0 mode it must report bcdUSB = 0210H (not 0310H or 0320H) so that host software fetches its
+    BOS descriptor (0FH) to discover Enhanced SuperSpeed capabilities.
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '359'
+      section: 9.2.6.6
+    - section: 9.4.3
+      pages:
+      - '365'
+      - '366'
+    - pages:
+      - '379'
+      - '381'
+      section: 9.6.1
+      table: 9-11
+    - page: '494'
+      section: '11.3'
+- id: bmaxpower-8ma-units-and-power-fallback
+  section: gotchas
+  title: Configuration bMaxPower uses 8 mA units at Gen X speed and self-to-bus power switch drops
+    configuration
+  claim: In the Standard Configuration Descriptor (Table 9-23), bMaxPower at offset 8 is expressed
+    in 8 mA units when operating at Gen X speed, versus 2 mA units when operating in USB 2.0 modes
+    (for example, bMaxPower = 50 means 400 mA at Gen X speed, not 100 mA). Furthermore, although an
+    unconfigured single-lane Enhanced SuperSpeed unit load is 150 mA (I_CCINIT), a USB 3.2 peripheral
+    device must not draw more than 100 mA from VBUS until it detects far-end Rx terminations, and
+    if a self-powered device operating at Gen X speed in a configuration requiring more than 1 unit
+    load switches to being bus-powered, it must drop its current configuration and USB address and
+    return to the Powered state (except a self-powered hub whose Hub Controller is already powered
+    from VBUS, which may remain in the Configured state when local power is lost per Section 9.1.1.2).
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '351'
+      section: 9.1.1.2
+    - page: '355'
+      section: 9.2.5.1
+    - section: 9.6.3
+      table: 9-23
+      pages:
+      - '391'
+      - '392'
+    - page: '494'
+      section: '11.4'
+    - page: '501'
+      section: 11.4.5
+      table: 11-2
+- id: clear-feature-endpoint-halt-resets-sequence-and-streams
+  section: gotchas
+  title: ClearFeature(ENDPOINT_HALT) unconditionally resets sequence numbers to 0 and disables Bulk
+    Streams
+  claim: Regardless of whether a bulk or interrupt endpoint currently has its Halt feature set, a
+    ClearFeature(ENDPOINT_HALT) request (bRequest = 1, wValue = 0) always reinitializes the endpoint's
+    data sequence number to 0 and, if Bulk Streams are enabled on the endpoint, reinitializes its
+    Stream Protocol State Machine (SPSM) to the Disabled state. Host software that sends ClearFeature(ENDPOINT_HALT)
+    without resetting its host-side sequence number to 0 (and re-priming a Bulk Stream pipe via Prime
+    Pipe) will trigger a sequence number or stream state mismatch. Also, Enhanced SuperSpeed devices
+    do not support functional stall (ENDPOINT_HALT) on control endpoints.
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '293'
+      - '303'
+      section: 8.12.1.4
+    - section: 9.4.5
+      pages:
+      - '367'
+      - '369'
+    - section: 9.4.16
+      table: 9-10
+      pages:
+      - '377'
+      - '378'
+- id: set-address-status-stage-and-configured-state
+  section: gotchas
+  title: SetAddress() switches address only after Status stage ACK and is unspecified in Configured
+    state
+  claim: Unlike every other device request — which completes its operation before the Status stage
+    — a device processing SetAddress() (bRequest = 5) completes the Status stage (STATUS TP -> ACK
+    TP) on its old address (such as default address 0) and changes its device address only after the
+    Status stage completes successfully within 50 ms. In addition, while SetAddress(0) in the Address
+    state returns the device to the Default state, receiving SetAddress() while the device is in the
+    Configured state has unspecified behavior in Section 9.4.6 (even though Table 9-10 includes a
+    Set Address 0 column); host software must use SetConfiguration(0) or a port reset rather than
+    sending SetAddress() to a configured device.
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - pages:
+      - '357'
+      - '358'
+      section: 9.2.6
+    - pages:
+      - '370'
+      - '371'
+      section: 9.4.6
+    - page: '372'
+      section: 9.4.7
+    - section: 9.4.16
+      table: 9-10
+      pages:
+      - '377'
+      - '378'
+- id: device-remote-wakeup-ignored-use-function-suspend
+  section: gotchas
+  title: DEVICE_REMOTE_WAKEUP is ignored; remote wakeup and U1/U2/LTM enables require Configured state
+  claim: Enhanced SuperSpeed devices ignore and do not use the USB 2.0 DEVICE_REMOTE_WAKEUP (wValue
+    = 1) device feature selector and must return 0 in bit D1 (Remote Wakeup) of a GetStatus(DEVICE)
+    response (Figure 9-4). Instead, device remote wakeup from U3 Device Suspend is enabled whenever
+    any function within the device has Function Remote Wake enabled via SetFeature(FUNCTION_SUSPEND)
+    (wValue = 0, bmRequestType = 00000001B) targeted at the first interface of that function with
+    wIndex bit 9 (bit 1 of Suspend Options in wIndex[15..8]) set to 1 (Table 9-9). Furthermore, SetFeature
+    and ClearFeature for FUNCTION_SUSPEND, U1_ENABLE (48), U2_ENABLE (49), and LTM_ENABLE (50) are
+    valid only in the Configured state — sending them in the Address state before SetConfiguration()
+    causes a Request Error (STALL).
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '357'
+      section: 9.2.5.4
+    - pages:
+      - '364'
+      - '365'
+      section: 9.4.1
+      table: 9-7
+    - pages:
+      - '367'
+      - '369'
+      section: 9.4.5
+      figure: 9-4
+    - page: '369'
+      figure: 9-5
+    - pages:
+      - '373'
+      - '374'
+      section: 9.4.9
+      table: 9-9
+- id: hub-port-enable-and-reset-clear-feature-differences
+  section: gotchas
+  title: Enhanced SuperSpeed hubs have no ClearPortFeature(PORT_ENABLE) or ClearPortFeature(PORT_RESET)
+  claim: Enhanced SuperSpeed hubs omit the USB 2.0 PORT_ENABLE (1) and PORT_SUSPEND (2) feature selectors
+    and do not support ClearPortFeature(PORT_ENABLE) to disable a port. In addition, ClearPortFeature(PORT_RESET),
+    ClearPortFeature(PORT_LINK_STATE), ClearPortFeature(PORT_CONNECTION), and ClearPortFeature(PORT_OVER_CURRENT)
+    must not be used by system software and are treated as no-operations by hubs. Instead, software
+    disables a port's Enhanced SuperSpeed link by issuing SetPortFeature(PORT_LINK_STATE) (wValue
+    = 5) with wIndex[15..8] = 4 (eSS.Disabled, moving the port to DSPORT.Disabled), and exits DSPORT.Disabled
+    by issuing SetPortFeature(PORT_LINK_STATE) with wIndex[15..8] = 5 (Rx.Detect, moving the port
+    to DSPORT.Disconnected, valid only in DSPORT.Disabled). Also, SetPortFeature(PORT_LINK_STATE)
+    with wIndex[15..8] = 1 (U1) or 2 (U2) has undefined behavior unless the link is currently in U0,
+    whereas wIndex[15..8] = 3 (U3) is valid from any U state because a hub port in U1 or U2 first
+    transitions the link to U0 before initiating U3.
+  support:
+  - class: standard
+    doc: usb-3.2.pdf
+    at:
+    - page: '420'
+      section: 10.3.1.9
+    - pages:
+      - '472'
+      - '473'
+      section: 10.16.2.2
+      table: 10-9
+    - pages:
+      - '476'
+      - '478'
+      section: 10.16.2.6.1
+      table: 10-13
+    - pages:
+      - '483'
+      - '485'
+      section: 10.16.2.10
