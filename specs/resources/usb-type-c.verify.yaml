@@ -459,7 +459,7 @@ verdicts:
     basis: 41c7deb1f66709a9fd2c23aeefe91fd3f075ea255d7390cbca93135b05cd97f6
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Sections 4.5.2.2.14 (p. 191), 4.5.2.2.15 (p. 191), 4.5.2.2.20 (pp. 193-194),
       4.5.2.2.21 (p. 194), and Table 4-32 (p. 247, Section 4.11.2). Confirmed Unattached.Accessory
@@ -481,7 +481,7 @@ verdicts:
     basis: 99c8f8c9c720218ba46ed54ae3dc631818c6140ad9ca261ee5f6a7b4cb4bc1bc
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Appendix A.1 (p. 352) and A.2 (pp. 352-353), Section 4.5.2.2.2.2 (p. 180), Section
       4.5.2.2.16 (pp. 191-192), and Table 4-29 (p. 246). Confirmed Liquid Corrosion Mitigation Mode
@@ -499,7 +499,7 @@ verdicts:
     basis: 3e80cad973fa126b2cc838b21aecdcb718c837ba3276d2e73501315b47b9ccff
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Sections 4.5.2.2.4.2 (p. 182), 4.5.2.2.8.2 (p. 186), 4.5.2.2.17 (p. 192),
       4.5.2.2.18 (pp. 192-193), 4.5.2.2.19 (p. 193), B.2.3.1 (p. 362), and B.2.4.1 (p. 365).
@@ -516,7 +516,7 @@ verdicts:
     basis: e29d8985090661c89af828b9e876cd9f425b0972ce798e98c64ea5d955c381e6
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Section B.2.2 and Table B-1 (p. 362), Section B.2.3 (p. 362), Section B.2.4.1 (pp.
       365-369), Section B.2.4.2 and Table B-2 (pp. 369-371), Section B.2.4.3 and Table B-3 (p.
@@ -534,7 +534,7 @@ verdicts:
     basis: 25c6e42236d6db7896d53f0da7de51cd375fa48e390e4a2450f5b67b3e305ef7
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Table 4-7 (p. 156), Table 4-8 (p. 157), Sections 4.5.2.2.4.2 (p. 182), 4.5.2.2.5.1
       (pp. 182-183), 4.5.2.2.5.2 (p. 183), 4.5.2.2.9.1 (p. 187), and 4.10/4.10.1/4.10.2 (p. 243).
@@ -552,7 +552,7 @@ verdicts:
     basis: 8b21a8b3ed4d777a66ca94d504516547eab82564bcdcf01892d3f876ae1df512
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Sections 4.5.2.2.3 (pp. 180-181), 4.5.2.2.4 (pp. 181-182), 4.5.2.2.5 (pp. 182-184),
       4.5.2.2.22 (pp. 194-195), 4.5.2.2.23 (pp. 195-196), 4.5.2.2.24 (p. 196), 4.5.2.2.25 (p. 197),
@@ -573,7 +573,7 @@ verdicts:
     basis: c8fc4ab2472a51746f40016b83b3f22f2fe474ec00f6858d9be1fc56958b4cc5
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader B
     note: >-
       Verified against Figure 4-18 (p. 178), Section 4.5.2.2.22.2 (p. 195), Section 4.5.2.2.28 (pp.
       198-199), Section 4.5.2.2.29 (p. 199), Section 4.5.2.2.30 (pp. 199-200), Section 4.5.2.2.31
@@ -591,7 +591,7 @@ verdicts:
     basis: 80b5e60ec6a8caf56f9ac09c2fda63dc33b048abc0f14a5d9afb6174e58628cf
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader B
     note: >-
       Verified against Sections 4.5.2.2.5.2 (pp. 183-184), 4.5.2.2.9.2 (p. 188), 4.5.2.2.20.2 (p.
       194), 4.5.2.2.26 (p. 197), 4.5.2.2.27 (pp. 197-198), Section 4.6.2.5 and Tables 4-21 and 4-22
@@ -611,7 +611,7 @@ verdicts:
     basis: d17fcb780a556548a0044b538725848922fbccd1a0b3cacd770738e9178f3a8d
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader B
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader B
     note: >-
       Verified against Sections 3.4.1.1 (p. 83), 3.4.2.1 (p. 84), 3.4.3 (p. 84), 3.4.4 (p. 85),
       3.11.2 (p. 148), Table 4-6 (p. 155), Section 4.9 (pp. 239-242), Section 4.9.1 and Table 4-24
@@ -630,7 +630,7 @@ verdicts:
     basis: ac0b3edbe08af2652b4533286a8890ad42431f23f6308ac68140aa7b54d35490
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Table 4-6 and accompanying prose (p. 155), Section 4.5.2.4 (pp. 202-204), Section
       4.5.2.5 (pp. 204-205), Section 4.9 (pp. 239-242), and Section 4.9.1 / Table 4-24 (p. 242).
@@ -649,7 +649,7 @@ verdicts:
     basis: 278b239d6ca5b00838e7f358799b4fb8749d4b71ea47dd78b03f2ecec6d937a8
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Sections 4.5.2.2.17 (p. 192), 4.5.2.2.18 (pp. 192-193), Section 4.5.2.6 / Table 4-18
       (p. 205), Section B.2.3 (p. 362), Section B.2.4.2.1 / Table B-2 (p. 369), and Section B.2.6
@@ -664,7 +664,7 @@ verdicts:
     basis: 1b87f5e2e2192607cd3135a19055612e27188c541e6c2181e5e24779b5bf7da9
     verdict: PASS
     date: '2026-10-19'
-    verifier: Claude Opus 4.7, Jetski subagent, Type-C extension reader A
+    verifier: Claude Opus 4.7, spec-verifier subagent, Type-C extension reader A
     note: >-
       Verified Section 4.4.3 and Tables 4-4 and 4-5 (pp. 153-154), Section 4.5.2.2.5.1 (pp.
       182-183), Section 4.5.2.2.9.1 (p. 187), Section 4.11.2 and Table 4-32 (p. 247), and Section
